@@ -1,7 +1,13 @@
 import sys
+from time import time
+
 from qespace_cef.cefmatrices import *
 
 import numpy as np
+import pytest
+
+# Total angular momenta J = 1/2 ... 8, covering the rare-earth ions.
+J_VALUES = [float(J) for J in np.arange(1, 17) / 2]
 
 
 
@@ -440,7 +446,7 @@ def StevensOpPCF(J,n,m):
     return matrix.O.T
 
 ###########################
-def test_matrices_pycrystalfield(J):
+def check_matrices_pycrystalfield(J):
     O = StevensBase(J)
     equivalent_ops = {
         'O11':  (J_x(J), O.O11(),  StevensOpPCF(J,1, 1)) ,
@@ -509,7 +515,7 @@ def test_matrices_pycrystalfield(J):
 
     return flag
 
-def test_matrices_characteristics(J):
+def check_matrices_characteristics(J):
     """Check that each matrix is hermitian and symmetric."""
     O = StevensBase(J)
     Onames = [
@@ -537,7 +543,7 @@ def test_matrices_characteristics(J):
 
 
 #########################
-def test_execution(Ntot):
+def benchmark_execution(Ntot):
     '''Test fetching time of Stevens matrices'''
     J=5
     O = StevensBase(J)
@@ -560,6 +566,17 @@ def test_execution(Ntot):
     t_end = time()
     print(f't2 took {t_end-t_start} s')
 
+@pytest.mark.parametrize('J', J_VALUES)
+def test_matrices_pycrystalfield(J):
+    """Stevens matrices match the old implementation and PyCrystalField (up to sign)."""
+    assert check_matrices_pycrystalfield(J)
+
+@pytest.mark.parametrize('J', J_VALUES)
+def test_matrices_hermitian(J):
+    """Every Stevens matrix is hermitian."""
+    result = check_matrices_characteristics(J)
+    assert all(result['is_hermitian'])
+
 def test_implementation():
     StevensBase.implementedOps()
 
@@ -575,9 +592,9 @@ if __name__ == '__main__':
 
     for J in np.arange(1, 5)/2:
     	# result = test_implementation(Jh/2)
-        result = test_matrices_characteristics(J)
+        result = check_matrices_characteristics(J)
         print(f'J={J}\n\t hermitian: {(result["is_hermitian"])}\n\t symmetrical={(result["is_symmetrical"])}')
 
 
-    # test_execution(10_000)
+    # benchmark_execution(10_000)
 
