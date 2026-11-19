@@ -3,10 +3,11 @@ __pycache__/
 crysfipy/__pycache__/
 *.py[cod]
 *$py.class
+crysfipy.egg-info
 
 # Outputs of examples?
 examples/*png
-crysfipy.egg-info
+examples/ErFeO3-fitting
 
 # dev
 .vscode
