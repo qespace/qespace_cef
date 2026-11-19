@@ -1,48 +1,37 @@
-# Byte-compiled / optimized / DLL files
+# Python bytecode
 __pycache__/
-*.py[codz]
-*$py.class
+*.py[cod]
 
-# Distribution / packaging
-.Python
+# Packaging and build output
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.eggs/
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
+# Environments (uv)
+.venv/
+.env
+
+# Tests, coverage, linters
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .nox/
 .coverage
 .coverage.*
-.cache
-nosetests.xml
+htmlcov/
 coverage.xml
-*.cover
-*.py.cover
-*.lcov
-.hypothesis/
-.pytest_cache/
-cover/
 
-# Sphinx documentation
+# Sphinx documentation build
 docs/_build/
+docs/build/
 
-# Environments
-.env
-.venv
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors and OS
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
