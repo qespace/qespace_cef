@@ -20,7 +20,7 @@ autodoc_mock_imports = ['numpy','matplotlib','scipy']
 
 # -- Project information -----------------------------------------------------
 
-project = 'crysfipy'
+project = 'qespace_cef'
 copyright = '2022, Michal Stekiel'
 author = 'Michal Stekiel'
 

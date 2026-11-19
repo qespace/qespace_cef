@@ -1,8 +1,8 @@
 Observables
 ========================================
 
-.. currentmodule:: crysfipy
+.. currentmodule:: qespace_cef
 
-.. automodule:: crysfipy.observables
+.. automodule:: qespace_cef.observables
 	:members:
 	

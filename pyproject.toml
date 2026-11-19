@@ -1,5 +1,5 @@
 [project]
-name = "crysfipy"
+name = "qespace_cef"
 version = "1.2.0"
 description = "Tools for analysis of physical properties arising from crystal-field Hamiltonian."
 readme = "README.md"

@@ -1,7 +1,7 @@
 CEFpars
 ========================================
 
-.. currentmodule:: crysfipy
+.. currentmodule:: qespace_cef
 
 .. autoclass:: CEFpars
 	:members:

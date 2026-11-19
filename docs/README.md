@@ -1,6 +1,6 @@
 ## Documentation is available at
 
-https://mstekiel.github.io/crysfipy/
+https://mstekiel.github.io/qespace_cef/
 
 It is formatted according to the numpydoc standards and Google Style for Python
 

@@ -1,7 +1,7 @@
 Ion
 ========================================
 
-.. currentmodule:: crysfipy
+.. currentmodule:: qespace_cef
 	
 .. autoclass:: Ion
 	:members:

@@ -1,5 +1,5 @@
 import sys
-from crysfipy.cefmatrices import *
+from qespace_cef.cefmatrices import *
 
 import numpy as np
 
