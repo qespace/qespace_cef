@@ -21,6 +21,7 @@ dependencies = [
 dev = [
     "furo>=2025.12.19",
     "pytest>=9.0.2",
+    "ruff>=0.17.6",
     "sphinx>=9.1.0",
 ]
 
@@ -30,3 +31,12 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = ""
+
+[tool.ruff]
+line-length = 100
+# Experimental scripts, not maintained to the package's standard.
+extend-exclude = ["qespace_cef/symbolic"]
+
+[tool.ruff.lint]
+# Pyflakes, the basic pycodestyle errors and import sorting; nothing stricter.
+select = ["E4", "E7", "E9", "F", "I"]
