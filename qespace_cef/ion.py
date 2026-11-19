@@ -177,7 +177,7 @@ class Ion:
         elementData = atomicDatabase[self.name]
 
         self.J: float = elementData["J"]
-        self.J2p1: float = int(2 * self.J + 1)
+        self.J2p1: int = int(2 * self.J + 1)
         self.gJ: float = elementData["gJ"]
         self.Alpha: float = elementData["alpha"]
         self.Beta: float = elementData["beta"]

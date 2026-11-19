@@ -1,6 +1,5 @@
-from typing import Tuple
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 from . import constants as C
 from .cefmatrices import J_x, J_y, J_z, StevensBase
@@ -28,7 +27,7 @@ class CEFion:
         Crystal-field parameters :math:`B_k^q` in meV (Stevens operators).
     Hfield : array_like of float, shape (3,), optional
         Magnetic field in T, in the frame of the J operators (z is the
-        quantisation axis). Default ``[0, 0, 0]``.
+        quantisation axis). Default ``(0, 0, 0)``.
     diagonalize : bool, optional
         If True (default), call :meth:`diagonalize` at once.
 
@@ -91,7 +90,7 @@ class CEFion:
         self,
         ion: Ion,
         cfp: CEFpars,
-        Hfield: Tuple[float, float, float] = [0, 0, 0],
+        Hfield: ArrayLike = (0.0, 0.0, 0.0),
         diagonalize: bool = True,
     ):
         self.ion = ion

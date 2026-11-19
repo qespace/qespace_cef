@@ -1,9 +1,7 @@
-from typing import Union
-
 import numpy as np
 
 
-def point_group_synonyms(name: Union[str, int]) -> np.ndarray:
+def point_group_synonyms(name: str | int) -> np.ndarray:
     """Rows of the point-group table that match a name or id.
 
     The table lists the 32 crystallographic point groups with their

@@ -68,7 +68,7 @@ class CEFpars:
     Bpars: dict[str, float]
     symmetry: np.void
 
-    def __init__(self, Bdict: dict[str, float], units: str = "meV", pointGroup: str = "C1"):
+    def __init__(self, Bdict: dict[str, float], units: str = "meV", pointGroup: str | int = "C1"):
         # Check units and assign conversion factors
         unitConversions = {"meV": 1.0, "K": C.K2meV, "invcm": C.invcm2meV}
         if units not in unitConversions:
@@ -90,7 +90,7 @@ class CEFpars:
         self.symmetry = point_group_synonyms(pointGroup)[0]
 
     @classmethod
-    def allowed_Bpars(cls, pointGroupName: str) -> list[str]:
+    def allowed_Bpars(cls, pointGroupName: str | int) -> list[str]:
         """Names of the parameters allowed (non-zero) in a point group.
 
         Taken from the table in the McPhase manual,

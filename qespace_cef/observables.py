@@ -5,9 +5,8 @@ transfer in 1/Å, moments in :math:`\\mu_B` per ion. Functions that take a
 ``CEFion`` expect it diagonalised (the default when it is created).
 """
 
-from typing import Tuple
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 from . import constants as C
 from .cefion import CEFion
@@ -42,11 +41,11 @@ def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
 def spectral_weight(
     cefion: CEFion,
     temperature: float,
-    Q: Tuple[float, float, float],
+    Q: ArrayLike,
     scheme: str,
     Ei: float = 1e6,
     B_iso: float = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     r"""Neutron-scattering energies and spectral weights of every transition.
 
     For each pair of eigenstates, initial ``i`` and final ``j``, the code
@@ -162,8 +161,8 @@ def spectral_weight(
 
 
 def magnetization(
-    cefion: CEFion, temperature: float, Hfield: Tuple[float, float, float]
-) -> Tuple[float, float, float]:
+    cefion: CEFion, temperature: float, Hfield: ArrayLike
+) -> tuple[float, float, float]:
     r"""Thermal average of the magnetic moment of one ion in a field.
 
     Builds and diagonalises a new :class:`~qespace_cef.CEFion` from
@@ -201,10 +200,10 @@ def magnetization(
 def magnetization_exchange(
     cefion: CEFion,
     temperature: float,
-    Hfield: Tuple[float, float, float],
+    Hfield: ArrayLike,
     lam: float,
     precision: float = 1e-5,
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     r"""Magnetisation with a molecular (mean) field, solved self-consistently.
 
     Calls :func:`magnetization` with the effective field
@@ -257,8 +256,8 @@ def magnetization_exchange(
 
 def susceptibility(
     cefion: CEFion,
-    temperatures: np.ndarray,
-    Hfield_direction: Tuple[float, float, float],
+    temperatures: ArrayLike,
+    Hfield_direction: ArrayLike,
     method: str = "perturbation",
 ) -> np.ndarray:
     r"""Single-ion magnetic susceptibility along a direction, versus temperature.
@@ -429,7 +428,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
 
 def thermodynamics(
     cefion: CEFion, T: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     r"""Single-ion thermodynamics from the partition function.
 
     With :math:`E_n` the eigenenergies (meV) and :math:`\beta = 1/k_B T`,
