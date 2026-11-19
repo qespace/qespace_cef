@@ -17,7 +17,7 @@ from importlib.metadata import version as _version
 sys.path.insert(0, os.path.abspath(".."))
 
 master_doc = "index"
-autodoc_mock_imports = ["numpy", "matplotlib", "scipy"]
+autodoc_mock_imports = ["numpy"]
 
 
 # -- Project information -----------------------------------------------------

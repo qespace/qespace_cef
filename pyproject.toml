@@ -11,10 +11,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "matplotlib>=3.10.8",
     "numpy>=2.4.4",
-    "scipy>=1.17.1",
-    "sympy>=1.14.0",
 ]
 
 [dependency-groups]
@@ -23,6 +20,10 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.17.6",
     "sphinx>=9.1.0",
+]
+# Only for the experimental scripts in qespace_cef/symbolic: uv sync --group symbolic
+symbolic = [
+    "sympy>=1.14.0",
 ]
 
 [build-system]
