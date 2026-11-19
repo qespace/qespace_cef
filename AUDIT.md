@@ -28,7 +28,7 @@ from `747c871` and does not depend on what changed since.
 | P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the CLAUDE.md section 3 row on degenerate levels (itself marked `OPEN:`) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 |
 | P5 | bug | `CEFion.diagonalize` | Calling it a second time rotates `Jx`, `Jy`, `Jz`, which are already in the eigenbasis, again | Ce, `B20=0.5, B40=0.01, B44=0.1`, field (0.3, 0, 1) T: after a second `diagonalize()` the moments change by up to 2.94 μB. Rerun on `610c884` | Rotate from the free-ion operators every time (keep them), or make diagonalisation run once (A2) |
 | P6 | bug | `CEFion.diagonalize(sortWithE=False)` | `np.arange(self.Jval)` takes a float J and has the wrong length (2J+1 is needed) | `IndexError: arrays used as indices must be of integer (or boolean) type`. Rerun on `610c884` | `np.arange(2*J+1)` |
-| P7 | bug | `CEFion.get_degeneracies(precision)` | The argument is overwritten with `precision = 5`, and `astype(int)` truncates instead of rounding, so two degenerate states whose energies differ by rounding noise can come out as two levels | `get_degeneracies(precision=1)` still gives 5 decimals (0.78397). Pr³⁺ with `B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4`: the 28.584 meV doublet comes out of `eigh` as 28.584000000000000 and 28.583999999999996 meV, two levels. Rerun on `610c884` | Group levels by a relative tolerance from one config place (A11), not by decimals (Q24) |
+| P7 | bug | `CEFion.get_degeneracies(precision)` | The argument is overwritten with `precision = 5`, and `astype(int)` truncates instead of rounding, so two degenerate states whose energies differ by rounding noise can come out as two levels | `get_degeneracies(precision=1)` still gives 5 decimals (0.78397). Pr³⁺ with `B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4`: the 28.584 meV doublet comes out of `eigh` as 28.584000000000000 and 28.583999999999996 meV, two levels. Rerun on `610c884` | Group levels by a relative tolerance from one config place (A11), not by decimals; waits for A11 (Q24) |
 | P8 | bug | `Ion.__str__` | `%d` prints J = 5/2 as 2 | `str(Ion('Ce'))` gives `'Ce: J = 2, gJ = 0.86'`. Rerun on `610c884` | Print the fraction |
 | P9 | bug (read) | `observables.spectral_weight`, `'single-crystal'` | `Σ_α (1 − Q̂_α²) \|J_α\|²` leaves out the cross terms `−Q̂_α Q̂_β J_α J_β*` | Q ∥ (110): summed weight 5.6516 from the code, 5.6573 with the cross terms. That's small here; per transition it can be larger | Use the full projector `Σ_αβ (δ_αβ − Q̂_α Q̂_β) <i\|J_α\|f><f\|J_β\|i>` (C10) |
 | P10 | bug | `observables.susceptibility`, `method='magnetization'` | Returns `\|M\|/ε`, the length, not the component along the field: wrong when M is not parallel to H, and it loses the sign | Ce, `B20=0.5, B40=0.01, B44=0.1`, 20 K, field along (1,0,1): the code gives 0.05824 μB/T, `M·n̂/ε` is 0.05329 μB/T. Run on `610c884` | Return `M·n̂/ε` |
@@ -67,7 +67,7 @@ from `747c871` and does not depend on what changed since.
 
 | ID | Finding | Proposal |
 |---|---|---|
-| Q2 | Naming: camelCase and snake_case mixed (`sortWithE`, `shiftToZero`, `pointGroup`, `Hfield`, `mffCoefficients`, `implementedOps`, `allowed_Bpars`), class attributes `Alpha/Beta/Gamma`, and the typo in the public name `boltzman_population` | Rename with A2, in v2 |
+| Q2 | Naming is not uniform, and no rule says what it should be. camelCase: `sortWithE`, `shiftToZero`, `pointGroup`, `pointGroupName`, `mffCoefficients`, `implementedOps`. Words fused with symbols or capitalised: `Hfield`, `Hfield_direction`, `Bpars`, `Bdict`, `allowed_Bpars`, `Jval`, `J2p1`, `Eimag_precision`, `Alpha/Beta/Gamma`, the classes `CEFion`, `CEFpars`. The typo in `boltzman_population`. Physics symbols (`J`, `Q`, `T`, `Ei`, `B_iso`, `gJ`, `Jx`, `O4m3`) follow the formulas. Scanned at run time on `8a39456` | A written rule (Q26): snake_case for words, physics symbols as in the formulas, listed; then rename with A2, in v2, possibly with deprecated aliases in a last 1.x |
 | Q7 | `CEFion.summary(evecs, precision)` is a stub that raises `NotImplementedError`; `__str__` still takes `evecs` and `precision`, which `str()` can't pass | Implement `summary` with A2 and give `__str__` no arguments |
 
 ## 5. Dependencies
@@ -130,16 +130,19 @@ by one.
    computed in the test), P10 (field along (1,0,1)), P11 (M = 0 gives 0, not
    NaN), P17 (g gᵀ unchanged under a rotation of the doublet basis). Tests
    that pass now: the sum rules of `spectral_weight`, and the D13 identities
-   (with the docstring corrected). P4 gets its test with C7. About 4–5
-   commits. Needs Q22.
-2. **`build/numpy-floor`** (X4): run the tests on numpy 1 and 2, set the
-   floor that passes, record the command in `DEV.md`. 1–2 commits. Needs
-   Q23.
-3. **`fix/susceptibility`**: P1, P2, P10, and A12 if Q25 says so. Each fix
+   (with the docstring corrected). P4 gets its test with C7. The
+   references are analytic limits and identities only (Q22). About 4–5
+   commits.
+2. **`build/numpy-floor`** (X4): `nox` as a dev dependency (Q23) and a
+   `noxfile.py` that runs the tests on a matrix of numpy (1 and 2) and
+   Python versions; set the numpy floor that passes; record the command in
+   `DEV.md`; settle the `OPEN:` on nox in CLAUDE.md 6.7. 2–3 commits.
+3. **`fix/susceptibility`**: P1, P2, P10, and A12 (Q25). Each fix
    turns its `xfail` green and carries `!` and `BREAKING CHANGE`, as the
    results change. 3–4 commits.
 4. **`fix/cefion`**: P5 (rotate from the kept free-ion operators, without
-   A2), P6, P7 (Q24), P8, P11. About 5 commits.
+   A2), P6, P8, P11. About 4 commits. P7 waits for the central tolerance
+   (A11, Q24).
 5. **`docs/conventions`**: I prepare a decision sheet for C1–C12 (options,
    what each changes, what the code does now); you decide (Q11); I write
    CLAUDE.md section 3, `CONVENTIONS.md` and `DEV.md` (A1). Suite-wide
@@ -147,15 +150,23 @@ by one.
 6. **`fix/conventions`**: the fixes that need a convention: P3 (C1, C11), P4
    and P17 (C7), P9 (C10), P13 and P14 (C9, sources), P15 (CODATA), P16 (C3,
    Q12). Probably two branches.
-7. **`refactor/api-v2`**, version 2.0: A2, A3, A4, A5, A10, A11, A14, Q2,
-   Q7. Planned first (CLAUDE.md 2.3), after Q13.
-8. Later: A6 (generated operators), A7 and A8 (point groups, data tables),
+7. **`test/pycrystalfield`**: compare observables with PyCrystalField as a
+   numerical reference, in a test dependency group. Its conventions and
+   its own bugs are separate questions, so each disagreement is a strict
+   `xfail` with the reason until you decide which side is right (Q22).
+8. **`refactor/api-v2`**, version 2.0: A2, A3, A4, A5, A10, A11 with P7,
+   A14, Q2 (with the naming rule, Q26), Q7. Planned first (CLAUDE.md 2.3),
+   after Q13.
+9. Later: A6 (generated operators), A7 and A8 (point groups, data tables),
    A9 (package data).
 
 ## 8. Questions for the maintainer
 
 The IDs continue after the questions asked in the review sessions (Q15–Q21),
-so they don't clash.
+so they don't clash. Answered on 2026-11-20 and moved into section 7: Q22
+(analytic limits and identities only; PyCrystalField in its own branch),
+Q23 (`nox` as a dev dependency, numpy × Python matrix), Q24 (P7 waits for
+A11), Q25 (A12 goes with P1).
 
 - **Q11 (C1–C12).** Which conventions do you want to decide first? P4, P17
   (the g-tensor) and P9 (the cross section) wait for C7 and C10.
@@ -163,14 +174,6 @@ so they don't clash.
 - **Q13 (A2).** Is an immutable solved-state object (section 3, A2) the
   direction you want for the API, or should `CEFion` stay as it is with only
   the bugs fixed?
-- **Q22 (WP 1).** Which independent references should the tests use
-  (CLAUDE.md 6.5, `OPEN:`)? Analytic limits and identities only, or also
-  PyCrystalField as a numerical reference in a test dependency group, which
-  is a new dependency?
-- **Q23 (X4).** Check numpy 1 and 2 with `nox` (a new dev dependency,
-  CLAUDE.md 6.7 `OPEN:`), or with a plain `uv run --with numpy==...` command
-  recorded in `DEV.md`?
-- **Q24 (P7).** Fix `get_degeneracies` by rounding now, or wait for the
-  central relative tolerance (A11) and group the levels by it?
-- **Q25 (A12).** Remove the print in `susceptibility` together with P1 (same
-  function), although the A items are delayed?
+- **Q26 (Q2).** The naming rule: snake_case for words and physics symbols
+  as in the formulas (which ones?), and is it a rule for this package or
+  for the whole suite (the workspace's `DEV.md` and glossary)?
