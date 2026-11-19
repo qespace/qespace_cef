@@ -1,5 +1,6 @@
 """Tests of ``qespace_cef.CEFpars``."""
 
+import numpy as np
 import pytest
 
 import qespace_cef as qc
@@ -43,3 +44,9 @@ def test_allowed_parameters_same_for_both_notations(hm, schoenflies):
 def test_triclinic_allows_every_operator():
     allowed = qc.CEFpars.allowed_Bpars("1")
     assert len(allowed) == 49 and "B00" in allowed and "B6m6" in allowed
+
+
+def test_parameters_stored_as_python_floats():
+    """NumPy scalars in the input are stored as Python floats (AUDIT Q6)."""
+    cfp = qc.CEFpars(dict(B20=np.float32(0.5), B40=np.int64(2)), units="K")
+    assert all(type(v) is float for v in cfp.Bpars.values())

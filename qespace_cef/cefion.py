@@ -270,7 +270,7 @@ class CEFion:
         precision = 5
         energies = (self.energies * 10**precision).astype(int)  # Convert to int for unique
         unique_energies, counts = np.unique(energies, return_counts=True)
-        return [[e, c] for e, c in zip(unique_energies / 10**precision, counts)]
+        return [[float(e), int(c)] for e, c in zip(unique_energies / 10**precision, counts)]
 
     def __str__(self, evecs: bool = True, precision: int = 3):
         """Energy levels, degeneracies and eigenvectors as text.

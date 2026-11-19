@@ -84,7 +84,7 @@ class CEFpars:
             if Oname not in StevensBase.implementedOps():
                 raise KeyError(f"Operator corresponding to {Bname} is not implemented.")
 
-            self.Bpars[Bname] = Bvalue * unitConversions[units]
+            self.Bpars[Bname] = float(Bvalue) * unitConversions[units]
 
         # Symmetry
         self.symmetry = point_group_synonyms(pointGroup)[0]

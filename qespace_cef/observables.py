@@ -194,7 +194,7 @@ def magnetization(
     p = boltzman_population(cefion_inH.energies, temperature)
     M = np.einsum("ij,i", cefion_inH.magnetic_moment, p)
 
-    return tuple(M)
+    return tuple(float(m) for m in M)
 
 
 def magnetization_exchange(

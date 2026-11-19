@@ -97,3 +97,10 @@ def test_diagonalize_rejects_non_hermitian_hamiltonian():
     cef.hamiltonian = cef.hamiltonian + 1j * np.eye(len(cef.hamiltonian))
     with pytest.raises(ValueError):
         cef.diagonalize()
+
+
+def test_degeneracies_are_plain_python_numbers():
+    """``get_degeneracies`` returns Python float and int, not NumPy scalars (AUDIT Q6)."""
+    levels = _cefion("Ce", dict(B20=1.0)).get_degeneracies()
+    assert levels == [[0.0, 2], [6.0, 2], [18.0, 2]]
+    assert all(type(e) is float and type(d) is int for e, d in levels)

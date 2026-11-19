@@ -80,11 +80,12 @@ tests/
                         Zeeman, sorting, orthonormality, H = U E U^dagger
   test_cefpars.py       unit conversion, point-group tables
   test_ion.py           J and gJ from Hund's rules, form factor
+  test_observables.py   return types only, so far
   test_performance.py   timing stubs, marker `perf`, deselected by default
 ```
 
 `pyproject.toml` puts `tests/` on the path, so the tests import the
-references as `reference.*`. `observables` has no tests yet; its known
+references as `reference.*`. `observables` has only a return-type test; its known
 problems are in AUDIT.md (P1–P4, P9–P11).
 
 ## Documentation
