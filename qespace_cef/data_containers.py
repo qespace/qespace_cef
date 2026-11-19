@@ -3,29 +3,39 @@ from typing import Union
 import numpy as np
 
 
-def point_group_synonyms(name: Union[str, int]) -> tuple[str, str, str, int]:
-    """
-    Return the synonyms of a given point group name.
+def point_group_synonyms(name: Union[str, int]) -> np.ndarray:
+    """Rows of the point-group table that match a name or id.
 
-    Contains database of Hermann-Mauguin, Schoenflies and lattice names as np.array with
-    dtype = [
-            ('HM', 'U8'),
-            ('Sch', 'U8'),
-            ('lattice', 'U16'),
-            ('id', 'i4')
-            ]
+    The table lists the 32 crystallographic point groups with their
+    Hermann-Mauguin (``'HM'``) and Schoenflies (``'Sch'``) symbols, a
+    lattice name (``'lattice'``, e.g. ``'tetragonal_2'``) and an integer
+    ``'id'`` shared by the groups of one lattice name.
 
-    Parameters:
-    -----------
-    name:
-        Name of the space group in Hermann-Mauguin, Schoenflies or lattice type notation.
-        Alternatively, integer identifyer of the point symmetry.
+    Parameters
+    ----------
+    name : str or int
+        Hermann-Mauguin symbol (``'4mm'``), Schoenflies symbol (``'C4v'``),
+        lattice name (``'tetragonal_2'``) or id (``4``).
 
+    Returns
+    -------
+    numpy.ndarray
+        Structured array with fields ``HM``, ``Sch``, ``lattice``, ``id``:
+        one row for a point-group symbol, all matching rows for a lattice
+        name or an id.
 
-    Returns:
+    Raises
+    ------
+    NameError
+        If nothing matches.
+
+    Examples
     --------
-    Tuple of (Hermann-Mauguin, Schoenflies, lattice names, id),
-    in case the name is ambiguous a list of fitting tuples.
+    >>> from qespace_cef.data_containers import point_group_synonyms
+    >>> point_group_synonyms("4mm")["Sch"].tolist()
+    ['C4v']
+    >>> point_group_synonyms("cubic_2")["HM"].tolist()
+    ['-43m', '432', 'm-3m']
     """
 
     symmetry_synonyms = [

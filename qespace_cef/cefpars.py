@@ -1,3 +1,5 @@
+import numpy as np
+
 from . import constants as C
 from .cefmatrices import StevensBase
 from .data_containers import point_group_synonyms
@@ -5,41 +7,60 @@ from .data_containers import point_group_synonyms
 
 class CEFpars:
     r"""
-    ## Class representing set of crystal field parameters
+    Set of crystal-field parameters :math:`B_k^q` for Stevens operators.
 
-    Values of crystal field parameters are stored in meV, but input in other units is possible.
+    The names follow the operators: ``'B20'`` multiplies
+    :math:`\hat{O}_2^0`, ``'B4m3'`` multiplies :math:`\hat{O}_4^{-3}`, for
+    every operator that :class:`~qespace_cef.cefmatrices.StevensBase`
+    implements (k = 0 ... 6). The values are stored in meV.
 
-    Symmetry handling was removed, as the value of that is dubious.
+    The point group is stored, but does not restrict the parameters; to
+    look up which parameters a point group allows, use
+    :meth:`allowed_Bpars`.
 
-    It simplifies the creation of the CF parameter sets considering the point group of the ion.
-    The symmetry restrictions follow from https://www2.cpfs.mpg.de/~rotter/homepage_mcphase/manual/node133.html
-    It also allows to look up the symmetry restrictions and nice printing of parameters.
-    For the lookup table between notations on point groups see: https://en.wikipedia.org/wiki/Point_group
+    Parameters
+    ----------
+    Bdict : dict of str to float
+        Parameter names and values, in ``units``.
+    units : {'meV', 'K', 'invcm'}, optional
+        Unit of the values in ``Bdict``. Default ``'meV'``.
+    pointGroup : str or int, optional
+        Any point-group name that
+        :func:`~qespace_cef.data_containers.point_group_synonyms` accepts;
+        for a name with several matches the first is kept. Default ``'C1'``.
 
-    Special care was taken for the cubic space group, as its symmetry imposes some algebraic
-    relations between the non-zero elements.
+    Attributes
+    ----------
+    Bpars : dict of str to float
+        Parameter names and values in meV.
+    symmetry : numpy.void
+        Record ``(HM, Sch, lattice, id)`` of the point group: the
+        Hermann-Mauguin and Schoenflies symbols, the lattice name and an
+        integer id.
 
-    Attributes:
-    -----------
-        Bpars : dict[str, float]
-            Bname:Bvalue pairs.
-        symmetry: NamedTuple(Hermann-Mauguin, Schoenflies, lattice_names, id)
-            Synonyms of point group symmetry.
+    Raises
+    ------
+    ValueError
+        If ``units`` is unknown.
+    KeyError
+        If a name in ``Bdict`` has no implemented operator.
+    NameError
+        If ``pointGroup`` is unknown.
 
-    Examples:
-    ---------
-        >>> Bdict = dict(B20=1, B52=0.1, B6m1=-0.3)
-        >>> cfp = qespace_cef.CEFpars(Bdict)
-        >>> print(cfp)
-            <CEFpars: symmetry=('2', 'C2', 'monoclinic', 1),
-                B20 = 1.0 meV,
-                B52 = 0.1 meV,
-                B6m1 = -0.3 meV
-            >
+    Examples
+    --------
+    >>> import qespace_cef as qc
+    >>> cfp = qc.CEFpars(dict(B20=1, B40=0.1, B6m1=-0.3))
+    >>> print(cfp)  # doctest: +NORMALIZE_WHITESPACE
+    <CEFpars: symmetry=('1', 'C1', 'triclinic', 0),
+        B20 = 1.0 meV,
+        B40 = 0.1 meV,
+        B6m1 = -0.3 meV
+    >
     """
 
     Bpars: dict[str, float]
-    symmetry: str
+    symmetry: np.void
 
     def __init__(self, Bdict: dict[str, float], units: str = "meV", pointGroup: str = "C1"):
         # Check units and assign conversion factors
@@ -63,6 +84,37 @@ class CEFpars:
 
     @classmethod
     def allowed_Bpars(cls, pointGroupName: str) -> list[str]:
+        """Names of the parameters allowed (non-zero) in a point group.
+
+        Taken from the table in the McPhase manual,
+        https://www2.cpfs.mpg.de/~rotter/homepage_mcphase/manual/node133.html,
+        which assumes z along the main symmetry axis. Relations between
+        parameters (e.g. cubic ``B44 = 5 B40``) are not included.
+
+        Parameters
+        ----------
+        pointGroupName : str or int
+            Any point-group name that
+            :func:`~qespace_cef.data_containers.point_group_synonyms`
+            accepts; for a name with several matches the first is used.
+
+        Returns
+        -------
+        list of str
+            Parameter names such as ``'B20'``. For C1, all 49 implemented
+            operators, including k = 0, 1, 3, 5.
+
+        Raises
+        ------
+        NameError
+            If the point group is unknown.
+
+        Examples
+        --------
+        >>> import qespace_cef as qc
+        >>> qc.CEFpars.allowed_Bpars("4mm")
+        ['B20', 'B40', 'B44', 'B60', 'B64']
+        """
         symmetry_Sch = point_group_synonyms(pointGroupName)[0]["Sch"]
 
         # List of allowed parameters is compiled based on McPhase manual
@@ -137,6 +189,7 @@ class CEFpars:
         return allowed_Bpars[symmetry_Sch]
 
     def __str__(self):
+        """Point group and parameters in meV, one per line."""
         ret = f"<CEFpars: symmetry={self.symmetry}"
         for Bname, Bvalue in self.Bpars.items():
             ret += f",\n\t{Bname} = {Bvalue:.4} meV"

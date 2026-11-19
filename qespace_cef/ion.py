@@ -1,27 +1,46 @@
-from typing import List
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 class Ion:
     r"""
-    Class representing an isolated rare-earth ion and its fundamental parameters.
+    Free trivalent rare-earth ion: ground J multiplet and form-factor data.
 
-    Attributes:
-        J : int/2
-            Quantum number describing the total angular momentum L-S
-        J2p1 : int
-            Degeneracy of the manifold
-        gJ  : float
-            Lande coefficient
-        Alpha : float
-            :math:`\alpha` parameter
-        Beta : float
-            :math:`\beta` parameter
-        Gamma : float
-            :math:`\gamma` parameter
-        mffCoefficients : dict
-            Dictionary of coefficients, used to calculate the magnetic form factor
+    Parameters
+    ----------
+    ion_name : str
+        Element symbol, case-insensitive: Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm
+        or Yb.
+
+    Attributes
+    ----------
+    name : str
+        Element symbol in lower case.
+    J : float
+        Total angular momentum of the ground multiplet (Hund's rules).
+    J2p1 : int
+        Degeneracy 2J+1 of the multiplet.
+    gJ : float
+        Landé factor, dimensionless.
+    Alpha, Beta, Gamma : float
+        Stevens factors :math:`\alpha_J, \beta_J, \gamma_J` of the rank 2, 4
+        and 6 operators, dimensionless. Not used elsewhere in the package.
+    mffCoefficients : dict
+        ``{'j0': [A, a, B, b, C, c, D], 'j2': [A, a, B, b, C, c, D]}``, the
+        coefficients of :math:`\langle j_0 \rangle` and
+        :math:`\langle j_2 \rangle` used by :meth:`mff`.
+
+    Raises
+    ------
+    KeyError
+        If the ion is not in the table.
+
+    Examples
+    --------
+    >>> import qespace_cef as qc
+    >>> ce = qc.Ion("Ce")
+    >>> ce.J, round(ce.gJ, 4)
+    (2.5, 0.8571)
     """
 
     def __init__(self, ion_name: str):
@@ -154,21 +173,35 @@ class Ion:
         self.mffCoefficients = elementData["js"]
 
     def __str__(self):
+        """Name, J and gJ, e.g. ``'Ho: J = 8, gJ = 1.25'``."""
         return "%s: J = %d, gJ = %.2f" % (self.name.title(), self.J, self.gJ)
 
-    def mff(self, Q: List[float]) -> np.ndarray:
-        """
-        Calculate the magnetic form factor at given momentum transfer Q. From dipole approximation (small Q):
-        | :math:`f_m(Q) = j_0(Q) + \\frac{2-g_J}{g_J} j_2(Q)`
+    def mff(self, Q: ArrayLike) -> float | np.ndarray:
+        r"""Magnetic form factor in the dipole approximation.
 
-        Functions :math:`j_n` are tabulated internally, :math:`g_J` is the Lande factor.
+        .. math::
 
-        Parameters:
-            Q
-                List of the selected Q values. Note, Q is not a vector in reciprocal space, but its magnitude.
+            f(Q) = \langle j_0 \rangle + \frac{2 - g_J}{g_J} \langle j_2 \rangle,
 
-        Returns:
-            Array of calculated values
+        with :math:`s = Q / 4\pi` and the coefficients in ``mffCoefficients``:
+
+        .. math::
+
+            \langle j_0 \rangle = A e^{-a s^2} + B e^{-b s^2} + C e^{-c s^2} + D, \qquad
+            \langle j_2 \rangle = s^2 \left( A e^{-a s^2} + B e^{-b s^2} + C e^{-c s^2} + D \right).
+
+        The dipole approximation holds at small Q.
+
+        Parameters
+        ----------
+        Q : float or array_like of float
+            Length of the momentum transfer in 1/Å (not a vector).
+
+        Returns
+        -------
+        float or ndarray
+            Form factor, dimensionless, with the shape of ``Q``;
+            :math:`f(0) \approx 1`.
         """
         s = np.divide(Q, 4 * np.pi)
         coefs0 = self.mffCoefficients["j0"]

@@ -1,3 +1,10 @@
+"""Observables computed from a :class:`~qespace_cef.CEFion`.
+
+Units: energies in meV, temperatures in K, magnetic fields in T, momentum
+transfer in 1/Å, moments in :math:`\\mu_B` per ion. Functions that take a
+``CEFion`` expect it diagonalised (the default when it is created).
+"""
+
 from typing import Tuple
 
 import numpy as np
@@ -7,24 +14,24 @@ from .cefion import CEFion
 
 
 def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
-    r"""
-    Calculate the population of energy levels at given temperature based on the Boltzmann statistic.
-    :math:`p_i = \frac{1}{Z} e^{-E_i/k_B T}`
-    :math:`Z = \sum_i e^{-Ei/k_BT}`
-    One important distinction, is that this function works with eigenvalues (energies) from the whole Hilbert space,
-    as it needs to evaluate :math:`Z` on its own. This works well for the total angular momentum Hilbert space, and does care about degeneracies.
+    r"""Boltzmann population of each eigenstate.
+
+    .. math:: p_i = \frac{1}{Z} e^{-E_i/k_B T}, \qquad Z = \sum_i e^{-E_i/k_B T}
+
+    The sum runs over the given states, so pass every eigenvalue of the
+    Hilbert space, each degenerate state separately; ``Z`` is computed here.
 
     Parameters
     ----------
-    energies: np.ndarray[float]
-        List of energy levels in meV units
-    temperature: float
-        Temperature at which to evaluate the statistic
+    energies : ndarray of float, shape (n,)
+        Eigenenergies in meV.
+    temperature : float
+        Temperature in K.
 
     Returns
     -------
-    n_i: np.ndarray[float]
-        List of occupation probabilities for each energy level.
+    ndarray of float, shape (n,)
+        Occupation probability of each state; they sum to 1.
     """
 
     p = np.exp(-np.array(energies - min(energies)) * C.meV2K / temperature)
@@ -40,82 +47,68 @@ def spectral_weight(
     Ei: float = 1e6,
     B_iso: float = 0,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    r"""Returns matrix of energies and inelastic neutron scattering spectral weights for all possible transitions at given temperature.
+    r"""Neutron-scattering energies and spectral weights of every transition.
 
-    The spectral weight is calculated by equation from Enderle book following Stephane Raymond article.
+    For each pair of eigenstates, initial ``i`` and final ``j``, the code
+    computes
 
-    | :math:`S(\vec{Q},\omega) = N (\gamma r_0)^2 f^2_m(Q) e^{-W(Q)} \sum_{if} \frac{k_f}{k_i} p_i |<\lambda_f|J_\perp|\lambda_i>|^2 \delta(E_i - E_f - \hbar \omega)`
-    | :label: Sqw_master
+    .. math::
 
-    where: :math:numref:`Sqw_master`
+        \Delta E_{ij} = E_j - E_i, \qquad
+        S_{ij} = f^2(Q) \, e^{-B_{iso} Q^2 / 3} \,
+                 \sqrt{1 - \Delta E_{ij} / E_\mathrm{inc}} \; p_i \; M_{ij},
 
-    | :math:`N (\gamma r_0)^2`
-    | set to 1, acts as units.
+    with :math:`f(Q)` the form factor (:meth:`Ion.mff`), :math:`p_i` the
+    Boltzmann population (:func:`boltzman_population`), :math:`E_\mathrm{inc}` the
+    incident neutron energy ``Ei``, and the matrix elements
 
-    | :math:`f^2_m(Q)`
-    | magnetic form factor, taken from internal tables in ``qespace_cef.Ion`` class.
+    - ``'powder'``: :math:`M_{ij} = \frac{2}{3} \sum_\alpha |\langle i|\hat{J}_\alpha|j\rangle|^2`;
+    - ``'single-crystal'``: :math:`M_{ij} = \sum_\alpha (1 - \hat{Q}_\alpha^2) |\langle i|\hat{J}_\alpha|j\rangle|^2`,
+      with :math:`\hat{Q} = \vec{Q}/|Q|` in the frame of the J operators.
 
-    | :math:`e^{-W(Q)}`
-    | Debye-Waller factor, where :math:`W(Q) = \frac{1}{2} B Q^2`. :math:`B = B_{iso}` is the isotropic mean-square displacement obtained from crystal structure refinement.
-
-    | :math:`\frac{k_f}{k_i}`
-    | scaling factor calculated from energy, which is used more widely :math:`\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}`. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.
-
-    | :math:`p_i`
-    | Boltzmann population factor.
-
-    | :math:`|<\lambda_f|J_\perp|\lambda_i>|^2`
-    | matrix elements, exact description depends on ``Q``, see below.
-
-    -----
-
-    Knowledge of the crystal field allows to determine the matrix elements :math:`|<\lambda_f|\hat{J}_\perp|\lambda_i>|^2`,
-    where the perpendicularity is with respect to the momentum transfer vector :math:`\vec{Q}`.
-    With the squared form of matrix elements the perpendicular projection is:
-
-    .. math:: \hat{J}_\perp = \sum_\alpha [1-Q_\alpha/|Q|]\hat{J}_\alpha
-      :label: Jperp_SC
-
-    where :math:`\alpha` indexes cartesian components.
-
-    For polycrystalline samples, where we average the angular components within the polar coordinates the
-    projection simplifies to
-
-    .. math:: \hat{J}_\perp = \frac{2}{3} \sum_\alpha \hat{J}_\alpha
-      :label: Jperp_PWD
-
+    The prefactor :math:`N (\gamma r_0)^2` is set to 1, so ``Sqw`` is in
+    arbitrary units. Positive :math:`\Delta E` is neutron energy loss. The
+    transitions are neither sorted nor merged over degenerate levels.
 
     Parameters
     ----------
-    cefion: :class:`CEFion`
-        Rare-earth ion in the crystal field
-    tempreature:
-        Temperature in *K*
-    Q :
-        List of Q vectors used to evaluate the spectral weight
-    scheme : 'powder', 'single-crystal':
-            Scheme according to which :math:`|J_\perp|^2` is calculated. For `powder` its Eq. :math:numref:`Jperp_PWD`, for `single-crystal` Eq. :math:numref:`Jperp_SC`
-
-    Returns:
-        energies: Array containing energies of the transitions
-        intensities: Array containing intensities of the transitions
+    cefion : CEFion
+        Diagonalised ion in the crystal field.
+    temperature : float
+        Temperature in K.
+    Q : array_like of float, shape (3,)
+        Momentum transfer in 1/Å, in the frame of the J operators. For
+        ``'powder'`` only its length is used.
+    scheme : {'powder', 'single-crystal'}
+        How the matrix elements are averaged, see above.
+    Ei : float, optional
+        Incident neutron energy in meV. The default, 1e6 meV, makes
+        :math:`k_f/k_i \approx 1`.
+    B_iso : float, optional
+        Isotropic displacement parameter in Å², entering as
+        :math:`e^{-B_{iso} Q^2/3}`. Default 0 (no Debye-Waller factor).
 
     Returns
     -------
-    delta_energies: list[float]
-        Transitions' energies.
-    Sqw: list[float]
-        Spectral weight of neutron scattering for corresponding transitions.
+    jumps : ndarray, shape (2J+1, 2J+1)
+        ``jumps[i, j]`` is the transition energy :math:`E_j - E_i` in meV.
+    Sqw : ndarray, shape (2J+1, 2J+1)
+        ``Sqw[i, j]`` is the spectral weight of the transition from ``i`` to
+        ``j``, in arbitrary units. NaN, with a NumPy ``RuntimeWarning``,
+        where :math:`E_j - E_i > E_\mathrm{inc}`, and for ``'single-crystal'`` at
+        Q = 0.
 
     Raises
     ------
     ValueError
-        When an invalid ``Q`` parameter is chosen, or the dimension of the ``Q`` vector is not 3.
-    RuntimeWarning
-        When Q=[0,0,0], where the spectral weight is ill defined.
-    """
+        If ``scheme`` is unknown, or ``Q`` does not have 3 components for
+        ``'single-crystal'``.
 
-    # The way it is calculated is that the factor within the sum is calculated as a matrix, which is flattened at the end. Energy degeneracies are not taken into account, as it is easier to handle.
+    Notes
+    -----
+    The original code cites "the Enderle book following Stephane Raymond
+    article" for the formula; the full reference is missing.
+    """
 
     # Magnetic form factor
     f2m = cefion.ion.mff(np.linalg.norm(Q)) ** 2
@@ -138,7 +131,7 @@ def spectral_weight(
     elif scheme == "powder":
         J2_perp = 2.0 / 3 * np.einsum("ijk->jk", np.square(np.abs(cefion.J)))
     else:
-        raise ValueError("Invalid ``Q`` parameter")
+        raise ValueError(f"Unknown scheme {scheme!r}; use 'powder' or 'single-crystal'.")
 
     # kf/ki factor, which is actually a matrix
     kfki = np.sqrt(1 - jumps / Ei)
@@ -155,23 +148,28 @@ def spectral_weight(
 def magnetization(
     cefion: CEFion, temperature: float, Hfield: Tuple[float, float, float]
 ) -> Tuple[float, float, float]:
-    r"""
-    Calculate the magnetization of the single ion in the crystal field.
-    Returned value is in :math:`\mu_B` units.
+    r"""Thermal average of the magnetic moment of one ion in a field.
 
-    Calculation follows from reevaluating the Hamiltonian with the Zeeman term :math:`\vec{\mu} \cdot \vec{H}`
-    and determining the expectation value of magneitzation:
+    Builds and diagonalises a new :class:`~qespace_cef.CEFion` from
+    ``cefion.ion`` and ``cefion.cfp`` with the field ``Hfield``, then
 
-    :math:`M_\alpha = g_J \sum_n p_n |<\lambda_n | \hat{J}_\alpha | \lambda_n>|`
+    .. math:: M_\alpha = g_J \sum_n p_n \, \mathrm{Re} \langle n|\hat{J}_\alpha|n\rangle
+
+    with :math:`p_n` the Boltzmann populations in that field.
 
     Parameters
     ----------
-    cefion:
-        Rare-earth ion in the crystal field
-    temperature:
-        Temperature at which to calculate magnetization
-    Hfield:
-        Applied magnetic field. Both direction and value are important.
+    cefion : CEFion
+        Ion in the crystal field. Its own ``Hfield`` is not used.
+    temperature : float
+        Temperature in K.
+    Hfield : array_like of float, shape (3,)
+        Total magnetic field in T, in the frame of the J operators.
+
+    Returns
+    -------
+    tuple of 3 float
+        :math:`(M_x, M_y, M_z)` in :math:`\mu_B` per ion.
     """
 
     # Solve the Hamiltonian of a copy of the given ion
@@ -191,26 +189,33 @@ def magnetization_exchange(
     lam: float,
     precision: float = 1e-5,
 ) -> Tuple[float, float, float]:
-    r"""
-    Calculate the magnetization of the single ion in the crystal field, with correction of exchange/molecular fields.
-    Returned value is in :math:`\mu_B` units.
+    r"""Magnetisation with a molecular (mean) field, solved self-consistently.
 
-    As for standard magnetization, `observables.magnetization()` calculation follows from reevaluating the Hamiltonian with the Zeeman term,
-    but with an effective field :math:`\vec{\mu} \cdot \vec{H}_eff`, where the effective field is corrected for magnetization
-    :math:`\vec{H}_eff = \vec{H}_{external} + \vec{H}_exchange = \vec{H}_{external} + \lambda \vec{M}`.
-    Exchange field is calulated in a self-consistent manner.
+    Calls :func:`magnetization` with the effective field
 
-    Parameters:
-        cefion:
-            Rare-earth ion in the crystal field.
-        temperature:
-            Temperature at which to calculate magnetization.
-        Hfield:
-            Applied magnetic field. Both direction and value are important.
-        lam:
-            Exchange field parameter.
-        precision:
-            Self-consistent loop will be performed as long as abs(dM/M)>precision.
+    .. math:: \vec{H}_\mathrm{eff} = \vec{H} + \lambda \vec{M}
+
+    and repeats with the new :math:`\vec{M}` until
+    :math:`|\vec{M}_{k+1} - \vec{M}_k| / |\vec{M}_{k+1}| \le` ``precision``.
+
+    Parameters
+    ----------
+    cefion : CEFion
+        Ion in the crystal field. Its own ``Hfield`` is not used.
+    temperature : float
+        Temperature in K.
+    Hfield : array_like of float, shape (3,)
+        External magnetic field in T, in the frame of the J operators.
+    lam : float
+        Molecular-field constant :math:`\lambda` in T per :math:`\mu_B`.
+    precision : float, optional
+        Relative change of :math:`|\vec{M}|` at which the iteration stops.
+        Default 1e-5.
+
+    Returns
+    -------
+    tuple of 3 float
+        :math:`(M_x, M_y, M_z)` in :math:`\mu_B` per ion.
     """
 
     # Solve the Hamiltonian of a copy of the given ion
@@ -233,48 +238,57 @@ def susceptibility(
     Hfield_direction: Tuple[float, float, float],
     method: str = "perturbation",
 ) -> np.ndarray:
-    r"""
-    Calculate the magnetic susceptibility at listed temperatures, based on one of the implemented methods.
-    
-    
-    `perturbation`:
-    Based on assuming an infinitezimal applied field that perturbes the Hamiltonian, the eigenstates
-    are calculated by means od perturbation theory and given by formula:
+    r"""Single-ion magnetic susceptibility along a direction, versus temperature.
 
-    | :math:`\chi_{CEF} = (g_J \mu_B)^2 \left[ \sum_{n,m \neq n}  p_n \frac{1-exp(-\Delta_{m,n}/k_B T)}{\Delta_{m,n}} |<\lambda_m|J|\lambda_n>|^2  +  \frac{1}{k_B T} \sum_{n} p_n |<\lambda_n|J|\lambda_n>|^2 \right]`
-    
-    where
-    
-    | :math:`g_J \mu_B` : Lande factor, Bohr magneton.
-    | :math:`p_n` : Ptobabitlity of occupying the energy level :math:`\lambda_n` at given temperature.
-    | :math:`\Delta_{m,n}` : Energy of transition between the :math:`\lambda_n` and :math:`\lambda_m` levels.
-    | :math:`<\lambda_m|J|\lambda_n>` : J matrix elements.
+    The two methods return **different units**.
 
+    ``'perturbation'`` (default) evaluates, in zero field,
 
-    
+    .. math::
 
-    `magnetization`:
-    Based on calculating a numerical derivative of the magnetization, with a very small magnetic field
+        \chi = g_J^2 \sum_n p_n \Big[
+            \sum_{m:\,E_m = E_n} \frac{|J^{\hat{n}}_{nm}|^2}{k_B T}
+          + \sum_{m:\,E_m > E_n} \frac{1 - e^{-(E_m - E_n)/k_B T}}{E_m - E_n} |J^{\hat{n}}_{nm}|^2
+        \Big],
+        \qquad
+        |J^{\hat{n}}_{nm}|^2 = \frac{\sum_\alpha n_\alpha |\langle n|\hat{J}_\alpha|m\rangle|^2}{|\vec{n}|},
 
-    | :math:`\chi_{CEF} = \left. \frac{\partial \vec{M}}{\partial \vec{H}} \right|_{\vec{H}=\epsilon}`
+    with :math:`\vec{n}` = ``Hfield_direction``, :math:`p_n` the Boltzmann
+    populations and levels equal within ``constants.numerical_zero`` (meV).
+    The result is in :math:`\mu_B^2`/meV per ion; multiply by
+    ``constants.uB`` (meV/T) for :math:`\mu_B`/T.
 
-    Magnetization is calculated internally by :func:`magnetization`. :math:`\epsilon = 10^{-8}`
+    ``'magnetization'`` takes the finite difference
+    :math:`\chi = |\vec{M}(\epsilon \hat{n})| / \epsilon` with
+    :math:`\epsilon = 10^{-5}` T and :func:`magnetization`, in
+    :math:`\mu_B`/T per ion.
 
-  
+    Parameters
+    ----------
+    cefion : CEFion
+        Diagonalised ion in the crystal field; its ``Hfield`` is not used.
+    temperatures : array_like of float, shape (n,)
+        Temperatures in K.
+    Hfield_direction : array_like of float, shape (3,)
+        Field direction in the frame of the J operators; its length does
+        not matter.
+    method : {'perturbation', 'magnetization'}, optional
+        See above.
 
-    
-    Parameters:
-        cefion : :class:`qespace_cef.CEFion`
-            Rare-earth ion in crystal field\
-        temperatures : ndarray
-            Array ocntaining temperatures at which to compute the susceptibility.
-        Hfield_direction:
-            Direction of the applied magnetic field. Value can be arbitrary, it is normalized in the code.
-        method: optional, 'perturbation', 'magnetization'
-            Method by which to calculate susceptibility. Old implementation 
-            
-    Returns:
-        List of susceptibility values calculated at given temperatures. In the units of :math:`\mu_B^2`.
+    Returns
+    -------
+    ndarray, shape (n,)
+        Susceptibility at each temperature, in :math:`\mu_B^2`/meV
+        (``'perturbation'``) or :math:`\mu_B`/T (``'magnetization'``) per ion.
+
+    Raises
+    ------
+    ValueError
+        If ``method`` is unknown.
+
+    Notes
+    -----
+    ``'perturbation'`` prints the matrix of transition energies.
     """
 
     if method == "magnetization":
@@ -317,21 +331,38 @@ def susceptibility(
 
             susceptibility[it] = (cefion.ion.gJ) ** 2 * np.sum(Tmx * J2_directed)
     else:
-        raise ValueError("Unknown method to calculate magnetization.")
+        raise ValueError(f"Unknown method {method!r}; use 'perturbation' or 'magnetization'.")
 
     return susceptibility
 
 
 def gtensor(cefion: CEFion) -> np.ndarray:
-    r"""
-    Calculate the g-tensor from the ground state doublet wavefunctions. 
-          
-    Parameters:
-        cefion : :class:`qespace_cef.CEFion`
-            Rare-earth ion in crystal field\
-            
-    Returns:
-        Matrix representing the g-tensor.
+    r"""g-tensor of the ground doublet, following PyCrystalField's construction.
+
+    With :math:`|0\rangle, |1\rangle` the first two eigenstates, column by
+    column:
+
+    .. math::
+
+        g_{\alpha x} = 2 g_J \, \mathrm{Re} \langle 0|\hat{J}_\alpha|1\rangle, \quad
+        g_{\alpha y} = 2 g_J \, \mathrm{Im} \langle 0|\hat{J}_\alpha|1\rangle, \quad
+        g_{\alpha z} = 2 g_J \, |\langle 0|\hat{J}_\alpha|0\rangle|.
+
+    Parameters
+    ----------
+    cefion : CEFion
+        Diagonalised ion whose two lowest states are degenerate.
+
+    Returns
+    -------
+    ndarray, shape (3, 3)
+        Dimensionless; row :math:`\alpha` = x, y, z of the J operator.
+
+    Raises
+    ------
+    AssertionError
+        If the two lowest energies differ by ``constants.numerical_zero``
+        (meV) or more.
     """
 
     assert np.abs(cefion.energies[0] - cefion.energies[1]) < C.numerical_zero, (
@@ -350,31 +381,38 @@ def gtensor(cefion: CEFion) -> np.ndarray:
 def thermodynamics(
     cefion: CEFion, T: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    r"""
-    Calculate the fundamental thermodynamic values as a function of temperature.
+    r"""Single-ion thermodynamics from the partition function.
 
-    These functions are calculated altogether taking advantage of the fact
-    that thermodynamics can be determined from the partition function :math:`Z`
-    taken as the weighing function and calculating moments of average energy <E^n>.
+    With :math:`E_n` the eigenenergies (meV) and :math:`\beta = 1/k_B T`,
+    the code computes
 
-    | Partition function: :math:`Z = \sum_n e^{-\beta E_n}`
-    | Average (internal) energy: :math:`\langle E \rangle = U = \frac{1}{Z} \sum_n E_n e^{-\beta E_n}`
-    | Free energy: :math:`F = -T ln(Z)`
-    | Entropy: :math:`S = (U-F)/T`
-    | Specific heat: :math:`C_V = (<E^2> - <E>)/T^2`
+    .. math::
+
+        Z = \sum_n e^{-\beta E_n}, \quad
+        E = \langle E \rangle = \frac{1}{Z} \sum_n E_n e^{-\beta E_n}, \quad
+        F = -T \ln Z, \quad
+        S = \frac{E - F}{T}, \quad
+        C_V = \frac{\langle E^2 \rangle - \langle E \rangle^2}{T^2}.
 
     Parameters
     ----------
-    cefion:
-        Rare-earth ion in crystal field
-    T : ndarray
-        Temperature in Kelvin
-
+    cefion : CEFion
+        Diagonalised ion in the crystal field.
+    T : ndarray of float, shape (n,)
+        Temperatures in K.
 
     Returns
     -------
-    Z, E, F, S Cv :
-        The partition function, average energy (internal energy), free energy, entropy, and heat capacity, respectively.
+    Z : ndarray, shape (n,)
+        Partition function, dimensionless.
+    E : ndarray, shape (n,)
+        Internal energy in meV per ion.
+    F : ndarray, shape (n,)
+        Free energy :math:`-T \ln Z`, in K per ion.
+    S : ndarray, shape (n,)
+        :math:`(E - F)/T`: meV/K and dimensionless terms mixed.
+    Cv : ndarray, shape (n,)
+        Heat capacity in meV²/K² per ion.
     """
     Z = np.zeros(len(T))
     E = np.zeros(len(T))

@@ -10,47 +10,70 @@ from .ion import Ion
 
 class CEFion:
     r"""
-    Object representing a rare-earth ion in CF potential. It is internally calculated in the meV units.
+    Rare-earth ion in a crystal electric field and a magnetic field.
+
+    Builds the Hamiltonian of the ground J multiplet,
+
+    .. math:: \hat{H} = \sum_{k,q} B_k^q \hat{O}_k^q - \mu_B g_J \, \vec{H} \cdot \hat{\vec{J}},
+
+    and, by default, diagonalises it (:meth:`diagonalize`). The basis is
+    :math:`|J\rangle, |J-1\rangle, \dots, |-J\rangle`, so the first vector
+    component belongs to :math:`m = +J`. Energies are in meV.
 
     Parameters
     ----------
-    ion: str
-        Name of the ion. They are tabulated in :obj:`ion` with their parameters.
-    Hfield: 1D array of floats
-        External magnetic field in *T* units.
-    cfp : ``qespace_cef.CEFpars``
-        Crystal field parameters
+    ion : Ion
+        The free ion: J, :math:`g_J` and the form-factor coefficients.
+    cfp : CEFpars
+        Crystal-field parameters :math:`B_k^q` in meV (Stevens operators).
+    Hfield : array_like of float, shape (3,), optional
+        Magnetic field in T, in the frame of the J operators (z is the
+        quantisation axis). Default ``[0, 0, 0]``.
     diagonalize : bool, optional
-        If true (default) then it automatically diagonalizes Hamiltonian, calculates energy levels and sorts all matrices so that the first eigenvector corresponds to the lowest energy level and the last one to the highest.
-
-    Examples:
-
-    TODO
+        If True (default), call :meth:`diagonalize` at once.
 
     Attributes
     ----------
-    ion : ``qespace_cef:ion``
-        The ``ion`` object that represents an isolated rare-earth ion.
-    Jval : int/2
-        The J value corresponding to the L+S quantum numbers. Not to be confused with the ``J`` operator.
-    Hfield : array_like
-        Vector in real space corresponding to the external magnetic field in T units.
-    cfp : ``qespace_cef.reion.cfp``
-        Crystal field parameters
-    hamiltonian : ndarray
-        Hamiltonian operator. :math:`\hat{\mathcal{H}} = \sum_{ij} B_i^j \hat{O}_i^j + g_J (H_x \hat{J}_x + H_y \hat{J}_y + H_z \hat{J}_z)`
-    Jx, Jy, Jz : ndarray
-        Matrices representing the prinicpal quantum operators :math:`\hat{J}_\\alpha`` with :math:`\\alpha=[x,y,z]`.
-    J : ndarray
-        Total angular momentum vector operator :math:`\hat{J}=[\hat{J}_x, \hat{J}_y, \hat{J}_z]`. It's multidimensionality takes some time to get used to.
-    energies : ndarray
-        Eigenenergies of the Hamiltonian.
-    eigenvectors : ndarray
-        Eigenvectors of the Hamiltonian.
-    degeneracies : list
-        List containing entries like [energy, degeneracy], which describes how degenerated is the given energy level.
-    freeionkets : list
-        List of kets corresponding to the J basis of the free ion problem.
+    ion : Ion
+        The ion passed in.
+    Jval : float
+        Total angular momentum quantum number J (e.g. 2.5). Not the operator
+        ``J``.
+    Hfield : ndarray, shape (3,)
+        Magnetic field in T.
+    cfp : CEFpars
+        The crystal-field parameters passed in.
+    hamiltonian : ndarray, shape (2J+1, 2J+1)
+        Hamiltonian matrix in meV, in the free-ion basis.
+    Jx, Jy, Jz : ndarray, shape (2J+1, 2J+1)
+        Angular-momentum matrices (units of :math:`\hbar`). In the free-ion
+        basis before :meth:`diagonalize`; afterwards in the eigenbasis,
+        ``Jx[i, j]`` :math:`= \langle i|\hat{J}_x|j\rangle`.
+    J : list or ndarray
+        ``[Jx, Jy, Jz]``: a list before :meth:`diagonalize`, an ndarray of
+        shape (3, 2J+1, 2J+1) after.
+    energies : ndarray, shape (2J+1,)
+        Eigenenergies in meV, ascending, the lowest at 0 (see
+        :meth:`diagonalize`). An empty list before diagonalisation.
+    eigenvectors : ndarray, shape (2J+1, 2J+1)
+        Row ``i`` is the eigenvector of ``energies[i]`` in the free-ion basis.
+        An empty list before diagonalisation.
+    freeionkets : list of str
+        Labels of the free-ion basis states, e.g. ``'|5/2>'``, in basis order.
+
+    Raises
+    ------
+    Exception
+        If the Hamiltonian is not Hermitian (``numpy.allclose``).
+
+    Examples
+    --------
+    Ce3+ (J = 5/2) in an axial field splits into three Kramers doublets:
+
+    >>> import qespace_cef as qc
+    >>> cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)))
+    >>> cef.energies.round(6).tolist()
+    [0.0, 0.0, 6.0, 6.0, 18.0, 18.0]
     """
 
     def __init__(
@@ -106,26 +129,35 @@ class CEFion:
     def diagonalize(
         self, sortWithE: bool = True, shiftToZero: bool = True, Eimag_precision: int = 10
     ):
-        """Diagonalize the Hamiltonian, and change to the sorted eigenvector base.
-        The default sorting is done according to eigenenergies, so that the first vector [1,0,...,0]
-        is the lowest eigenstate, and the last one [0,...,0,1] is the highest one.
-        Changing the base greatly faiclitates further calculations based on the evaluation of matrix elements.
+        r"""Diagonalise the Hamiltonian and rotate the J operators into its eigenbasis.
 
-        Updates
-        -------
-        ``Jx``,``Jy``,``Jz``,``J``,``energies``,``eigenvectors``,``degeneracies``
+        Sets ``energies``, ``eigenvectors``, ``Jx``, ``Jy``, ``Jz`` and ``J``
+        (see the class attributes). After the call, state ``i`` of every
+        matrix is the eigenstate with energy ``energies[i]``.
+
+        Parameters
+        ----------
+        sortWithE : bool, optional
+            If True (default), sort the eigenstates by energy, ascending.
+        shiftToZero : bool, optional
+            If True (default), shift the energies so that the lowest is 0 meV.
+        Eimag_precision : int, optional
+            Number of decimals to which the Hamiltonian must equal its
+            Hermitian conjugate (in meV). Default 10.
 
         Returns
         -------
-            E, U
-                Products of diagonalization, H = U E U^dagger, with E diagonal
-                (eigenvalues in ascending order, before sorting and shifting).
+        E : ndarray, shape (2J+1, 2J+1)
+            Diagonal matrix of the eigenvalues in meV, ascending, neither
+            shifted nor sorted by ``sortWithE``.
+        U : ndarray, shape (2J+1, 2J+1)
+            Unitary matrix whose columns are the eigenvectors, with
+            :math:`H = U E U^\dagger`.
 
         Raises
         ------
-            ValueError
-                If the Hamiltonian is not Hermitian to `Eimag_precision` decimals.
-
+        ValueError
+            If the Hamiltonian is not Hermitian to ``Eimag_precision`` decimals.
         """
 
         # A Hermitian Hamiltonian has real energies; eigh assumes Hermiticity, so check it first.
@@ -167,29 +199,64 @@ class CEFion:
 
     @property
     def magnetic_moment(self):
-        """Expectation value of magnetic moment operator.
+        r"""Magnetic moment of each eigenstate, in :math:`\mu_B`.
 
-        :math:`m = gJ * [<Jx>, <Jy>, <Jz>]`"""
+        :math:`\vec{m}_i = g_J \, \mathrm{Re} \langle i|\hat{\vec{J}}|i\rangle`,
+        from the J operators in the eigenbasis, so valid only after
+        :meth:`diagonalize`.
+
+        Returns
+        -------
+        ndarray, shape (2J+1, 3)
+            Row ``i`` is :math:`(m_x, m_y, m_z)` of eigenstate ``i``.
+        """
         # After diagonalization the J operator is in the eigenstate basis,
         # so we just trace it.
         mu = self.ion.gJ * np.einsum("ijj->ji", self.J)
         return np.real(mu + mu.conj()) / 2
 
     def get_degeneracies(self, precision: int = 5):
-        """List of energy levels and their degeneracies.
-        Follows the given precision, default is 5 decimal places."""
+        """Energy levels and their degeneracies.
+
+        Eigenenergies are grouped by their value truncated to 5 decimals
+        (in meV).
+
+        Parameters
+        ----------
+        precision : int, optional
+            Meant as the number of decimals; currently ignored, 5 is used.
+
+        Returns
+        -------
+        list of [float, int]
+            ``[energy, degeneracy]`` for each level, ascending in energy;
+            energy in meV.
+        """
         precision = 5
         energies = (self.energies * 10**precision).astype(int)  # Convert to int for unique
         unique_energies, counts = np.unique(energies, return_counts=True)
         return [[e, c] for e, c in zip(unique_energies / 10**precision, counts)]
 
     def __str__(self, evecs: bool = True, precision: int = 3):
-        """
-        Nice printout of calculated parameters
+        """Energy levels, degeneracies and eigenvectors as text.
 
-        Parameters:
-            precision : int, optional
-                How many significant digits should be shown for printout of energy and eigenvector coefficients.
+        Each level comes from :meth:`get_degeneracies`; each eigenvector is
+        written in the free-ion kets, leaving out coefficients smaller than
+        ``10**-precision``. Before :meth:`diagonalize` it returns
+        ``'Undiagonalized Hamiltonian'``.
+
+        Parameters
+        ----------
+        evecs : bool, optional
+            If True (default), list the eigenvectors under each level.
+        precision : int, optional
+            Significant digits of the energies (meV) and decimals of the
+            eigenvector coefficients. Default 3. ``str(cefion)`` always uses
+            the defaults.
+
+        Returns
+        -------
+        str
         """
         # After refactoring the precision there might be cleanup needed
 

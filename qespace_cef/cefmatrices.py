@@ -1,11 +1,12 @@
-"""
-Additions by Michal Stekiel
+r"""Angular-momentum matrices and Stevens operators of a J multiplet.
 
-The matrices and conventions need to be cross-checked against some reliable book.
-Most important things so far:
- 1. The eigenvector convention is that the first entry corresponds to highest spin, i.e.
-    for the J=3/2 system |3/2> = [1,0,0,0].
- 2. The CEF operators correspond to the Stevens notation.
+All matrices are in the basis :math:`|J\rangle, |J-1\rangle, \dots, |-J\rangle`
+(the first component belongs to the highest m; for J = 3/2,
+:math:`|3/2\rangle = [1, 0, 0, 0]`), in units of :math:`\hbar = 1`. The
+operators are Stevens operators :math:`\hat{O}_k^q`.
+
+Additions by Michal Stekiel. The matrices and conventions need to be
+cross-checked against some reliable book.
 """
 
 import numpy as np
@@ -15,82 +16,98 @@ from numpy.typing import NDArray
 
 
 # J matrices
-def J_z(J: float) -> NDArray[np.complex128]:
+def J_z(J: float) -> NDArray[np.float64]:
+    r"""Matrix of :math:`\hat{J}_z`, shape (2J+1, 2J+1), real diagonal."""
     return diag(linspace(J, -J, int(2 * J + 1)))
 
 
 def J_y(J: float) -> NDArray[np.complex128]:
+    r"""Matrix of :math:`\hat{J}_y = (\hat{J}_+ - \hat{J}_-)/2i`, shape (2J+1, 2J+1)."""
     return -0.5j * (J_plus(J) - J_minus(J))
 
 
-def J_x(J: float) -> NDArray[np.complex128]:
+def J_x(J: float) -> NDArray[np.float64]:
+    r"""Matrix of :math:`\hat{J}_x = (\hat{J}_+ + \hat{J}_-)/2`, shape (2J+1, 2J+1), real."""
     return 0.5 * (J_plus(J) + J_minus(J))
 
 
-def J_plus(J: float) -> NDArray[np.complex128]:
+def J_plus(J: float) -> NDArray[np.float64]:
+    r"""Matrix of the raising operator :math:`\hat{J}_+`, shape (2J+1, 2J+1), real."""
     p1 = linspace(-J, J - 1, int(2 * J))
     p1 = sqrt(J * (J + 1) - p1 * (p1 + 1))
     return diag(p1, 1)
 
 
-def J_minus(J: float) -> NDArray[np.complex128]:
+def J_minus(J: float) -> NDArray[np.float64]:
+    r"""Matrix of the lowering operator :math:`\hat{J}_- = \hat{J}_+^\dagger`, shape (2J+1, 2J+1)."""
     return J_plus(J).conj().transpose()
 
 
 class StevensBase:
-    """Factory for producing Stevens operators Onm for the problem with defined J quantum number.
+    r"""Stevens operators :math:`\hat{O}_k^q` of one J multiplet.
 
-        Required matrices can be obtained as a function call `StevensBase(J).O32()`
-        or by getitem call `StevensBase(J)['O32']`.
+    Every operator with k = 0 ... 6 and q = -k ... k is a method, named
+    ``O{k}{q}`` for q >= 0 and ``O{k}m{|q|}`` for q < 0 (``O20``, ``O4m3``).
+    Index the object with the name without the ``O`` to get the same
+    matrix: ``StevensBase(J)['4m3']`` equals ``StevensBase(J).O4m3()``.
+    Each call returns a matrix of shape (2J+1, 2J+1), dimensionless.
 
-        The matrix representation is in the velue-decreasing |m> base, i.e.
-    for the `J=2` system `|2> = [1,0,0,0,0], |-2> = [0,0,0,0,1]`.
+    Parameters
+    ----------
+    J : float
+        Total angular momentum quantum number, integer or half-integer.
 
-        Examples:
-        ---------
-        >>> SOps = StevensBase(2)
-        >>> SOps['21']
-                [[ 0.          1.5         0.          0.          0.        ]
-                 [ 1.5         0.          0.61237244  0.          0.        ]
-                 [ 0.          0.61237244  0.         -0.61237244  0.        ]
-                  [ 0.          0.         -0.61237244  0.         -1.5       ]
-                 [ 0.          0.          0.         -1.5         0.        ]]
-        >>> SOps.O21()
-                [[ 0.          1.5         0.          0.          0.        ]
-                 [ 1.5         0.          0.61237244  0.          0.        ]
-                 [ 0.          0.61237244  0.         -0.61237244  0.        ]
-                  [ 0.          0.         -0.61237244  0.         -1.5       ]
-                 [ 0.          0.          0.         -1.5         0.        ]]
+    Attributes
+    ----------
+    J : float
+        The J passed in.
+    JJ : float
+        J(J+1).
+    J2p1 : int
+        Dimension 2J+1.
+    Jx, Jy, Jz, Jp, Jm : ndarray, shape (2J+1, 2J+1)
+        Angular-momentum matrices; ``Jy`` is complex, the others real.
 
-        Notes:
-        ------
+    Examples
+    --------
+    >>> from qespace_cef.cefmatrices import StevensBase
+    >>> ops = StevensBase(1)
+    >>> ops["20"].tolist()
+    [[1.0, 0.0, 0.0], [0.0, -2.0, 0.0], [0.0, 0.0, 1.0]]
+    >>> ops.O20().tolist() == ops["20"].tolist()
+    True
 
-        Observations:
-                1. O(n,  n-1) = 0.5* (O(n,n)*Jz + Jz*O(n,n))
-                2. O(n,-(n-1)) = 0.5* (O(n,-n)*Jz + Jz*O(n,-n))
-                3. Generally, O(n,k) is 0.5*( Okk*Y + Y*Okk), where Y is polynomial in Jz of order (n-k)
-                4. All Stevens matrices are hermitian, but the ones with m<0 are non-symmetric and purely imaginary.
+    Notes
+    -----
+    Observations:
 
-        Sources:
-                1. https://www2.cpfs.mpg.de/~rotter/homepage_mcphase/manual/node132.html
-                2. https://easyspin.org/easyspin/documentation/stevensoperators.html and references therein
+    1. O(n, n-1) = 0.5 (O(n,n) Jz + Jz O(n,n)).
+    2. O(n, -(n-1)) = 0.5 (O(n,-n) Jz + Jz O(n,-n)).
+    3. Generally, O(n,k) is 0.5 (Okk Y + Y Okk), where Y is a polynomial in
+       Jz of order n-k.
+    4. All Stevens matrices are Hermitian; the ones with q < 0 are not
+       symmetric and purely imaginary.
 
-        Performance:
-                1. This is faster approach than implementing a dictionary as in PyCrystalField,
-                as repetitive formation of Onm operators does not require going through the dictionary
-                but directly to function implementation.
-                2. It is also faster than hard-coding function, as the defining matrices, Jxyzpm,
-                are initialized with the factory and can be computed fast.
-                3. On note 2, this works extremely fast if the factory does not need to be reinitialized,
-                i.e. for given ion load the Onm factory and produced Onm.
+    Sources:
+
+    1. https://www2.cpfs.mpg.de/~rotter/homepage_mcphase/manual/node132.html
+    2. https://easyspin.org/easyspin/documentation/stevensoperators.html and
+       references therein.
+
+    Performance:
+
+    1. Faster than a dictionary as in PyCrystalField, as forming an operator
+       goes directly to its method.
+    2. The defining matrices (Jx, Jy, Jz, Jp, Jm) are built once per object,
+       so build one object per ion and take all operators from it.
     """
 
     J: float
     JJ: float
-    J2p1: float
-    Jx: NDArray[np.complex128]
+    J2p1: int
+    Jx: NDArray[np.float64]
     Jy: NDArray[np.complex128]
-    Jz: NDArray[float]
+    Jz: NDArray[np.float64]
 
     def __init__(self, J: float):
         self.J = J
@@ -109,9 +126,11 @@ class StevensBase:
 
     @classmethod
     def implementedOps(cls):
+        """Names of the implemented operators, e.g. ``['O00', 'O11', ...]`` (49 of them)."""
         return [Oname for Oname in cls.__dict__.keys() if Oname[0] == "O"]
 
     def __getitem__(self, nm: str) -> NDArray[np.complex128]:
+        """Matrix of the operator named ``'O' + nm``, e.g. ``ops['4m3']``."""
         return self.__class__.__dict__[f"O{nm}"](self)
 
     ##################################################################
