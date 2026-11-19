@@ -47,6 +47,6 @@ def test_triclinic_allows_every_operator():
 
 
 def test_parameters_stored_as_python_floats():
-    """NumPy scalars in the input are stored as Python floats (AUDIT Q6)."""
+    """NumPy scalars in the input are stored as Python floats (CLAUDE.md 5.7.3)."""
     cfp = qc.CEFpars(dict(B20=np.float32(0.5), B40=np.int64(2)), units="K")
     assert all(type(v) is float for v in cfp.Bpars.values())

@@ -86,7 +86,7 @@ tests/
 
 `pyproject.toml` puts `tests/` on the path, so the tests import the
 references as `reference.*`. `observables` has only a return-type test; its known
-problems are in AUDIT.md (P1–P4, P9–P11).
+problems are in AUDIT.md (P1–P4, P9–P11, P17).
 
 ## Documentation
 

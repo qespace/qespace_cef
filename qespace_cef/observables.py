@@ -112,9 +112,8 @@ def spectral_weight(
       of the full projector. For Q along (110) in the audit's example the
       summed weight was 5.6516 instead of 5.6573; single transitions can be
       off by more.
-    - D5: :math:`e^{-B_{iso} Q^2/3}` is not the crystallographic
-      Debye-Waller factor :math:`e^{-B Q^2/16\pi^2}`; the convention is open
-      (AUDIT C10).
+    - C10 (open convention): :math:`e^{-B_{iso} Q^2/3}` is not the
+      crystallographic Debye-Waller factor :math:`e^{-B Q^2/16\pi^2}`.
     - The weights of single transitions inside a degenerate level depend on
       the arbitrary eigenbasis; sums over the level do not.
 
@@ -406,11 +405,18 @@ def gtensor(cefion: CEFion) -> np.ndarray:
 
     Warnings
     --------
-    P4 (AUDIT.md), not fixed yet: the result depends on the arbitrary basis
-    that :meth:`CEFion.diagonalize` picks inside the ground doublet, against
-    CLAUDE.md, "Degenerate levels". For Ce3+ with ``B20=1`` in zero field it
-    is currently ``diag(2.571, -2.571, 0.857)``; a different doublet basis
-    gives a different matrix. How g should be defined is open (AUDIT C7).
+    Known problems, not fixed yet (AUDIT.md):
+
+    - P4: the result depends on the arbitrary basis that
+      :meth:`CEFion.diagonalize` picks inside the ground doublet, against
+      CLAUDE.md, "Degenerate levels". For Ce3+ with ``B20=1`` in zero field it
+      is currently ``diag(2.571, -2.571, 0.857)``; a different doublet basis
+      gives a different matrix.
+    - P17: the absolute value in the z column makes even :math:`g g^T`
+      basis dependent, so the principal g values are wrong in a general
+      doublet basis.
+
+    How g should be defined is open (AUDIT C7).
     """
 
     assert np.abs(cefion.energies[0] - cefion.energies[1]) < C.numerical_zero, (
@@ -421,6 +427,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     # PyCrystalField. AUDIT P4: depends on the basis picked inside the doublet.
     gx = Jeff[:, 0, 1].real
     gy = Jeff[:, 0, 1].imag
+    # AUDIT P17: abs() makes even g g^T depend on the doublet basis.
     gz = np.abs(Jeff[:, 0, 0])
 
     return np.array([gx, gy, gz]).T * cefion.ion.gJ * 2
