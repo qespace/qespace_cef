@@ -49,3 +49,5 @@ select = ["E4", "E7", "E9", "F", "I"]
 testpaths = ["tests"]
 # Lets the tests import the reference implementations in tests/reference.
 pythonpath = ["tests"]
+markers = ["perf: performance stubs, skipped by default (run with -m perf -s)"]
+addopts = "-m 'not perf'"
