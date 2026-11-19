@@ -77,3 +77,23 @@ def test_saturated_moment_in_strong_field(name):
     """Free ion in a field: the ground state carries a moment of size gJ J."""
     cef = _cefion(name, {}, field=(0, 0, 1.0))
     assert np.isclose(np.linalg.norm(cef.magnetic_moment[0]), cef.ion.gJ * cef.ion.J)
+
+
+@pytest.mark.parametrize("name", ["Ce", "Tb"])
+def test_diagonalize_returns_decomposition(name):
+    """``diagonalize`` returns E diagonal and U unitary with H = U E U^dagger."""
+    cef = qc.CEFion(
+        qc.Ion(name), qc.CEFpars(LOW_SYMMETRY), Hfield=[0.1, 0.2, 0.3], diagonalize=False
+    )
+    E, U = cef.diagonalize()
+    scale = np.max(np.abs(cef.hamiltonian))
+    assert np.allclose(E, np.diag(np.diag(E)))
+    assert np.allclose(U.conj().T @ U, np.eye(len(U)), atol=1e-12)
+    assert np.allclose(U @ E @ U.conj().T, cef.hamiltonian, atol=1e-12 * scale)
+
+
+def test_diagonalize_rejects_non_hermitian_hamiltonian():
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)), diagonalize=False)
+    cef.hamiltonian = cef.hamiltonian + 1j * np.eye(len(cef.hamiltonian))
+    with pytest.raises(ValueError):
+        cef.diagonalize()

@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import numpy as np
-from scipy.linalg import schur
 
 from . import constants as C
 from .cefmatrices import J_x, J_y, J_z, StevensBase
@@ -119,31 +118,31 @@ class CEFion:
         Returns
         -------
             E, U
-                Products of diagonalization, H = U E U^T.
+                Products of diagonalization, H = U E U^dagger, with E diagonal
+                (eigenvalues in ascending order, before sorting and shifting).
 
         Raises
         ------
             ValueError
-                If the calculated eigenenergies are not real.
+                If the Hamiltonian is not Hermitian to `Eimag_precision` decimals.
 
         """
 
-        # Diagonalize the Hamiltonian
-        # Other functions than scipy.linalg.schur do not produce perpendicular subspaces for degenerated eigenvalues
-        E, U = schur(self.hamiltonian)
-        eigenvalues = np.diag(E)
-        # With schur definition H = U D Ut we take columns as eigenvectors
-        eigenvectors = U.T  ### TRIPLE CHECK
-
-        # Check if energies are largely imaginary
-        if np.any(np.abs(np.imag(np.around(eigenvalues, Eimag_precision))) > 0):
+        # A Hermitian Hamiltonian has real energies; eigh assumes Hermiticity, so check it first.
+        H = self.hamiltonian
+        if np.any(np.around(H - H.conj().T, Eimag_precision) != 0):
             raise ValueError(
-                f"Final energies are complex! {eigenvalues} Check `Eimag_precision` option."
+                "The Hamiltonian is not Hermitian, its energies would be complex. "
+                "Check `Eimag_precision` option."
             )
 
-        energies = np.real(eigenvalues) - int(shiftToZero) * min(
-            np.real(eigenvalues)
-        )  # shift to zero level and make real
+        # eigh returns orthonormal eigenvectors also within degenerate subspaces,
+        # as columns of U, with H = U diag(eigenvalues) U^dagger.
+        eigenvalues, U = np.linalg.eigh(H)
+        E = np.diag(eigenvalues)
+        eigenvectors = U.T
+
+        energies = eigenvalues - int(shiftToZero) * min(eigenvalues)  # shift to zero level
 
         # Sorting
         if sortWithE:
