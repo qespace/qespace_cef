@@ -47,7 +47,7 @@ Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
 
 | Name | What it is |
 |---|---|
-| `Ion` | Free rare-earth ion: `J`, Landé `gJ`, Stevens factors α, β, γ, magnetic form factor (`mff`) |
+| `Ion` | Free rare-earth ion: `J`, Landé `gJ`, Stevens factors α, β, γ, magnetic form factor in the dipole approximation (`mff`; for Ce the coefficients are those of Ce²⁺) |
 | `CEFpars` | Set of CEF parameters `Bkq` (e.g. `B20`, `B44`, `B6m1` for q = −1); input in `meV`, `K` or `invcm`, stored in meV |
 | `CEFion` | Ion in the CEF and an external field: Hamiltonian, `J` operators, energies, eigenvectors, degeneracies |
 | `boltzman_population` | Thermal populations of the levels |

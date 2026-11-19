@@ -20,6 +20,13 @@ wrong from reading, not run; **rule** = breaks a rule in CLAUDE.md;
 **docs** = documentation does not match behaviour; **suggestion** = no rule
 broken.
 
+**Status, 2026-11-19.** The maintainer's decisions on this audit are in
+section 7. Done: 6.1 (with P12), Q1, Q4, Q8, Q9 (`chore/cleanup`); X1–X3
+(`build/numpy-only`); D1–D12, A13 (`docs/docstrings`). Every P item still in
+the code carries an `# AUDIT Pn:` comment there and, except P15
+(`constants`), a Warnings section in the docstring of the public object it
+affects; the P items stay open until each fix is reviewed.
+
 ## 1. Physics and correctness
 
 | ID | Severity | Where | Finding | Evidence | Proposal |
@@ -27,10 +34,10 @@ broken.
 | P1 | bug | `observables.susceptibility`, `method='perturbation'` | The van Vleck term counts only `E_m > E_n` pairs (`jumps_with_positive_energy`). The docstring sums over every `m ≠ n`, and the `E_m < E_n` pairs contribute the same amount, so the van Vleck part is half what it should be | Ce, `B20=0.5, B40=0.01, B44=0.1`, H ∥ z. χ in μB/T: exact formula 0.13130 / 0.02981 / 0.00999 at 5 / 20 / 100 K, code (perturbation) 0.12704 / 0.02680 / 0.00847, code (magnetization) 0.13130 / 0.02981 / 0.00999 | Sum over both orderings, i.e. `(p_n − p_m)/(E_m − E_n)`; test it against `method='magnetization'` |
 | P2 | bug | same, line 296 (`# TODO WTF is this projection?`) | The field direction enters as `Σ_α n_α \|J_α\|² / \|n\|` instead of `\|n·J\|²`. For n = (1,1,0) this gives √2 times the x value | Same ion: χ(110) / χ(100) = 1.414 with `perturbation`, 1.000 with `magnetization` (for this tetragonal case, rank-2 symmetry requires 1) | Project the operator: `Jn = Σ n_α J_α / \|n\|`, then `\|Jn_mn\|²` |
 | P3 | bug | `observables.thermodynamics` | Energies in meV are mixed with temperatures in K: `F = −T ln Z` is in K, while `E` stays in meV, so `S = (E − F)/T` and `Cv = (E2 − E²)/T²` come out in mixed units | Entropy (k_B) at 10 / 20 / 40 K: exact 1.293 / 1.374 / 1.494, code 1.054 / 1.203 / 1.325. Cv (k_B): exact 0.170 / 0.108 / 0.239, code 0.00126 / 0.00080 / 0.00177 (low by a factor of 11.6², about 135) | Convert the energies to `k_B T` once and state the units in the return values; test against `−∂F/∂T` and against the high-T limit `ln(2J+1)` |
-| P4 | bug, rule | `observables.gtensor` | The result depends on the arbitrary basis that `schur` picks inside the ground doublet. That breaks the CLAUDE.md section 3 row on degenerate levels: "compare projectors or sums over the subspace, never single eigenvectors" | Ce, `B20=1`: with no field, g = diag(2.571, 2.571, 0.857), which is correct. A field of 1e-13 T along x (a different doublet basis) gives `[[-0.80, 0, 2.44], [0, 2.57, 0], [0.81, 0, 0.27]]` | Build g from basis-invariant quantities, e.g. `G = g gᵀ` from `Σ_ab <a\|J_α\|b><b\|J_β\|a>` over the doublet; the convention is a question (C7) |
+| P4 | bug, rule | `observables.gtensor` | The result depends on the arbitrary basis that the diagonalisation (`schur`, now `eigh`) picks inside the ground doublet. That goes against the CLAUDE.md section 3 row on degenerate levels (itself marked `OPEN:`): "compare projectors or sums over the subspace, never single eigenvectors" | Ce, `B20=1`: with no field, g = diag(2.571, 2.571, 0.857) with `schur`, which is correct, and diag(2.571, −2.571, 0.857) with `eigh`. A field of 1e-13 T along x (a different doublet basis) gives `[[-0.80, 0, 2.44], [0, 2.57, 0], [0.81, 0, 0.27]]` | Build g from basis-invariant quantities, e.g. `G = g gᵀ` from `Σ_ab <a\|J_α\|b><b\|J_β\|a>` over the doublet; the convention is a question (C7) |
 | P5 | bug | `CEFion.diagonalize` | Calling it a second time rotates `Jx`, `Jy`, `Jz`, which are already in the eigenbasis, again | Ce, field (0.3, 0, 1) T: after a second `diagonalize()` the moments change by up to 2.58 μB | Keep the free-ion operators unchanged and store the rotated ones separately, or make diagonalisation run once (A2) |
 | P6 | bug | `CEFion.diagonalize(sortWithE=False)` | `np.arange(self.Jval)` takes a float J and has the wrong length (2J+1 is needed) | `IndexError: arrays used as indices must be of integer (or boolean) type` | `np.arange(2*J+1)` |
-| P7 | bug | `CEFion.get_degeneracies(precision)` | Line 183 overwrites the argument with `precision = 5`. `astype(int)` truncates instead of rounding, so levels at 0.999999 and 1.000001 come out as two levels | `get_degeneracies(precision=1)` returns 0.74073 | Group levels by a relative tolerance from the config (Q3), not by decimals |
+| P7 | bug | `CEFion.get_degeneracies(precision)` | Line 183 overwrites the argument with `precision = 5`. `astype(int)` truncates instead of rounding, so levels at 0.999999 and 1.000001 come out as two levels | `get_degeneracies(precision=1)` returns 0.74073. With `eigh`, Pr³⁺ with `B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4` has its 28.584 meV doublet at 28.584000000000000 and 28.583999999999996 meV, which come out as two levels | Group levels by a relative tolerance from the config (Q3), not by decimals |
 | P8 | bug | `Ion.__str__` | `%d` prints J = 5/2 as 2 | `str(Ion('Ce'))` gives `'Ce: J = 2, gJ = 0.86'` | Print the fraction |
 | P9 | bug (read) | `observables.spectral_weight`, single crystal | `Σ_α (1 − Q̂_α²) \|J_α\|²` leaves out the cross terms `−Q̂_α Q̂_β J_α J_β*`. The correct form is `Σ_αβ (δ_αβ − Q̂_α Q̂_β) <i\|J_α\|f><f\|J_β\|i>` | Q ∥ (110): summed weight 5.6516 from the code, 5.6573 with the cross terms. That's small here; per transition it can be larger | Use the full projector; the commented-out "first implementation" (lines 132–135) went in that direction |
 | P10 | bug (read) | `observables.susceptibility`, `method='magnetization'` | Returns `\|M\|/ε`, the magnitude, not the component along the field, and so loses the sign (and is wrong when M is not parallel to H). ε is `1e-5`, but the docstring says 10⁻⁸ | read | Return `M·n/ε` |
@@ -154,35 +161,36 @@ Each becomes a row in CLAUDE.md section 3 and a CONV, with a test.
 | C9 | Form factor: dipole approximation `j0 + (2 − gJ)/gJ · j2`, the ILL coefficients, Ce²⁺ for Ce | `ion.mff` | Cross sections |
 | C10 | Neutron cross section: `N(γr0)² = 1` (arbitrary units), the Debye–Waller form (D5), `k_f/k_i = √(1 − ΔE/Ei)`, positive ΔE = neutron energy loss, powder average `⅔ Σ_α \|J_α\|²` | `spectral_weight` | Cross sections |
 | C11 | Susceptibility units (μB²/meV per ion, or μB/T, or emu/mol); the conversions in `constants` (`C1`–`C3`) | `susceptibility`, `constants` | new row |
-| C12 | Degenerate levels: tolerance and grouping (P7); eigenvectors inside a level are arbitrary (P4) | `cefion` | Degenerate levels (already decided; the code doesn't follow it) |
+| C12 | Degenerate levels: tolerance and grouping (P7); eigenvectors inside a level are arbitrary (P4) | `cefion` | Degenerate levels (the rule is written, but the row is marked `OPEN:`; the code doesn't follow it) |
 
-## 7. Proposed work packages
+## 7. Work packages
 
-Each package is one branch (CLAUDE.md 1.3), in this order. The order puts
-the tests first, so the refactor can't hide a physics change.
+The maintainer's decisions on this audit (2026-11-19) replace the first
+proposal: the physics fixes (P) wait until the maintainer has reviewed each
+one, and the architecture items (A) are decided later. Each package is one
+branch (CLAUDE.md 1.3).
 
-1. **`test/analytic-limits`**: tests of the checks in this audit, using the
-   public API: free ion, the `B20`-only levels and g-tensor, cubic
-   doublet + quartet, Kramers degeneracy, trace of H, sum rules of
-   `spectral_weight`, `−∂F/∂T = S`, `ln(2J+1)`, both susceptibility methods
-   agreeing. P1–P8 become strict `xfail`, each with its finding ID.
-2. **`fix/observables`**: P1–P3, P5–P8, P10–P12; each fix turns its `xfail`
-   green. `!` and `BREAKING CHANGE` where results change (P1, P3).
-3. **`build/numpy-only`**: X1–X4 (`eigh` for `schur`; with the tests from 1
-   showing that the results don't change).
-4. **`style/reformat`**: Q1–Q6, Q9 (ruff), `__all__` (A4); no change of
-   behaviour, separate from the other packages (CLAUDE.md 5.3).
-5. **`docs/conventions`**: decisions C1–C12 → CLAUDE.md section 3,
-   `CONVENTIONS.md`, the docstrings (D1–D12, A13), `DEV.md`.
-6. **`refactor/solver-state`**: A2, A3, A5, A10, A11, after 1–5. This one
-   changes the API: plan it first (CLAUDE.md 2.3).
-7. Later: A6 (generated operators), A7/A8 (point groups and data tables),
-   P9 and P4 once C7 and C10 are decided.
+1. **`chore/cleanup`** (merged): ruff with a light rule set and the format
+   (Q9, Q1); dead code removed (6.1, with P12); tests of the current
+   behaviour of every module, the reference implementations moved to
+   `tests/reference/` with attribution (Q8, Q15); performance stubs.
+2. **`build/numpy-only`** (merged): `eigh` for `schur`, compared with the
+   old results on 7 ions and parameter sets; scipy and matplotlib dropped,
+   sympy in the dependency group `symbolic` (X1–X3, Q14).
+3. **`docs/docstrings`**: D1–D12 and A13 in NumPy style (Q4); markers and
+   Warnings sections for the P items.
+4. **`style/quality`** (next): Q3 type hints and the mutable default, Q6
+   plain floats, Q7 `__str__`, Q2 typos in text only; renaming public names
+   waits for A2.
+5. Delayed: the P fixes, the A items except A13, the items of 6.2 and 6.3
+   (C1–C12), X4 (the numpy floor, once tests show what it can be), and the
+   questions Q11–Q13.
 
 ## 8. Questions for the maintainer
 
 - **Q10.** Is the order of the work packages in section 7 right? In
   particular, should the numpy-only change come before or after the fixes?
+  **Answer:** numpy-only first; the fixes wait for review (section 7).
 - **Q11 (C1–C12).** Which conventions do you want to decide first? P4 (the
   g-tensor) and P9 (the cross section) wait for C7 and C10.
 - **Q12 (P16).** Should `CEFpars` accept odd-rank parameters?
@@ -191,5 +199,7 @@ the tests first, so the refactor can't hide a physics change.
   the bugs fixed?
 - **Q14 (X2).** Should the symbolic scripts keep `sympy` as an optional
   extra, or have no declared dependency at all?
+  **Answer:** a dependency group `symbolic`.
 - **Q15 (Q8).** Keep the verbatim PyCrystalField code in the tests (with
   attribution), or replace it with stored reference matrices?
+  **Answer:** keep it, in `tests/reference/`, with attribution.

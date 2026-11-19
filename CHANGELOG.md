@@ -16,6 +16,8 @@
   with other dead code.
 - Code formatted with `ruff`; tests for `CEFion`, `CEFpars` and `Ion`;
   performance stubs (`pytest -m perf -s`).
+- Docstrings in NumPy style with units and shapes; known problems from
+  `AUDIT.md` marked in the code and in Warnings sections.
 
 ## 1.3.0
 

@@ -91,5 +91,9 @@ problems are in AUDIT.md (P1–P4, P9–P11).
 
 `docs/` is a Sphinx project: `index.rst` and one page per public object
 (`source/*.rst`, autodoc), built with `uv run python docs/build.py` into
-`docs/_build/html`. The docstrings mix the NumPy and Google styles; napoleon
-reads both.
+`docs/_build/html`. The docstrings are in NumPy style (napoleon), with units
+and array shapes. Their examples are doctests, run with
+`uv run pytest --doctest-modules qespace_cef --ignore=qespace_cef/symbolic`
+(not part of the default `pytest` run). Known problems are marked in the
+code as `# AUDIT Pn:` and in Warnings sections of the docstrings; the
+findings themselves are in [`AUDIT.md`](AUDIT.md).
