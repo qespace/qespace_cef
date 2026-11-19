@@ -134,7 +134,7 @@ edited here.
 
 ## 5. Code
 
-1. The core is computational and needs only `numpy` (`OPEN:` `scipy`?).
+1. The core is computational and needs only `numpy`; no `scipy`.
    Plotting and other optional packages are extras, imported lazily inside
    functions; `import qespace_cef` never imports them.
 2. Prefer the smallest change that works: plain functions, explicit code, no
