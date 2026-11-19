@@ -1,6 +1,6 @@
-import numpy as np
-
 from typing import List
+
+import numpy as np
 
 
 class Ion:
@@ -155,18 +155,6 @@ class Ion:
 
     def __str__(self):
         return "%s: J = %d, gJ = %.2f" % (self.name.title(), self.J, self.gJ)
-
-    def _LandeGFactor(self, S: float, L: int) -> float:
-        # Maybe for the future implementation, when the initialization will be done with S and L not with J
-        return 1.5 + (S * (S + 1) - L * (L + 1)) / (2 * self.J * (self.J + 1))
-
-    def _m_in_vacuum(self) -> float:
-        # Calculate magnetic moment of an isolated ion in the units of Bohr magnetons.
-        return self.gJ * np.abs(self.J)
-
-    def _m_dynamic(self) -> float:
-        # Calculate magnetic moment of an isolated ion when calculating susceptibility.
-        return self.gJ * np.abs(self.J * (self.J + 1))
 
     def mff(self, Q: List[float]) -> np.ndarray:
         """

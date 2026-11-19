@@ -4,18 +4,17 @@ Library for crystal field calculations.
 
 from importlib.metadata import version as _version
 
+# Import main classes
+from .cefion import CEFion
+from .cefpars import CEFpars
+from .ion import Ion
+
+# Import the functions
+from .observables import *
+
 # The version is set in pyproject.toml only.
 __version__ = _version("qespace_cef")
 del _version
-
-# Import main classes
-from .ion import Ion
-from .cefpars import CEFpars
-from .cefion import CEFion
-
-# Import the functions
-# from .cefmatrices import *
-from .observables import *
 
 # Original copyright:
 

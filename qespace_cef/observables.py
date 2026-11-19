@@ -1,11 +1,9 @@
-from . import constants as C
-
-# from .cefmatrices import *
-from .cefion import CEFion
+from typing import Tuple
 
 import numpy as np
 
-from typing import Tuple
+from . import constants as C
+from .cefion import CEFion
 
 
 def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
@@ -133,11 +131,6 @@ def spectral_weight(
         if len(Q) != 3:
             raise ValueError("Dimension of the `Q` vector is not 3")
 
-        # First implementation does not seem to work well
-        # Qperp_projectCEFion = ms.perp_matrix(Q)
-        # J_perp = np.einsum('ij,jkl', Qperp_projectCEFion, cefion.J)
-        # J2_perp = np.einsum('ijk->jk', np.square(np.abs(J_perp)))
-
         J2 = np.square(np.abs(cefion.J))  # J is already diagonalized and in the eigenvector basis
         projection = 1 - (Q / np.linalg.norm(Q)) ** 2
 
@@ -156,10 +149,7 @@ def spectral_weight(
     # Multiply the factors, vectors and matrices properly to get spectral weight.
     Sqw = f2m * eDW * kfki * J2_perp * transition_probs[:, np.newaxis]
 
-    Denergies = jumps.flatten()
-    sorting = Denergies.argsort()
     return (jumps, Sqw)
-    # return (Denergies[sorting], Sqw.flatten()[sorting])
 
 
 def magnetization(
@@ -189,7 +179,6 @@ def magnetization(
 
     # The diagonalized Hamiltonians' operators are already transformed into the sorted eigenvector base
     p = boltzman_population(cefion_inH.energies, temperature)
-    # M = cefion_inH.ion.gJ * np.abs( np.einsum('ijj,j', cefion_inH.J, p) )
     M = np.einsum("ij,i", cefion_inH.magnetic_moment, p)
 
     return tuple(M)
@@ -298,7 +287,6 @@ def susceptibility(
             susceptibility[it] = np.linalg.norm(M) / eps
     elif method == "perturbation":
         susceptibility = np.empty(len(temperatures))
-        # susceptibility.fill(np.nan)
 
         # Tricky way to create a 2D array of energies associated with transitions between levels
         jumps = cefion.energies - cefion.energies[np.newaxis].T
@@ -306,7 +294,6 @@ def susceptibility(
         # Clean up
         jumps_with_zero_energy = np.where(np.abs(jumps) < C.numerical_zero)
         jumps_with_positive_energy = np.where(jumps > 0)
-        # jumps_with_negative_energy = np.where(jumps<0) # obsolete but left for clarifty, these will be set to zero
 
         # Calculate the J^2 matrix
         J2 = np.square(np.abs(cefion.J))
@@ -351,14 +338,8 @@ def gtensor(cefion: CEFion) -> np.ndarray:
         "Ground state is not a doublet, g-tensor is not defined."
     )
     Jeff = cefion.J  # J operator projected to the ground state doublet
-    g = np.zeros((3, 3), dtype=float)
 
-    ### My guess
-    # gz = ( Jeff[:,0,0] - Jeff[:,1,1] ).astype(float) / 4
-    # gx = 2*( Jeff[:,0,1] + Jeff[:,1,0] ).real
-    # gy = 2*( Jeff[:,0,1] - Jeff[:,1,0] ).imag
-
-    ### PyCrystalField
+    # PyCrystalField
     gx = Jeff[:, 0, 1].real
     gy = Jeff[:, 0, 1].imag
     gz = np.abs(Jeff[:, 0, 0])

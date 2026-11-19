@@ -1,14 +1,12 @@
 from typing import Tuple
 
-from .ion import Ion
-from .cefpars import CEFpars
-from . import constants as C
-from .cefmatrices import StevensBase, J_x, J_y, J_z
-
 import numpy as np
 from scipy.linalg import schur
-# from numpy import conj, transpose, dot, diag
-# import numbers
+
+from . import constants as C
+from .cefmatrices import J_x, J_y, J_z, StevensBase
+from .cefpars import CEFpars
+from .ion import Ion
 
 
 class CEFion:
@@ -94,17 +92,9 @@ class CEFion:
         for Bname, Bvalue in self.cfp.Bpars.items():
             H += Bvalue * StevensOp[Bname[1:]]
 
-        # Might take cc of everything to get rid of complex eigenvalues: self.hamiltonian = (H + H.T.conj())/2
-        # However, it should not be a problem
         self.hamiltonian = H
         if not np.allclose(H, H.T.conj()):
             raise Exception("ERROR, Hamiltonian is not hermitian")
-
-        # This warning might be useful for debugging, but is raised
-        # most of the time when calcualting magnetization, as field term
-        # can picks up Ja matrices whic hare not symmetric.
-        # if not np.allclose(H, H.T):
-        #     print('WARNING: Hamiltonian is not symmetric, complex components of eigenvectors will show up.')
 
         # Uncomputed, empty fields
         self.eigenvectors = []

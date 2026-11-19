@@ -40,3 +40,7 @@ extend-exclude = ["qespace_cef/symbolic"]
 [tool.ruff.lint]
 # Pyflakes, the basic pycodestyle errors and import sorting; nothing stricter.
 select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports without __all__ until the public API is defined (AUDIT A4).
+"qespace_cef/__init__.py" = ["F401", "F403"]

@@ -1,8 +1,6 @@
-import numpy as np
 from . import constants as C
-from .data_containers import point_group_synonyms
-
 from .cefmatrices import StevensBase
+from .data_containers import point_group_synonyms
 
 
 class CEFpars:
@@ -62,43 +60,6 @@ class CEFpars:
 
         # Symmetry
         self.symmetry = point_group_synonyms(pointGroup)[0]
-        if not self.symmetry["HM"] == "1":
-            # Handle allowed Bpars
-            pass
-
-    # @classmethod
-    def from_symmetry(self, pointGroupName: str, Bvalues: list[float], units: str):
-        self.B_names = self.allowed_Bpars(pointGroupName)
-
-        self.pointGroupName = pointGroupName
-        self.lattice = self._assignLattice(pointGroupName)
-
-        # First, set all to zero
-        self.B_values = np.zeros(len(self.B_names))
-
-        # In case of cubic symmetry the Bpars are given in from B40, B60, B66
-        # and some additional symmetry constraints are implemented
-        # The prefactors from Martin's table have additional factor of 1/2,
-        # which is not right with qespace_cef ( it does not reproduce doublet-quartet scheme).
-        # Hopefully it's an implementation problem only.
-        if self.lattice == "cubic":
-            # Althoguh the the cubic symmetry helps in reducing number of parameters it does not with implementation...
-            B40 = self.B_values[0]
-            B60 = self.B_values[1]
-            B66 = self.B_values[2]
-
-            if pointGroupName in ["T", "Th"]:
-                self.B_values[0] = B40
-                self.B_values[1] = 5 * B40
-                self.B_values[2] = B60
-                self.B_values[3] = -B66
-                self.B_values[4] = -21 * B60
-                self.B_values[5] = B66
-            elif pointGroupName in ["Td", "O", "Oh"]:
-                self.B_values[0] = B40
-                self.B_values[1] = 5 * B40
-                self.B_values[2] = B60
-                self.B_values[3] = -21 * B60
 
     @classmethod
     def allowed_Bpars(cls, pointGroupName: str) -> list[str]:
@@ -174,44 +135,6 @@ class CEFpars:
         }
 
         return allowed_Bpars[symmetry_Sch]
-
-    @classmethod
-    def _assignLattice(cls, pointGroupName: str) -> str:
-        PG2lattice = {
-            "C2": "monoclinic",
-            "Cs": "monoclinic",
-            "C2h": "monoclinic",
-            "C2v": "orthorhombic",
-            "D2": "orthorhombic",
-            "D2h": "orthorhombic",
-            "C4": "tetragonal",
-            "S4": "tetragonal",
-            "C4h": "tetragonal",
-            "D4": "tetragonal",
-            "C4v": "tetragonal",
-            "D2d": "tetragonal",
-            "D4h": "tetragonal",
-            "C3": "trigonal",
-            "S6": "trigonal",
-            "D3": "trigonal",
-            "C3v": "trigonal",
-            "D3d": "trigonal",
-            "C6": "hexagonal",
-            "C3h": "hexagonal",
-            "C6h": "hexagonal",
-            "D6": "hexagonal",
-            "C6v": "hexagonal",
-            "D3h": "hexagonal",
-            "D6h": "hexagonal",
-            "T": "cubic",
-            "Th": "cubic",
-            "Td": "cubic",
-            "O": "cubic",
-            "Oh": "cubic",
-            "?": "undefined",
-        }
-
-        return PG2lattice[pointGroupName]
 
     def __str__(self):
         ret = f"<CEFpars: symmetry={self.symmetry}"

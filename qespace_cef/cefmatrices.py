@@ -8,10 +8,10 @@ Most important things so far:
  2. The CEF operators correspond to the Stevens notation.
 """
 
-from numpy import diag, linspace, conj, transpose, sqrt, eye, dot, zeros
 import numpy as np
-from numpy.typing import NDArray
+from numpy import diag, dot, eye, linspace, sqrt
 from numpy.linalg import matrix_power as mp
+from numpy.typing import NDArray
 
 
 # J matrices
