@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from importlib.metadata import version as _version
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -24,8 +25,6 @@ autodoc_mock_imports = ["numpy", "matplotlib", "scipy"]
 project = "qespace_cef"
 
 # The full version, read from the installed package (set in pyproject.toml)
-from importlib.metadata import version as _version
-
 release = _version("qespace_cef")
 
 
