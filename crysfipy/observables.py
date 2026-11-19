@@ -15,11 +15,16 @@ def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
     One important distinction, is that this function works with eigenvalues (energies) from the whole Hilbert space,
     as it needs to evaluate :math:`Z` on its own. This works well for the total angular momentum Hilbert space, and does care about degeneracies.
     
-    Args:
-        energies: List of energy levels in meV units
-        temperature: Temperature at which to evaluate the statistic
+    Parameters
+    ----------
+    energies: np.ndarray[float]
+        List of energy levels in meV units
+    temperature: float
+        Temperature at which to evaluate the statistic
 
-    Returns:
+    Returns
+    -------
+    n_i: np.ndarray[float]
         List of occupation probabilities for each energy level.
     '''
     
@@ -27,49 +32,85 @@ def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
     Z = sum(p)
     return p / Z
 
-
-def neutronint(cefion: CEFion, temperature: float, Q: Tuple[float, float, float] , scheme: str, Ei: float=1e+6, B_iso: float=0) -> Tuple[np.ndarray, np.ndarray]:
-    r"""
-    Returns matrix of energies and inelastic neutron scattering spectral weights for all possible transitions at given temperature.
+def spectral_weight(cefion: CEFion, 
+                    temperature: float, 
+                    Q: Tuple[float, float, float] , 
+                    scheme: str, 
+                    Ei: float=1e+6, 
+                    B_iso: float=0) -> Tuple[np.ndarray, np.ndarray]:
+    r"""Returns matrix of energies and inelastic neutron scattering spectral weights for all possible transitions at given temperature.
     
     The spectral weight is calculated by equation from Enderle book following Stephane Raymond article.
     
     | :math:`S(\vec{Q},\omega) = N (\gamma r_0)^2 f^2_m(Q) e^{-W(Q)} \sum_{if} \frac{k_f}{k_i} p_i |<\lambda_f|J_\perp|\lambda_i>|^2 \delta(E_i - E_f - \hbar \omega)`
+    | :label: Sqw_master
     
-    where:
+    where: :math:numref:`Sqw_master`
 
-    | :math:`N (\gamma r_0)^2` : ignored, acts as units.
-    | :math:`f^2_m(Q)` : magnetic form factor, taken from internal tables in ``mikibox.crysfipy.Ion`` class.
-    | :math:`e^{-W(Q)}` : Debye-Waller factor, where :math:`W(Q) = \frac{1}{2} B Q^2`. :math:`B = B_{iso}` is the isotropic mean-square displacement obtained from crystal structure refinement.
-    | :math:`\frac{k_f}{k_i}` : scaling factor calculated from energy, which is used more widely :math:`\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}`. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.
-    | :math:`p_i` : Boltzmann population factor.
-    | :math:`|<\lambda_f|J_\perp|\lambda_i>|^2` : matrix elements, exact description depends on ``Q``, see below.
+    | :math:`N (\gamma r_0)^2`
+    | set to 1, acts as units.
+
+    | :math:`f^2_m(Q)`
+    | magnetic form factor, taken from internal tables in ``mikibox.crysfipy.Ion`` class.
+
+    | :math:`e^{-W(Q)}`
+    | Debye-Waller factor, where :math:`W(Q) = \frac{1}{2} B Q^2`. :math:`B = B_{iso}` is the isotropic mean-square displacement obtained from crystal structure refinement.
+
+    | :math:`\frac{k_f}{k_i}`
+    | scaling factor calculated from energy, which is used more widely :math:`\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}`. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.
+    
+    | :math:`p_i`
+    | Boltzmann population factor.
+
+    | :math:`|<\lambda_f|J_\perp|\lambda_i>|^2`
+    | matrix elements, exact description depends on ``Q``, see below.
+
+    -----
+
+    Knowledge of the crystal field allows to determine the matrix elements :math:`|<\lambda_f|\hat{J}_\perp|\lambda_i>|^2`,
+    where the perpendicularity is with respect to the momentum transfer vector :math:`\vec{Q}`.
+    With the squared form of matrix elements the perpendicular projection is:
+
+    .. math:: \hat{J}_\perp = \sum_\alpha [1-Q_\alpha/|Q|]\hat{J}_\alpha
+      :label: Jperp_SC
+
+    where :math:`\alpha` indexes cartesian components.
+
+    For polycrystalline samples, where we average the angular components within the polar coordinates the
+    projection simplifies to 
+
+    .. math:: \hat{J}_\perp = \frac{2}{3} \sum_\alpha \hat{J}_\alpha
+      :label: Jperp_PWD
 
     
-    The intensities are evaluated based on the :math:`|<\lambda_f|J_\perp|\lambda_i>|^2` matrix elements, which form a matrix :math:`|J_\perp|^2`.
-    Two main cases are implemented and encoded in the :data:`Q` parameter.
-    
-    Args:
-        cefion: :class:`CEFion` Rare-earth ion in the crystal field
-        tempreature:  Temperature in *K*
-        Q :  List of Q vectors used to evaluate the spectral weight
-        
-        scheme : 'powder', 'single-crystal':
-            Scheme according to which :math:`|J_\perp|^2` is calculated.
-            
-            * powder :  :math:`|<\lambda_f|J_\perp|\lambda_i>|^2 = 2/3\sum_\alpha |<\lambda_f|J_\alpha|\lambda_i>|^2` (default).
-            * (single-crystal : :math:`|<\lambda_f|J_\perp|\lambda_i>|^2 = \sum_\alpha (1-\frac{Q_\alpha}{Q})|<\lambda_f|J_\alpha|\lambda_i>|^2`. Q is a vector representing a direction in the reciprocal space in respect to which a perpendicular projection of :math:`J` will be calculated.
-
+    Parameters
+    ----------
+    cefion: :class:`CEFion` 
+        Rare-earth ion in the crystal field
+    tempreature:  
+        Temperature in *K*
+    Q :  
+        List of Q vectors used to evaluate the spectral weight
+    scheme : 'powder', 'single-crystal':
+            Scheme according to which :math:`|J_\perp|^2` is calculated. For `powder` its Eq. :math:numref:`Jperp_PWD`, for `single-crystal` Eq. :math:numref:`Jperp_SC`
             
     Returns:
         energies: Array containing energies of the transitions
         intensities: Array containing intensities of the transitions
+
+    Returns
+    -------
+    delta_energies: list[float]
+        Transitions' energies.
+    Sqw: list[float]
+        Spectral weight of neutron scattering for corresponding transitions.
             
-    Raises:
-        ValueError 
-            When an invalid ``Q`` parameter is chosen, or the dimension of the ``Q`` vector is not 3. 
-        RuntimeWarning
-            When Q=[0,0,0], where the spectral weight is ill defined.        
+    Raises
+    ------
+    ValueError 
+        When an invalid ``Q`` parameter is chosen, or the dimension of the ``Q`` vector is not 3. 
+    RuntimeWarning
+        When Q=[0,0,0], where the spectral weight is ill defined.        
     """
     
     # The way it is calculated is that the factor within the sum is calculated as a matrix, which is flattened at the end. Energy degeneracies are not taken into account, as it is easier to handle.
@@ -85,12 +126,12 @@ def neutronint(cefion: CEFion, temperature: float, Q: Tuple[float, float, float]
     
     # Calculate the |<\Gamma_f|J_\perp|\Gamma_i>|^2 matrix
     if scheme=='single-crystal':
-        if Q.shape[0] != 3:
+        if len(Q) != 3:
             raise ValueError('Dimension of the `Q` vector is not 3')
             
         # First implementation does not seem to work well
         # Qperp_projectCEFion = ms.perp_matrix(Q)
-        # J_perp = np.einsum('ij,jkl',Qperp_projectCEFion, cefion.J)
+        # J_perp = np.einsum('ij,jkl', Qperp_projectCEFion, cefion.J)
         # J2_perp = np.einsum('ijk->jk', np.square(np.abs(J_perp)))
         
         J2 = np.square(np.abs(cefion.J)) # J is already diagonalized and in the eigenvector basis
@@ -114,8 +155,8 @@ def neutronint(cefion: CEFion, temperature: float, Q: Tuple[float, float, float]
     
     Denergies = jumps.flatten()
     sorting = Denergies.argsort()
-    return (Denergies[sorting], Sqw.flatten()[sorting])
-
+    return (jumps, Sqw)
+    # return (Denergies[sorting], Sqw.flatten()[sorting])
 
 def magnetization(cefion: CEFion, temperature: float, Hfield: Tuple[float,float,float]) -> Tuple[float, float, float]:
     r'''
@@ -127,13 +168,14 @@ def magnetization(cefion: CEFion, temperature: float, Hfield: Tuple[float,float,
 
     :math:`M_\alpha = g_J \sum_n p_n |<\lambda_n | \hat{J}_\alpha | \lambda_n>|`
 
-    Parameters:
-        cefion: 
-            Rare-earth ion in the crystal field
-        temperature: 
-            Temperature at which to calculate magnetization   
-        Hfield: 
-            Applied magnetic field. Both direction and value are important.
+    Parameters
+    ----------
+    cefion: 
+        Rare-earth ion in the crystal field
+    temperature: 
+        Temperature at which to calculate magnetization   
+    Hfield: 
+        Applied magnetic field. Both direction and value are important.
     '''
     
     # Solve the Hamiltonian of a copy of the given ion
@@ -142,10 +184,9 @@ def magnetization(cefion: CEFion, temperature: float, Hfield: Tuple[float,float,
     # The diagonalized Hamiltonians' operators are already transformed into the sorted eigenvector base
     p = boltzman_population(cefion_inH.energies, temperature)
     # M = cefion_inH.ion.gJ * np.abs( np.einsum('ijj,j', cefion_inH.J, p) )
-    M = np.einsum('ij,i', cefion_inH.moment, p)
+    M = np.einsum('ij,i', cefion_inH.magnetic_moment, p)
     
     return tuple(M)
-
 
 def magnetization_exchange(cefion: CEFion, temperature: float, Hfield: Tuple[float,float,float], lam: float, precision: float=1e-5) -> Tuple[float, float, float]:
     r'''
@@ -182,7 +223,6 @@ def magnetization_exchange(cefion: CEFion, temperature: float, Hfield: Tuple[flo
         residual = np.linalg.norm(dM)/np.linalg.norm(M[-1])
     
     return M[-1]
-
 
 def susceptibility(cefion: CEFion, temperatures: np.ndarray, Hfield_direction: Tuple[float,float,float], method: str='perturbation') -> np.ndarray:
     r"""
@@ -272,7 +312,36 @@ def susceptibility(cefion: CEFion, temperatures: np.ndarray, Hfield_direction: T
         raise ValueError('Unknown method to calculate magnetization.')
         
     return susceptibility
-        
+
+def gtensor(cefion: CEFion) -> np.ndarray:
+    r"""
+    Calculate the g-tensor from the ground state doublet wavefunctions. 
+          
+    Parameters:
+        cefion : :class:`crysfipy.CEFion`
+            Rare-earth ion in crystal field\
+            
+    Returns:
+        Matrix representing the g-tensor.
+    """
+
+    assert np.abs(cefion.energies[0] - cefion.energies[1]) < C.numerical_zero, 'Ground state is not a doublet, g-tensor is not defined.'
+    Jeff = cefion.J    # J operator projected to the ground state doublet
+    g = np.zeros((3,3), dtype=float)
+
+    ### My guess
+    # gz = ( Jeff[:,0,0] - Jeff[:,1,1] ).astype(float) / 4
+    # gx = 2*( Jeff[:,0,1] + Jeff[:,1,0] ).real
+    # gy = 2*( Jeff[:,0,1] - Jeff[:,1,0] ).imag
+
+    ### PyCrystalField
+    gx = Jeff[:,0,1].real
+    gy = Jeff[:,0,1].imag
+    gz = np.abs(Jeff[:,0,0])
+
+
+    return np.array([gx, gy, gz]).T * cefion.ion.gJ*2
+
 
 def thermodynamics(cefion: CEFion, T: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     r"""
@@ -288,28 +357,31 @@ def thermodynamics(cefion: CEFion, T: np.ndarray) -> Tuple[np.ndarray, np.ndarra
     | Entropy: :math:`S = (U-F)/T`
     | Specific heat: :math:`C_V = (<E^2> - <E>)/T^2`
     
-    Parameters:
-        cefion:
-            Rare-earth ion in crystal field
-        T : ndarray
-            Temperature in Kelvin
+    Parameters
+    ----------
+    cefion:
+        Rare-earth ion in crystal field
+    T : ndarray
+        Temperature in Kelvin
 
             
-    Returns:
-        Z, E, F, S Cv : The partition function, average energy (internal energy), free energy, entropy, and heat capacity, respectively.
+    Returns
+    -------
+    Z, E, F, S Cv : 
+        The partition function, average energy (internal energy), free energy, entropy, and heat capacity, respectively.
     """
     Z = np.zeros(len(T))
     E = np.zeros(len(T))
     E2 = np.zeros(len(T))
     
     for En in cefion.energies:
-        print( np.exp(-En*C.meV2K/T) )
         Z += np.exp(-En*C.meV2K/T)
         E += En*np.exp(-En*C.meV2K/T)
         E2 += En*En*np.exp(-En*C.meV2K/T)
 
     E /= Z
     E2 /= Z
+
     F = -T*np.log(Z)
     S = (E-F)/T
     Cv = (E2-E**2)/T**2
