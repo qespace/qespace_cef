@@ -10,7 +10,7 @@ https://djangocas.dev/docs/4.0/python-docstring-google-style-example.html
 
 ### Compiling and setting up the documentation.
 
-For changes check the `index.rst` file and the contents od the `build` folder.
+For changes check the `index.rst` file and the contents od the `_build` folder.
 
 For windows run in terminal
 >./make.bat html
