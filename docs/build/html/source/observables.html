@@ -322,37 +322,62 @@ Exchange field is calulated in a self-consistent manner.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="crysfipy.observables.neutronint">
-<span class="sig-prename descclassname"><span class="pre">crysfipy.observables.</span></span><span class="sig-name descname"><span class="pre">neutronint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cefion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cefion.html#crysfipy.CEFion" title="crysfipy.cefion.CEFion"><span class="pre">CEFion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ei</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B_iso</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/crysfipy/observables.html#neutronint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crysfipy.observables.neutronint" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="crysfipy.observables.spectral_weight">
+<span class="sig-prename descclassname"><span class="pre">crysfipy.observables.</span></span><span class="sig-name descname"><span class="pre">spectral_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cefion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cefion.html#crysfipy.CEFion" title="crysfipy.cefion.CEFion"><span class="pre">CEFion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ei</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B_iso</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/crysfipy/observables.html#spectral_weight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crysfipy.observables.spectral_weight" title="Link to this definition">¶</a></dt>
 <dd><p>Returns matrix of energies and inelastic neutron scattering spectral weights for all possible transitions at given temperature.</p>
 <p>The spectral weight is calculated by equation from Enderle book following Stephane Raymond article.</p>
-<div class="line-block">
-<div class="line"><span class="math notranslate nohighlight">\(S(\vec{Q},\omega) = N (\gamma r_0)^2 f^2_m(Q) e^{-W(Q)} \sum_{if} \frac{k_f}{k_i} p_i |&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 \delta(E_i - E_f - \hbar \omega)\)</span></div>
+<div class="math-wrapper docutils container" id="equation-sqw-master">
+<div class="math notranslate nohighlight" id="equation-sqw-master">
+<span class="eqno">(1)<a class="headerlink" href="#equation-sqw-master" title="Link to this equation">¶</a></span>\[S(\vec{Q},\omega) = N (\gamma r_0)^2 f^2_m(Q) e^{-W(Q)} \sum_{if} \frac{k_f}{k_i} p_i |&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 \delta(E_i - E_f - \hbar \omega)\]</div>
 </div>
-<p>where:</p>
+<p>where: <a class="reference internal" href="#equation-sqw-master">(1)</a></p>
 <div class="line-block">
-<div class="line"><span class="math notranslate nohighlight">\(N (\gamma r_0)^2\)</span> : ignored, acts as units.</div>
-<div class="line"><span class="math notranslate nohighlight">\(f^2_m(Q)\)</span> : magnetic form factor, taken from internal tables in <code class="docutils literal notranslate"><span class="pre">mikibox.crysfipy.Ion</span></code> class.</div>
-<div class="line"><span class="math notranslate nohighlight">\(e^{-W(Q)}\)</span> : Debye-Waller factor, where <span class="math notranslate nohighlight">\(W(Q) = \frac{1}{2} B Q^2\)</span>. <span class="math notranslate nohighlight">\(B = B_{iso}\)</span> is the isotropic mean-square displacement obtained from crystal structure refinement.</div>
-<div class="line"><span class="math notranslate nohighlight">\(\frac{k_f}{k_i}\)</span> : scaling factor calculated from energy, which is used more widely <span class="math notranslate nohighlight">\(\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}\)</span>. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.</div>
-<div class="line"><span class="math notranslate nohighlight">\(p_i\)</span> : Boltzmann population factor.</div>
-<div class="line"><span class="math notranslate nohighlight">\(|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2\)</span> : matrix elements, exact description depends on <code class="docutils literal notranslate"><span class="pre">Q</span></code>, see below.</div>
+<div class="line"><span class="math notranslate nohighlight">\(N (\gamma r_0)^2\)</span></div>
+<div class="line">set to 1, acts as units.</div>
 </div>
-<p>The intensities are evaluated based on the <span class="math notranslate nohighlight">\(|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2\)</span> matrix elements, which form a matrix <span class="math notranslate nohighlight">\(|J_\perp|^2\)</span>.
-Two main cases are implemented and encoded in the <code class="xref py py-data docutils literal notranslate"><span class="pre">Q</span></code> parameter.</p>
+<div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(f^2_m(Q)\)</span></div>
+<div class="line">magnetic form factor, taken from internal tables in <code class="docutils literal notranslate"><span class="pre">mikibox.crysfipy.Ion</span></code> class.</div>
+</div>
+<div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(e^{-W(Q)}\)</span></div>
+<div class="line">Debye-Waller factor, where <span class="math notranslate nohighlight">\(W(Q) = \frac{1}{2} B Q^2\)</span>. <span class="math notranslate nohighlight">\(B = B_{iso}\)</span> is the isotropic mean-square displacement obtained from crystal structure refinement.</div>
+</div>
+<div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(\frac{k_f}{k_i}\)</span></div>
+<div class="line">scaling factor calculated from energy, which is used more widely <span class="math notranslate nohighlight">\(\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}\)</span>. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.</div>
+</div>
+<div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(p_i\)</span></div>
+<div class="line">Boltzmann population factor.</div>
+</div>
+<div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2\)</span></div>
+<div class="line">matrix elements, exact description depends on <code class="docutils literal notranslate"><span class="pre">Q</span></code>, see below.</div>
+</div>
+<hr class="docutils" />
+<p>Knowledge of the crystal field allows to determine the matrix elements <span class="math notranslate nohighlight">\(|&lt;\lambda_f|\hat{J}_\perp|\lambda_i&gt;|^2\)</span>,
+where the perpendicularity is with respect to the momentum transfer vector <span class="math notranslate nohighlight">\(\vec{Q}\)</span>.
+With the squared form of matrix elements the perpendicular projection is:</p>
+<div class="math-wrapper docutils container" id="equation-jperp-sc">
+<div class="math notranslate nohighlight" id="equation-jperp-sc">
+<span class="eqno">(2)<a class="headerlink" href="#equation-jperp-sc" title="Link to this equation">¶</a></span>\[\hat{J}_\perp = \sum_\alpha [1-Q_\alpha/|Q|]\hat{J}_\alpha\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha\)</span> indexes cartesian components.</p>
+<p>For polycrystalline samples, where we average the angular components within the polar coordinates the
+projection simplifies to</p>
+<div class="math-wrapper docutils container" id="equation-jperp-pwd">
+<div class="math notranslate nohighlight" id="equation-jperp-pwd">
+<span class="eqno">(3)<a class="headerlink" href="#equation-jperp-pwd" title="Link to this equation">¶</a></span>\[\hat{J}_\perp = \frac{2}{3} \sum_\alpha \hat{J}_\alpha\]</div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>cefion</strong> – <code class="xref py py-class docutils literal notranslate"><span class="pre">CEFion</span></code> Rare-earth ion in the crystal field</p></li>
 <li><p><strong>tempreature</strong> – Temperature in <em>K</em></p></li>
 <li><p><strong>Q</strong> – List of Q vectors used to evaluate the spectral weight</p></li>
-<li><p><strong>scheme</strong> – <p>‘powder’, ‘single-crystal’:
-Scheme according to which <span class="math notranslate nohighlight">\(|J_\perp|^2\)</span> is calculated.</p>
-<ul>
-<li><p>powder :  <span class="math notranslate nohighlight">\(|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 = 2/3\sum_\alpha |&lt;\lambda_f|J_\alpha|\lambda_i&gt;|^2\)</span> (default).</p></li>
-<li><p>(single-crystal : <span class="math notranslate nohighlight">\(|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 = \sum_\alpha (1-\frac{Q_\alpha}{Q})|&lt;\lambda_f|J_\alpha|\lambda_i&gt;|^2\)</span>. Q is a vector representing a direction in the reciprocal space in respect to which a perpendicular projection of <span class="math notranslate nohighlight">\(J\)</span> will be calculated.</p></li>
-</ul>
-</p></li>
+<li><p><strong>scheme</strong> – ‘powder’, ‘single-crystal’:
+Scheme according to which <span class="math notranslate nohighlight">\(|J_\perp|^2\)</span> is calculated. For <cite>powder</cite> its Eq. <a class="reference internal" href="#equation-jperp-pwd">(3)</a>, for <cite>single-crystal</cite> Eq. <a class="reference internal" href="#equation-jperp-sc">(2)</a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -496,7 +521,7 @@ Temperature in Kelvin</p></li>
 <li><a class="reference internal" href="#crysfipy.observables.boltzman_population"><code class="docutils literal notranslate"><span class="pre">boltzman_population()</span></code></a></li>
 <li><a class="reference internal" href="#crysfipy.observables.magnetization"><code class="docutils literal notranslate"><span class="pre">magnetization()</span></code></a></li>
 <li><a class="reference internal" href="#crysfipy.observables.magnetization_exchange"><code class="docutils literal notranslate"><span class="pre">magnetization_exchange()</span></code></a></li>
-<li><a class="reference internal" href="#crysfipy.observables.neutronint"><code class="docutils literal notranslate"><span class="pre">neutronint()</span></code></a></li>
+<li><a class="reference internal" href="#crysfipy.observables.spectral_weight"><code class="docutils literal notranslate"><span class="pre">spectral_weight()</span></code></a></li>
 <li><a class="reference internal" href="#crysfipy.observables.susceptibility"><code class="docutils literal notranslate"><span class="pre">susceptibility()</span></code></a></li>
 <li><a class="reference internal" href="#crysfipy.observables.thermodynamics"><code class="docutils literal notranslate"><span class="pre">thermodynamics()</span></code></a></li>
 </ul>

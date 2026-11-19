@@ -284,40 +284,61 @@
 
 
 
-<div class="viewcode-block" id="neutronint">
-<a class="viewcode-back" href="../../source/observables.html#crysfipy.observables.neutronint">[docs]</a>
-<span class="k">def</span> <span class="nf">neutronint</span><span class="p">(</span><span class="n">cefion</span><span class="p">:</span> <span class="n">CEFion</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="p">,</span> <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Ei</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">1e+6</span><span class="p">,</span> <span class="n">B_iso</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<div class="viewcode-block" id="spectral_weight">
+<a class="viewcode-back" href="../../source/observables.html#crysfipy.observables.spectral_weight">[docs]</a>
+<span class="k">def</span> <span class="nf">spectral_weight</span><span class="p">(</span><span class="n">cefion</span><span class="p">:</span> <span class="n">CEFion</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="p">,</span> <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Ei</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">1e+6</span><span class="p">,</span> <span class="n">B_iso</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns matrix of energies and inelastic neutron scattering spectral weights for all possible transitions at given temperature.</span>
 <span class="sd">    </span>
 <span class="sd">    The spectral weight is calculated by equation from Enderle book following Stephane Raymond article.</span>
 <span class="sd">    </span>
-<span class="sd">    | :math:`S(\vec{Q},\omega) = N (\gamma r_0)^2 f^2_m(Q) e^{-W(Q)} \sum_{if} \frac{k_f}{k_i} p_i |&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 \delta(E_i - E_f - \hbar \omega)`</span>
+<span class="sd">    .. math:: S(\vec{Q},\omega) = N (\gamma r_0)^2 f^2_m(Q) e^{-W(Q)} \sum_{if} \frac{k_f}{k_i} p_i |&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 \delta(E_i - E_f - \hbar \omega)</span>
+<span class="sd">      :label: Sqw_master</span>
 <span class="sd">    </span>
-<span class="sd">    where:</span>
+<span class="sd">    where: :math:numref:`Sqw_master`</span>
 
-<span class="sd">    | :math:`N (\gamma r_0)^2` : ignored, acts as units.</span>
-<span class="sd">    | :math:`f^2_m(Q)` : magnetic form factor, taken from internal tables in ``mikibox.crysfipy.Ion`` class.</span>
-<span class="sd">    | :math:`e^{-W(Q)}` : Debye-Waller factor, where :math:`W(Q) = \frac{1}{2} B Q^2`. :math:`B = B_{iso}` is the isotropic mean-square displacement obtained from crystal structure refinement.</span>
-<span class="sd">    | :math:`\frac{k_f}{k_i}` : scaling factor calculated from energy, which is used more widely :math:`\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}`. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.</span>
-<span class="sd">    | :math:`p_i` : Boltzmann population factor.</span>
-<span class="sd">    | :math:`|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2` : matrix elements, exact description depends on ``Q``, see below.</span>
+<span class="sd">    | :math:`N (\gamma r_0)^2`</span>
+<span class="sd">    | set to 1, acts as units.</span>
 
+<span class="sd">    | :math:`f^2_m(Q)`</span>
+<span class="sd">    | magnetic form factor, taken from internal tables in ``mikibox.crysfipy.Ion`` class.</span>
+
+<span class="sd">    | :math:`e^{-W(Q)}`</span>
+<span class="sd">    | Debye-Waller factor, where :math:`W(Q) = \frac{1}{2} B Q^2`. :math:`B = B_{iso}` is the isotropic mean-square displacement obtained from crystal structure refinement.</span>
+
+<span class="sd">    | :math:`\frac{k_f}{k_i}`</span>
+<span class="sd">    | scaling factor calculated from energy, which is used more widely :math:`\frac{k_f}{k_i} = \sqrt{1-\frac{\Delta E}{E_i}}`. there is a minus under the square root, because positive energy transfer corresponds to neutron energy loss.</span>
 <span class="sd">    </span>
-<span class="sd">    The intensities are evaluated based on the :math:`|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2` matrix elements, which form a matrix :math:`|J_\perp|^2`.</span>
-<span class="sd">    Two main cases are implemented and encoded in the :data:`Q` parameter.</span>
+<span class="sd">    | :math:`p_i`</span>
+<span class="sd">    | Boltzmann population factor.</span>
+
+<span class="sd">    | :math:`|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2`</span>
+<span class="sd">    | matrix elements, exact description depends on ``Q``, see below.</span>
+
+<span class="sd">    -----</span>
+
+<span class="sd">    Knowledge of the crystal field allows to determine the matrix elements :math:`|&lt;\lambda_f|\hat{J}_\perp|\lambda_i&gt;|^2`,</span>
+<span class="sd">    where the perpendicularity is with respect to the momentum transfer vector :math:`\vec{Q}`.</span>
+<span class="sd">    With the squared form of matrix elements the perpendicular projection is:</span>
+
+<span class="sd">    .. math:: \hat{J}_\perp = \sum_\alpha [1-Q_\alpha/|Q|]\hat{J}_\alpha</span>
+<span class="sd">      :label: Jperp_SC</span>
+
+<span class="sd">    where :math:`\alpha` indexes cartesian components.</span>
+
+<span class="sd">    For polycrystalline samples, where we average the angular components within the polar coordinates the</span>
+<span class="sd">    projection simplifies to </span>
+
+<span class="sd">    .. math:: \hat{J}_\perp = \frac{2}{3} \sum_\alpha \hat{J}_\alpha</span>
+<span class="sd">      :label: Jperp_PWD</span>
+
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
 <span class="sd">        cefion: :class:`CEFion` Rare-earth ion in the crystal field</span>
 <span class="sd">        tempreature:  Temperature in *K*</span>
 <span class="sd">        Q :  List of Q vectors used to evaluate the spectral weight</span>
-<span class="sd">        </span>
 <span class="sd">        scheme : &#39;powder&#39;, &#39;single-crystal&#39;:</span>
-<span class="sd">            Scheme according to which :math:`|J_\perp|^2` is calculated.</span>
-<span class="sd">            </span>
-<span class="sd">            * powder :  :math:`|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 = 2/3\sum_\alpha |&lt;\lambda_f|J_\alpha|\lambda_i&gt;|^2` (default).</span>
-<span class="sd">            * (single-crystal : :math:`|&lt;\lambda_f|J_\perp|\lambda_i&gt;|^2 = \sum_\alpha (1-\frac{Q_\alpha}{Q})|&lt;\lambda_f|J_\alpha|\lambda_i&gt;|^2`. Q is a vector representing a direction in the reciprocal space in respect to which a perpendicular projection of :math:`J` will be calculated.</span>
-
+<span class="sd">            Scheme according to which :math:`|J_\perp|^2` is calculated. For `powder` its Eq. :math:numref:`Jperp_PWD`, for `single-crystal` Eq. :math:numref:`Jperp_SC`</span>
 <span class="sd">            </span>
 <span class="sd">    Returns:</span>
 <span class="sd">        energies: Array containing energies of the transitions</span>

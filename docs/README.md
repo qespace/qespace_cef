@@ -1,6 +1,6 @@
 ## Documentation is available at
 
-https://mstekiel.github.io/mikibox/build/html/index.html
+https://mstekiel.github.io/crysfipy/
 
 It is formatted according to the numpydoc standards and Google Style for Python
 
@@ -17,6 +17,13 @@ For windows run in terminal
 
 Alternatively, in the environment where sphinx is installed run
 > sphinx-build -M html . build
+
+### Development guide
+
+Some useful links:
+ - lot of definitions and resources (https://lpn-doc-sphinx-primer.readthedocs.io/en/stable/concepts.html)
+ - referencing with sphinx (https://www.sphinx-doc.org/en/master/usage/referencing.html#role-ref)
+
 
 ### Other
 Some of the build directories have been rearranged in order to be able to host the documentation on GitHub Pages.
