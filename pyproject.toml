@@ -1,0 +1,23 @@
+[project]
+name = "crysfipy"
+version = "1.2.0"
+description = "Tools for analysis of physical properties arising from crystal-field Hamiltonian."
+readme = "README.md"
+authors = [
+        {name = 'Michal Stekiel', email = 'michal.stekiel@frm2.tum.de'},
+        {name = 'Petr Čermák'},
+]
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.4",
+    "scipy>=1.17.1",
+    "sympy>=1.14.0",
+]
+
+[dependency-groups]
+dev = [
+    "furo>=2025.12.19",
+    "pytest>=9.0.2",
+    "sphinx>=9.1.0",
+]
