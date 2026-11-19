@@ -2,7 +2,7 @@
 # muB, kB, NA from 2010); meV2K and K2meV are separate numbers, not reciprocals;
 # pi is hard-coded; R0, _gamn, C1-C3, NA, kB_SI are unused.
 pi = 3.14159265359
-numerical_zero = 1e-12  # python3.9.15 precision for floats seems to be around 1e-15, so lets say everything below
+numerical_zero = 1e-12  # python3.9.15 precision for floats seems to be around 1e-15, so let's say everything below
 
 _h = 6.626075540e-34  # Jsec     Planck constant h
 _e = 1.6021773349e-19  # Coulomb  electron charge
@@ -13,7 +13,7 @@ _gn = -3.82608545  # g-factor of the neutron
 _hq = _h / 2 / pi  #                h bar
 _gamn = _gn / 2 / _hq  # gyromagnetic ratio of the neutron
 _r0 = _e * _e / _m * 1e-7  # classical radius of electron
-R0 = _r0 * _gn / 2  # strenght of dipolar neutron electron interaction
+R0 = _r0 * _gn / 2  # strength of the dipolar neutron electron interaction
 
 uB_SI = 9.27400968 * 1e-24  # J/T
 kB_SI = 1.38064880 * 1e-23  # J/K
@@ -24,11 +24,11 @@ uB = 1e3 * uB_SI / _e  # uB in meV/T
 invcm2meV = 100 * 1000 * _h * _c / _e
 K2meV = 0.086173
 
-# conversion from [mol/m3] to intern [T/uB]
+# conversion from [mol/m3] to internal [T/uB]
 
 C1 = NA * uB_SI * 4 * pi * 1e-7  # 1/chi [T/uB] = C1 * 1/chi [mol/m3] C1 = 7.0182e-06
 
-# convertion from [mol/m3] to [mol/emu]
+# conversion from [mol/m3] to [mol/emu]
 
 C2 = 4 * pi / 1e6  # 1/chi [mol/emu] = C2 * 1/chi [mol/m3] C2 = 1.2566e-05
 

@@ -190,7 +190,7 @@ def magnetization(
     # Solve the Hamiltonian of a copy of the given ion
     cefion_inH = CEFion(ion=cefion.ion, cfp=cefion.cfp, Hfield=Hfield, diagonalize=True)
 
-    # The diagonalized Hamiltonians' operators are already transformed into the sorted eigenvector base
+    # The diagonalized Hamiltonian's operators are already transformed into the sorted eigenvector base
     p = boltzman_population(cefion_inH.energies, temperature)
     M = np.einsum("ij,i", cefion_inH.magnetic_moment, p)
 

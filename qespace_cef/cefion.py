@@ -108,7 +108,7 @@ class CEFion:
         self.Jz = J_z(Jval)
         self.J = [self.Jx, self.Jy, self.Jz]
 
-        # Prepare a list os kets that form the basis
+        # Prepare a list of kets that form the basis
         if Jval % 1 == 0:
             self.freeionkets = [f"|{int(x)}>" for x in np.linspace(Jval, -Jval, int(2 * Jval + 1))]
         elif Jval % 1 == 0.5:
@@ -126,7 +126,7 @@ class CEFion:
 
         self.hamiltonian = H
         if not np.allclose(H, H.T.conj()):
-            raise Exception("ERROR, Hamiltonian is not hermitian")
+            raise Exception("ERROR, Hamiltonian is not Hermitian")
 
         # Uncomputed, empty fields
         self.eigenvectors = []
@@ -315,10 +315,10 @@ class CEFion:
             energy = x[0]
             degeneracy = int(x[1])
             level_str += (
-                f"E({level:d}) =\t{energy:.{precision}f} meV\t{degeneracy:2d}fold-degenerated\n"
+                f"E({level:d}) =\t{energy:.{precision}f} meV\t{degeneracy:2d}-fold degenerate\n"
             )
 
-            # List degenerated eigenvectors
+            # List the degenerate eigenvectors
             if evecs:
                 for ev in self.eigenvectors[n : n + degeneracy]:
                     ev_components = []
