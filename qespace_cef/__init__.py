@@ -2,21 +2,11 @@
 Library for crystal field calculations.
 '''
 
-__version__ = '1.2'
+from importlib.metadata import version as _version
 
-'''
-History
-
-- 1.2
-  Implement additional Stevens operators and reimplement the way to initialize
-  crystal-field parameters.
-
-- 1.1
-  Implement magnetization.
-  
-- 1.0
-  Hello World!
-'''
+# The version is set in pyproject.toml only.
+__version__ = _version('qespace_cef')
+del _version
 
 # Import main classes
 from .ion import Ion
