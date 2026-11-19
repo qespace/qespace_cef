@@ -66,6 +66,17 @@ class CEFion:
     Exception
         If the Hamiltonian is not Hermitian (``numpy.allclose``).
 
+    Warnings
+    --------
+    Known problems, not fixed yet (AUDIT.md):
+
+    - P5: a second call of :meth:`diagonalize` rotates ``Jx``, ``Jy``, ``Jz``
+      again, though they are already in the eigenbasis, and every result
+      computed from them changes.
+    - Inside a degenerate level the eigenvectors are an arbitrary orthonormal
+      basis (CLAUDE.md, "Degenerate levels"), and so is anything computed
+      from single eigenvectors of that level; sums over the level are not.
+
     Examples
     --------
     Ce3+ (J = 5/2) in an axial field splits into three Kramers doublets:
@@ -158,6 +169,14 @@ class CEFion:
         ------
         ValueError
             If the Hamiltonian is not Hermitian to ``Eimag_precision`` decimals.
+
+        Warnings
+        --------
+        Known problems, not fixed yet (AUDIT.md):
+
+        - P5: a second call rotates the already rotated ``Jx``, ``Jy``,
+          ``Jz`` again. Call it once per object.
+        - P6: ``sortWithE=False`` raises ``IndexError``.
         """
 
         # A Hermitian Hamiltonian has real energies; eigh assumes Hermiticity, so check it first.
@@ -180,6 +199,7 @@ class CEFion:
         if sortWithE:
             sortedIndices = energies.argsort()
         else:
+            # AUDIT P6: float J and length J instead of 2J+1; raises IndexError.
             sortedIndices = np.arange(self.Jval)
 
         # Assign main values
@@ -188,6 +208,7 @@ class CEFion:
 
         # Change the basis of principal operators to the eigenstate basis with specified sorting scheme
         # However obtained, keep notation that `self.eigenvectors[i]` is a vector of ith eigenvalue.
+        # AUDIT P5: rotates the current Jx, Jy, Jz, already rotated after a first call.
         self.Jx = self.eigenvectors.conj() @ self.Jx @ self.eigenvectors.T
         self.Jy = self.eigenvectors.conj() @ self.Jy @ self.eigenvectors.T
         self.Jz = self.eigenvectors.conj() @ self.Jz @ self.eigenvectors.T
@@ -209,6 +230,12 @@ class CEFion:
         -------
         ndarray, shape (2J+1, 3)
             Row ``i`` is :math:`(m_x, m_y, m_z)` of eigenstate ``i``.
+
+        Warnings
+        --------
+        Inside a degenerate level the moments of single states depend on the
+        arbitrary basis that :meth:`diagonalize` picks; their sum over the
+        level does not (CLAUDE.md, "Degenerate levels").
         """
         # After diagonalization the J operator is in the eigenstate basis,
         # so we just trace it.
@@ -231,7 +258,16 @@ class CEFion:
         list of [float, int]
             ``[energy, degeneracy]`` for each level, ascending in energy;
             energy in meV.
+
+        Warnings
+        --------
+        P7 (AUDIT.md), not fixed yet: ``precision`` is overwritten with 5,
+        and the energies are truncated, not rounded. Two degenerate states
+        whose energies differ by rounding noise can fall on both sides of a
+        1e-5 meV step and come out as two levels, e.g. the 28.584 meV doublet
+        of Pr3+ with ``B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4``.
         """
+        # AUDIT P7: overwrites the argument; astype(int) truncates instead of rounding.
         precision = 5
         energies = (self.energies * 10**precision).astype(int)  # Convert to int for unique
         unique_energies, counts = np.unique(energies, return_counts=True)
@@ -257,7 +293,14 @@ class CEFion:
         Returns
         -------
         str
+
+        Warnings
+        --------
+        P7 (AUDIT.md), not fixed yet: the levels come from
+        :meth:`get_degeneracies`, which can split a degenerate level in two.
+        The eigenvectors inside a degenerate level are arbitrary.
         """
+        # AUDIT P7: levels from get_degeneracies.
         # After refactoring the precision there might be cleanup needed
 
         if not len(self.energies):

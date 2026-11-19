@@ -1,3 +1,6 @@
+# AUDIT P15, not fixed yet: no source or CODATA year; mixed vintages (h, e from 1986;
+# muB, kB, NA from 2010); meV2K and K2meV are separate numbers, not reciprocals;
+# pi is hard-coded; R0, _gamn, C1-C3, NA, kB_SI are unused.
 pi = 3.14159265359
 numerical_zero = 1e-12  # python3.9.15 precision for floats seems to be around 1e-15, so lets say everything below
 

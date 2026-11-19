@@ -35,6 +35,16 @@ class Ion:
     KeyError
         If the ion is not in the table.
 
+    Warnings
+    --------
+    Known problems, not fixed yet (AUDIT.md):
+
+    - P13: the form-factor coefficients for Ce are those of Ce2+, the only
+      Ce entry in the ILL table; the other ions use 3+ values.
+    - P14: the values in the table (J, gJ, Stevens factors, form-factor
+      coefficients) have no source next to them.
+    - P8: ``str()`` prints J with ``%d``, so J = 5/2 shows as 2.
+
     Examples
     --------
     >>> import qespace_cef as qc
@@ -46,7 +56,9 @@ class Ion:
     def __init__(self, ion_name: str):
         self.name = ion_name.lower()
 
+        # AUDIT P14: no source for these values.
         atomicDatabase = {
+            # AUDIT P13: the form-factor coefficients are Ce2+, not Ce3+.
             "ce": {
                 "J": 2.5,
                 "gJ": 0.8571428571428571,
@@ -173,7 +185,14 @@ class Ion:
         self.mffCoefficients = elementData["js"]
 
     def __str__(self):
-        """Name, J and gJ, e.g. ``'Ho: J = 8, gJ = 1.25'``."""
+        """Name, J and gJ, e.g. ``'Ho: J = 8, gJ = 1.25'``.
+
+        Warnings
+        --------
+        P8 (AUDIT.md), not fixed yet: J is printed with ``%d``, so J = 5/2
+        shows as 2.
+        """
+        # AUDIT P8: %d truncates a half-integer J.
         return "%s: J = %d, gJ = %.2f" % (self.name.title(), self.J, self.gJ)
 
     def mff(self, Q: ArrayLike) -> float | np.ndarray:
@@ -202,6 +221,11 @@ class Ion:
         float or ndarray
             Form factor, dimensionless, with the shape of ``Q``;
             :math:`f(0) \approx 1`.
+
+        Warnings
+        --------
+        P13 (AUDIT.md), not fixed yet: for Ce the coefficients are those of
+        Ce2+.
         """
         s = np.divide(Q, 4 * np.pi)
         coefs0 = self.mffCoefficients["j0"]

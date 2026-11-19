@@ -104,6 +104,21 @@ def spectral_weight(
         If ``scheme`` is unknown, or ``Q`` does not have 3 components for
         ``'single-crystal'``.
 
+    Warnings
+    --------
+    Known problems, not fixed yet (AUDIT.md):
+
+    - P9: the single-crystal matrix elements leave out the cross terms
+      :math:`-\hat{Q}_\alpha \hat{Q}_\beta \langle i|\hat{J}_\alpha|j\rangle \langle j|\hat{J}_\beta|i\rangle`
+      of the full projector. For Q along (110) in the audit's example the
+      summed weight was 5.6516 instead of 5.6573; single transitions can be
+      off by more.
+    - D5: :math:`e^{-B_{iso} Q^2/3}` is not the crystallographic
+      Debye-Waller factor :math:`e^{-B Q^2/16\pi^2}`; the convention is open
+      (AUDIT C10).
+    - The weights of single transitions inside a degenerate level depend on
+      the arbitrary eigenbasis; sums over the level do not.
+
     Notes
     -----
     The original code cites "the Enderle book following Stephane Raymond
@@ -125,6 +140,7 @@ def spectral_weight(
             raise ValueError("Dimension of the `Q` vector is not 3")
 
         J2 = np.square(np.abs(cefion.J))  # J is already diagonalized and in the eigenvector basis
+        # AUDIT P9: only the diagonal of the projector; the cross terms are missing.
         projection = 1 - (Q / np.linalg.norm(Q)) ** 2
 
         J2_perp = np.einsum("i,ijk", projection, J2)
@@ -216,12 +232,19 @@ def magnetization_exchange(
     -------
     tuple of 3 float
         :math:`(M_x, M_y, M_z)` in :math:`\mu_B` per ion.
+
+    Warnings
+    --------
+    P11 (AUDIT.md), not fixed yet: there is no iteration limit, so the loop
+    can run forever when the mean field does not converge. M = 0 gives NaN
+    and ends the loop without an error.
     """
 
     # Solve the Hamiltonian of a copy of the given ion
     M = [magnetization(cefion, temperature, Hfield)]
     residual = 42
 
+    # AUDIT P11: no iteration limit; M = 0 gives NaN and ends the loop.
     while residual > precision:
         Hexchange = lam * np.array(M[-1])
         M_next = magnetization(cefion, temperature, Hfield + Hexchange)
@@ -286,6 +309,23 @@ def susceptibility(
     ValueError
         If ``method`` is unknown.
 
+    Warnings
+    --------
+    Known problems, not fixed yet (AUDIT.md):
+
+    - P1 (``'perturbation'``): the van Vleck sum takes only the pairs with
+      :math:`E_m > E_n`; the pairs with :math:`E_m < E_n` contribute the
+      same, so that term is half what it should be. Ce3+ with
+      ``B20=0.5, B40=0.01, B44=0.1``, field along z, 5 K: 0.12704 instead
+      of 0.13130 :math:`\mu_B`/T (after multiplying by ``constants.uB``).
+    - P2 (``'perturbation'``): the direction enters as
+      :math:`\sum_\alpha n_\alpha |J_\alpha|^2 / |\vec{n}|` instead of
+      :math:`|\hat{n} \cdot \hat{\vec{J}}|^2`; along (1, 1, 0) this gives
+      :math:`\sqrt{2}` times the value along x.
+    - P10 (``'magnetization'``): returns :math:`|\vec{M}|/\epsilon`, not the
+      component along the field, so the sign is lost and the result is
+      wrong when :math:`\vec{M}` is not parallel to the field.
+
     Notes
     -----
     ``'perturbation'`` prints the matrix of transition energies.
@@ -298,6 +338,7 @@ def susceptibility(
         for it, temperature in enumerate(temperatures):
             Hfield = eps * np.array(Hfield_direction) / np.linalg.norm(Hfield_direction)
             M = magnetization(cefion, temperature, Hfield)
+            # AUDIT P10: |M|/eps, not the component along the field.
             susceptibility[it] = np.linalg.norm(M) / eps
     elif method == "perturbation":
         susceptibility = np.empty(len(temperatures))
@@ -307,13 +348,13 @@ def susceptibility(
 
         # Clean up
         jumps_with_zero_energy = np.where(np.abs(jumps) < C.numerical_zero)
+        # AUDIT P1: only the E_m > E_n pairs; the van Vleck term comes out halved.
         jumps_with_positive_energy = np.where(jumps > 0)
 
         # Calculate the J^2 matrix
         J2 = np.square(np.abs(cefion.J))
-        J2_directed = np.einsum("i,ijk", Hfield_direction, J2) / np.linalg.norm(
-            Hfield_direction
-        )  # TODO WTF is this projection?
+        # AUDIT P2: sum_a n_a |J_a|^2 / |n| instead of |n.J|^2 / |n|^2.
+        J2_directed = np.einsum("i,ijk", Hfield_direction, J2) / np.linalg.norm(Hfield_direction)
 
         print(jumps)
         for it, temperature in enumerate(temperatures):
@@ -363,6 +404,14 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     AssertionError
         If the two lowest energies differ by ``constants.numerical_zero``
         (meV) or more.
+
+    Warnings
+    --------
+    P4 (AUDIT.md), not fixed yet: the result depends on the arbitrary basis
+    that :meth:`CEFion.diagonalize` picks inside the ground doublet, against
+    CLAUDE.md, "Degenerate levels". For Ce3+ with ``B20=1`` in zero field it
+    is currently ``diag(2.571, -2.571, 0.857)``; a different doublet basis
+    gives a different matrix. How g should be defined is open (AUDIT C7).
     """
 
     assert np.abs(cefion.energies[0] - cefion.energies[1]) < C.numerical_zero, (
@@ -370,7 +419,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     )
     Jeff = cefion.J  # J operator projected to the ground state doublet
 
-    # PyCrystalField
+    # PyCrystalField. AUDIT P4: depends on the basis picked inside the doublet.
     gx = Jeff[:, 0, 1].real
     gy = Jeff[:, 0, 1].imag
     gz = np.abs(Jeff[:, 0, 0])
@@ -413,6 +462,13 @@ def thermodynamics(
         :math:`(E - F)/T`: meV/K and dimensionless terms mixed.
     Cv : ndarray, shape (n,)
         Heat capacity in meV²/K² per ion.
+
+    Warnings
+    --------
+    P3 (AUDIT.md), not fixed yet: energies in meV are mixed with
+    temperatures in K, so ``S`` and ``Cv`` are not in units of
+    :math:`k_B`. In the audit's example, at 10 K: S = 1.054 instead of
+    1.293 :math:`k_B`, and Cv low by a factor of about 135 (11.6²).
     """
     Z = np.zeros(len(T))
     E = np.zeros(len(T))
@@ -426,6 +482,7 @@ def thermodynamics(
     E /= Z
     E2 /= Z
 
+    # AUDIT P3: F in K, E in meV; S and Cv mix the two.
     F = -T * np.log(Z)
     S = (E - F) / T
     Cv = (E2 - E**2) / T**2
