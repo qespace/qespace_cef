@@ -1,4 +1,9 @@
+import sys
 from crysfipy.cefmatrices import *
+
+import numpy as np
+
+
 
 #######################################################################
 # Old implementation as separate matrices
@@ -234,109 +239,111 @@ def O6m6(J):
 
 #######################################################################
 # PyCrystalField implementation, very slow
-class Operator():
-    def __init__(self, J):
-        self.O = np.zeros((int(2*J+1), int(2*J+1)))
-        self.m = np.arange(-J,J+1,1)
-        self.j = J
-
-    @staticmethod
-    def Jz(J):
-        obj = Operator(J)
-        for i in range(len(obj.O)):
-            for k in range(len(obj.O)):
-                if i == k:
-                    obj.O[i,k] = (obj.m[k])
-        return obj
-
-    @staticmethod
-    def Jplus(J):
-        obj = Operator(J)
-        for i in range(len(obj.O)):
-            for k in range(len(obj.O)):
-                if k+1 == i:
-                    obj.O[i,k] = np.sqrt((obj.j-obj.m[k])*(obj.j+obj.m[k]+1))
-        return obj
-
-    @staticmethod
-    def Jminus(J):
-        obj = Operator(J)
-        for i in range(len(obj.O)):
-            for k in range(len(obj.O)):
-                if k-1 == i:
-                    obj.O[i,k] = np.sqrt((obj.j+obj.m[k])*(obj.j-obj.m[k]+1))
-        return obj
-
-    @staticmethod
-    def Jx(J):
-        objp = Operator.Jplus(J)
-        objm = Operator.Jminus(J)
-        return 0.5*objp + 0.5*objm
-
-    @staticmethod
-    def Jy(J):
-        objp = Operator.Jplus(J)
-        objm = Operator.Jminus(J)
-        return -0.5j*objp + 0.5j*objm
-
-    def __add__(self,other):
-        newobj = Operator(self.j)
-        if isinstance(other, Operator):
-            newobj.O = self.O + other.O
-        else:
-            newobj.O = self.O + other*np.identity(int(2*self.j+1))
-        return newobj
-
-    def __radd__(self,other):
-        newobj = Operator(self.j)
-        if isinstance(other, Operator):
-            newobj.O = self.O + other.O
-        else:
-            newobj.O = self.O + other*np.identity(int(2*self.j+1))
-        return newobj
-
-    def __sub__(self,other):
-        newobj = Operator(self.j)
-        if isinstance(other, Operator):
-            newobj.O = self.O - other.O
-        else:
-            newobj.O = self.O - other*np.identity(int(2*self.j+1))
-        return newobj
-
-    def __mul__(self,other):
-        newobj = Operator(self.j)
-        if (isinstance(other, int) or isinstance(other, float) or isinstance(other, complex)):
-            newobj.O = other * self.O
-        else:
-            newobj.O = np.dot(self.O, other.O)
-        return newobj
-
-    def __rmul__(self,other):
-        newobj = Operator(self.j)
-        if (isinstance(other, int) or isinstance(other, float)  or isinstance(other, complex)):
-            newobj.O = other * self.O
-        else:
-            newobj.O = np.dot(other.O, self.O)
-        return newobj
-
-    def __pow__(self, power):
-        newobj = Operator(self.j)
-        newobj.O = self.O
-        for i in range(power-1):
-            newobj.O = np.dot(newobj.O,self.O)
-        return newobj
-
-    def __neg__(self):
-        newobj = Operator(self.j)
-        newobj.O = -self.O
-        return newobj
-
-    def __repr__(self):
-        return repr(self.O)
 
 def StevensOpPCF(J,n,m):
     """generate stevens operator for a given total angular momentum
     and a given n and m state"""
+    class Operator():
+        def __init__(self, J):
+            self.O = np.zeros((int(2*J+1), int(2*J+1)))
+            self.m = np.arange(-J,J+1,1)
+            self.j = J
+
+        @staticmethod
+        def Jz(J):
+            obj = Operator(J)
+            for i in range(len(obj.O)):
+                for k in range(len(obj.O)):
+                    if i == k:
+                        obj.O[i,k] = (obj.m[k])
+            return obj
+
+        @staticmethod
+        def Jplus(J):
+            obj = Operator(J)
+            for i in range(len(obj.O)):
+                for k in range(len(obj.O)):
+                    if k+1 == i:
+                        obj.O[i,k] = np.sqrt((obj.j-obj.m[k])*(obj.j+obj.m[k]+1))
+            return obj
+
+        @staticmethod
+        def Jminus(J):
+            obj = Operator(J)
+            for i in range(len(obj.O)):
+                for k in range(len(obj.O)):
+                    if k-1 == i:
+                        obj.O[i,k] = np.sqrt((obj.j+obj.m[k])*(obj.j-obj.m[k]+1))
+            return obj
+
+        @staticmethod
+        def Jx(J):
+            objp = Operator.Jplus(J)
+            objm = Operator.Jminus(J)
+            return 0.5*objp + 0.5*objm
+
+        @staticmethod
+        def Jy(J):
+            objp = Operator.Jplus(J)
+            objm = Operator.Jminus(J)
+            return -0.5j*objp + 0.5j*objm
+
+        def __add__(self,other):
+            newobj = Operator(self.j)
+            if isinstance(other, Operator):
+                newobj.O = self.O + other.O
+            else:
+                newobj.O = self.O + other*np.identity(int(2*self.j+1))
+            return newobj
+
+        def __radd__(self,other):
+            newobj = Operator(self.j)
+            if isinstance(other, Operator):
+                newobj.O = self.O + other.O
+            else:
+                newobj.O = self.O + other*np.identity(int(2*self.j+1))
+            return newobj
+
+        def __sub__(self,other):
+            newobj = Operator(self.j)
+            if isinstance(other, Operator):
+                newobj.O = self.O - other.O
+            else:
+                newobj.O = self.O - other*np.identity(int(2*self.j+1))
+            return newobj
+
+        def __mul__(self,other):
+            newobj = Operator(self.j)
+            if (isinstance(other, int) or isinstance(other, float) or isinstance(other, complex)):
+                newobj.O = other * self.O
+            else:
+                newobj.O = np.dot(self.O, other.O)
+            return newobj
+
+        def __rmul__(self,other):
+            newobj = Operator(self.j)
+            if (isinstance(other, int) or isinstance(other, float)  or isinstance(other, complex)):
+                newobj.O = other * self.O
+            else:
+                newobj.O = np.dot(other.O, self.O)
+            return newobj
+
+        def __pow__(self, power):
+            newobj = Operator(self.j)
+            newobj.O = self.O
+            for i in range(power-1):
+                newobj.O = np.dot(newobj.O,self.O)
+            return newobj
+
+        def __neg__(self):
+            newobj = Operator(self.j)
+            newobj.O = -self.O
+            return newobj
+
+        def __repr__(self):
+            return repr(self.O)
+
+
     Jz = Operator.Jz(J=J)
     Jp = Operator.Jplus(J=J)
     Jm = Operator.Jminus(J=J)
@@ -433,7 +440,7 @@ def StevensOpPCF(J,n,m):
     return matrix.O.T
 
 ###########################
-def test_matrices(J):
+def test_matrices_pycrystalfield(J):
     O = StevensBase(J)
     equivalent_ops = {
         'O11':  (J_x(J), O.O11(),  StevensOpPCF(J,1, 1)) ,
@@ -465,22 +472,21 @@ def test_matrices(J):
         'O4m4': (O4m4(J), O.O4m4(), StevensOpPCF(J,4,-4)) ,
 
 
-        'O66':  (O66(J), O.O66(), StevensOpPCF(J,6,6)) ,
+        'O66':  (O66(J),  O.O66(), StevensOpPCF(J,6,6)) ,
         'O65':  (None,    O.O65(), StevensOpPCF(J,6,5)) ,
-        'O64':  (O64(J), O.O64(), StevensOpPCF(J,6,4)) ,
-        'O63':  (O63(J), O.O63(), StevensOpPCF(J,6,3)) ,
-        'O62':  (O62(J), O.O62(), StevensOpPCF(J,6,2)) ,
+        'O64':  (O64(J),  O.O64(), StevensOpPCF(J,6,4)) ,
+        'O63':  (O63(J),  O.O63(), StevensOpPCF(J,6,3)) ,
+        'O62':  (O62(J),  O.O62(), StevensOpPCF(J,6,2)) ,
         'O61':  (None,    O.O61(), StevensOpPCF(J,6,1)) ,
-        'O60':  (O60(J), O.O60(), StevensOpPCF(J,6,0)) ,
-        'O6m1': (None,     O.O6m1(), StevensOpPCF(J,6,-1)) ,
+        'O60':  (O60(J),  O.O60(), StevensOpPCF(J,6,0)) ,
+        'O6m1': (None,    O.O6m1(), StevensOpPCF(J,6,-1)) ,
         'O6m2': (O6m2(J), O.O6m2(), StevensOpPCF(J,6,-2)) ,
         'O6m3': (O6m3(J), O.O6m3(), StevensOpPCF(J,6,-3)) ,
         'O6m4': (O6m4(J), O.O6m4(), StevensOpPCF(J,6,-4)) ,
-        'O6m5': (None,     O.O6m5(), StevensOpPCF(J,6,-5)) ,
+        'O6m5': (None,    O.O6m5(), StevensOpPCF(J,6,-5)) ,
         'O6m6': (O6m6(J), O.O6m6(), StevensOpPCF(J,6,-6)) ,
     }
 
-    results = {}
     flag = True
     for Oname, (Oold, Onew, Opcf) in equivalent_ops.items():
         atol = np.max(Onew)*1e-10	# effectively makes it into rtol
@@ -490,6 +496,7 @@ def test_matrices(J):
             if not np.allclose(Onew, Oold, atol=atol):
                 print(f'\tOnew does not match Oold for {Oname} J={J}')
                 flag = False
+        
 
         if Opcf is not None:
             tp = np.allclose(Onew, Opcf, atol=atol)
@@ -501,16 +508,44 @@ def test_matrices(J):
             # 	print(f'\tOnew matches Ocf +- for {Oname} J={J}')
 
     return flag
+
+def test_matrices_characteristics(J):
+    """Check that each matrix is hermitian and symmetric."""
+    O = StevensBase(J)
+    Onames = [
+        'O11','O10','O1m1',
+        'O22','O21','O20','O2m1','O2m2',
+        'O33','O32','O31','O30','O3m1','O3m2','O3m3',
+        'O44','O43','O42','O41','O40','O4m1','O4m2','O4m3','O4m4',
+        'O66','O65','O64','O63','O62','O61','O60','O6m1','O6m2','O6m3','O6m4','O6m5','O6m6'
+    ]
     
+    hermiticity, symmetry = [], []
+    for Oname in Onames:
+        M = O[Oname[1:]]
+        hermiticity.append( np.allclose(M, M.T.conj()))
+        symmetry.append( np.allclose(M, M.T))
+        if not np.allclose(M, M.T):
+            print(f"{J=}, {Oname=}")
+            print(M)
+
+    return {
+        "is_hermitian": hermiticity,
+        "is_symmetrical": symmetry
+    }
+
+
+
 #########################
 def test_execution(Ntot):
+    '''Test fetching time of Stevens matrices'''
     J=5
     O = StevensBase(J)
 
     N = 0
     t_start = time()
     while N < Ntot:
-        _ = O['O42']
+        _ = O['42']
         N += 1
 
     t_end = time()
@@ -529,17 +564,20 @@ def test_implementation():
     StevensBase.implementedOps()
 
 if __name__ == '__main__':
-    O = StevensBase(2)
-    print(O['O21'])
-    print(O.O21())
+    # O = StevensBase(6)
+    # print(O['21'])
+    # print(O.O21())
+    # M = O.O6m6()
+    # print("M is hermitian?", np.allclose(M, M.T.conj()))
 
-    from time import time
-    import numpy as np
+    # from time import time
+    # import numpy as np
 
-    # for Jh in np.arange(1, 101):
-    # 	result = test_implementation(Jh/2)
-    # 	print(f'J={Jh/2} test: {result}')
+    for J in np.arange(1, 5)/2:
+    	# result = test_implementation(Jh/2)
+        result = test_matrices_characteristics(J)
+        print(f'J={J}\n\t hermitian: {(result["is_hermitian"])}\n\t symmetrical={(result["is_symmetrical"])}')
 
 
-    test_execution(10_000)
+    # test_execution(10_000)
 
