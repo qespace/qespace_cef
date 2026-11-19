@@ -31,15 +31,15 @@ Requires Python ≥ 3.12, `numpy`, `scipy`, `sympy` and `matplotlib`.
 import numpy as np
 import qespace_cef as qc
 
-ion = qc.Ion('Ce')                                    # Ce3+, J = 5/2
-cfp = qc.CEFpars(dict(B20=0.5, B40=0.01, B44=0.1), units='meV')
-cef = qc.CEFion(ion, cfp, Hfield=[0, 0, 0])           # field in T; diagonalised on creation
+ion = qc.Ion("Ce")  # Ce3+, J = 5/2
+cfp = qc.CEFpars(dict(B20=0.5, B40=0.01, B44=0.1), units="meV")
+cef = qc.CEFion(ion, cfp, Hfield=[0, 0, 0])  # field in T; diagonalised on creation
 
-cef.energies                 # eigenenergies in meV, shifted so the ground state is 0
-cef.get_degeneracies()       # [[energy, degeneracy], ...]: three Kramers doublets here
+cef.energies  # eigenenergies in meV, shifted so the ground state is 0
+cef.get_degeneracies()  # [[energy, degeneracy], ...]: three Kramers doublets here
 
-qc.gtensor(cef)                                       # g-tensor of the ground doublet
-qc.magnetization(cef, 2.0, [0, 0, 1])                 # T = 2 K, H = 1 T along z
+qc.gtensor(cef)  # g-tensor of the ground doublet
+qc.magnetization(cef, 2.0, [0, 0, 1])  # T = 2 K, H = 1 T along z
 Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
 ```
 

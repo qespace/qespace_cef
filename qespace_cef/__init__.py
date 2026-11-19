@@ -1,11 +1,11 @@
-'''
+"""
 Library for crystal field calculations.
-'''
+"""
 
 from importlib.metadata import version as _version
 
 # The version is set in pyproject.toml only.
-__version__ = _version('qespace_cef')
+__version__ = _version("qespace_cef")
 del _version
 
 # Import main classes

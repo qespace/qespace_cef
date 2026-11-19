@@ -12,5 +12,5 @@ from sphinx.cmd.build import main
 
 DOCS = Path(__file__).resolve().parent
 
-if __name__ == '__main__':
-    sys.exit(main(['-M', 'html', str(DOCS), str(DOCS / '_build')]))
+if __name__ == "__main__":
+    sys.exit(main(["-M", "html", str(DOCS), str(DOCS / "_build")]))

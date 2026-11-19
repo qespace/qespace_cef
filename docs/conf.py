@@ -12,19 +12,21 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
 
-master_doc = 'index'
-autodoc_mock_imports = ['numpy','matplotlib','scipy']
+sys.path.insert(0, os.path.abspath(".."))
+
+master_doc = "index"
+autodoc_mock_imports = ["numpy", "matplotlib", "scipy"]
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'qespace_cef'
+project = "qespace_cef"
 
 # The full version, read from the installed package (set in pyproject.toml)
 from importlib.metadata import version as _version
-release = _version('qespace_cef')
+
+release = _version("qespace_cef")
 
 
 # -- General configuration ---------------------------------------------------
@@ -33,18 +35,18 @@ release = _version('qespace_cef')
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon'
-    ]
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -55,7 +57,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # pydata_sphinx_theme
 # sphinx_rtd_theme
 # bizstyle
-html_theme = 'furo'
+html_theme = "furo"
 html_show_copyright = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
