@@ -21,8 +21,6 @@ autodoc_mock_imports = ['numpy','matplotlib','scipy']
 # -- Project information -----------------------------------------------------
 
 project = 'qespace_cef'
-copyright = '2022, Michal Stekiel'
-author = 'Michal Stekiel'
 
 # The full version, read from the installed package (set in pyproject.toml)
 from importlib.metadata import version as _version
@@ -58,6 +56,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # sphinx_rtd_theme
 # bizstyle
 html_theme = 'furo'
+html_show_copyright = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
