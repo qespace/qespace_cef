@@ -24,8 +24,9 @@ project = 'qespace_cef'
 copyright = '2022, Michal Stekiel'
 author = 'Michal Stekiel'
 
-# The full version, including alpha/beta/rc tags
-# release = '0.3.0'
+# The full version, read from the installed package (set in pyproject.toml)
+from importlib.metadata import version as _version
+release = _version('qespace_cef')
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,7 +42,6 @@ extensions = [
     ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

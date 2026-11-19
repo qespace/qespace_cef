@@ -71,9 +71,12 @@ here once decided.
 
 ## Documentation
 
-The API documentation is built with Sphinx from `docs/`
-(see [`docs/README.md`](docs/README.md)) and hosted at
-<https://mstekiel.github.io/qespace_cef/>.
+The API documentation is built with Sphinx from the docstrings; the
+sources are in `docs/`. Build it into `docs/_build/html` with:
+
+```bash
+uv run python docs/build.py
+```
 
 ## Development
 

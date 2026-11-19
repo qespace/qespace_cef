@@ -51,7 +51,7 @@ def spectral_weight(cefion: CEFion,
     | set to 1, acts as units.
 
     | :math:`f^2_m(Q)`
-    | magnetic form factor, taken from internal tables in ``mikibox.qespace_cef.Ion`` class.
+    | magnetic form factor, taken from internal tables in ``qespace_cef.Ion`` class.
 
     | :math:`e^{-W(Q)}`
     | Debye-Waller factor, where :math:`W(Q) = \frac{1}{2} B Q^2`. :math:`B = B_{iso}` is the isotropic mean-square displacement obtained from crystal structure refinement.
