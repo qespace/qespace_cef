@@ -23,7 +23,7 @@ or from a local checkout, editable:
 uv add --editable path/to/qespace_cef
 ```
 
-Requires Python ≥ 3.12, `numpy`, `scipy`, `sympy` and `matplotlib`.
+Requires Python ≥ 3.12 and `numpy`.
 
 ## Quick start
 
@@ -59,6 +59,8 @@ Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
 
 `qespace_cef/symbolic/` holds experimental scripts that diagonalise the CEF
 Hamiltonian symbolically with `sympy`; they are not part of the public API.
+`sympy` is not installed with the package; in a checkout, get it with
+`uv sync --group symbolic`.
 
 ## Conventions
 
