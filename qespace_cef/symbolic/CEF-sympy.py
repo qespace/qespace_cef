@@ -1,3 +1,4 @@
+# EXPERIMENTAL: not part of the qespace_cef API, not tested. See README.md here.
 import sympy
 import numpy as np
 from timeit import default_timer as timer

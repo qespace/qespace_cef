@@ -1,3 +1,4 @@
+# EXPERIMENTAL: not part of the qespace_cef API, not tested. See README.md here.
 import sympy
 import sympy.physics.quantum.spin as ssympy
 from sympy.physics.quantum import Operator, represent, Ket, qapply
@@ -18,7 +19,7 @@ m = sympy.symbols('m')
 # Dont forget to edit these fields
 Jval = sympy.Rational(5,2)
 Jvalstr = f'{Jval:.1f}'.replace('.','p')
-filenameprefix = f'C:/Users/Stekiel/Documents/GitHub/mikibox/mikibox/qespace_cef/symbolic/Symbolic-output/J_{Jvalstr}_B20_B22'
+filenameprefix = f'Symbolic-output/J_{Jvalstr}_B20_B22'
 
 J2 = ssympy.J2Op()
 Jplus = ssympy.JplusOp()

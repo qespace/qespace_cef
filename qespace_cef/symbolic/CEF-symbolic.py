@@ -1,3 +1,4 @@
+# EXPERIMENTAL: not part of the qespace_cef API, not tested. See README.md here.
 import sympy
 import numpy as np
 
@@ -13,7 +14,7 @@ B20, B22, B40, B42, B44, B60, B62, B64, B66 = sympy.symbols('B20, B22, B40, B42,
 # Dont forget to edit these fields
 Jval = sympy.Rational(5,2)
 Jvalstr = f'{Jval:.1f}'.replace('.','p')
-filenameprefix = f'C:/Users/Stekiel/Documents/GitHub/mikibox/mikibox/qespace_cef/symbolic/Symbolic-output/J_{Jvalstr}_B20_B22_B40_B42_B44'
+filenameprefix = f'Symbolic-output/J_{Jvalstr}_B20_B22_B40_B42_B44'
 
 print(J_plus(Jval))
 print(J_minus(Jval))

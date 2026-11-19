@@ -1,3 +1,13 @@
+# Symbolic CEF scripts (experimental)
+
+**Experimental.** These scripts diagonalise the CEF Hamiltonian symbolically
+with `sympy`. They are not part of the `qespace_cef` API, are not imported by
+`import qespace_cef`, are not tested, and may change or break without notice.
+Run them from this folder (they import the local `cefmatrices.py`); output
+goes to `Symbolic-output/` relative to the working directory.
+
+## Notes
+
 For systems with J>=5/2 the diagonalization of the Hamiltonian takes long time.
 
 Ideas how to improve:

@@ -1,3 +1,4 @@
+# EXPERIMENTAL: not part of the qespace_cef API, not tested. See README.md here.
 '''
 Additions by Michal Stekiel
 
