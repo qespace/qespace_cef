@@ -109,7 +109,7 @@ holds for subagents and worktrees.
 | Basis | `OPEN:` ground `J` multiplet only, or intermediate coupling |
 | Zeeman term | `OPEN:` sign, `g_J` vs full `L + 2S` |
 | Cross sections | `OPEN:` normalisation, form factor, units |
-| Degenerate levels | Eigenvectors within a degenerate subspace are basis dependent: compare projectors or sums over the subspace, never single eigenvectors |
+| Degenerate levels | Eigenvectors within a degenerate subspace are basis dependent: compare projectors or sums over the subspace, never single eigenvectors `OPEN: Michal needs to understand it`|
 
 `qespace_cef` is a package of the qespace suite. Suite rules reach this
 repository as entries in `CONVENTIONS.md` (accepted CONVs, with the test that
