@@ -3,6 +3,8 @@ name = "qespace_cef"
 version = "1.2.0"
 description = "Tools for analysis of physical properties arising from crystal-field Hamiltonian."
 readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
         {name = 'Michal Stekiel', email = 'michal.stekiel@frm2.tum.de'},
         {name = 'Petr Čermák'},
@@ -21,3 +23,10 @@ dev = [
     "pytest>=9.0.2",
     "sphinx>=9.1.0",
 ]
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
