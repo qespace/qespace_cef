@@ -9,29 +9,30 @@ Most important things so far:
 '''
 
 from numpy import diag, linspace, conj, transpose, sqrt, eye, dot, zeros
+import numpy as np
+from numpy.typing import NDArray
 from numpy.linalg import matrix_power as mp
 
 # J matrices
-def J_z(J):
+def J_z(J: float) -> NDArray[np.complex128]:
     return diag(linspace(J,-J,int(2*J+1)))
 
-def J_y(J):
+def J_y(J: float) -> NDArray[np.complex128]:
 	return -.5j * (J_plus(J) - J_minus(J))
 
-def J_x(J):
+def J_x(J: float) -> NDArray[np.complex128]:
 	return .5 * (J_plus(J) + J_minus(J))
 
-def J_plus(J):
+def J_plus(J: float) -> NDArray[np.complex128]:
 	p1 = linspace(-J,J-1,int(2*J))
 	p1 = sqrt(J*(J+1) - p1*(p1+1))
 	return diag(p1,1)
 
-def J_minus(J):
+def J_minus(J: float) -> NDArray[np.complex128]:
 	return J_plus(J).conj().transpose()
 
 class StevensBase:
-	'''
-    Factory for producing Stevens operators Onm for the problem with defined J quantum number.  
+	'''Factory for producing Stevens operators Onm for the problem with defined J quantum number.  
     
 	Required matrices can be obtained as a function call `StevensBase(J).O32()`
 	or by getitem call `StevensBase(J)['O32']`.
@@ -62,6 +63,7 @@ class StevensBase:
 		1. O(n,  n-1) = 0.5* (O(n,n)*Jz + Jz*O(n,n))
 		2. O(n,-(n-1)) = 0.5* (O(n,-n)*Jz + Jz*O(n,-n))
 		3. Generally, O(n,k) is 0.5*( Okk*Y + Y*Okk), where Y is polynomial in Jz of order (n-k)
+		4. All Stevens matrices are hermitian, but the ones with m<0 are non-symmetric and purely imaginary.
 
 	Sources:
 		1. https://www2.cpfs.mpg.de/~rotter/homepage_mcphase/manual/node132.html
@@ -76,6 +78,14 @@ class StevensBase:
 		3. On note 2, this works extremely fast if the factory does not need to be reinitialized,
 		i.e. for given ion load the Onm factory and produced Onm.
 	'''
+
+	J:    float
+	JJ:   float
+	J2p1: float
+	Jx: NDArray[np.complex128]
+	Jy: NDArray[np.complex128]
+	Jz: NDArray[float]
+
 	def __init__(self, J: float):
 		self.J = J
 		self.JJ = J*(J+1.)
@@ -96,7 +106,7 @@ class StevensBase:
 	def implementedOps(cls):
 		return [Oname for Oname in cls.__dict__.keys() if Oname[0]=='O']
 	
-	def __getitem__(self, nm: str):
+	def __getitem__(self, nm: str) -> NDArray[np.complex128]:
 		return self.__class__.__dict__[f'O{nm}'](self)
 
 

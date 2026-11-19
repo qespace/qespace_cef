@@ -38,6 +38,8 @@ class CEFpars:
                 B6m1 = -0.3 meV
             >
     """
+    Bpars: dict[str, float]
+    symmetry: str
     
     def __init__(self, Bdict: dict[str, float], units: str='meV', pointGroup: str='C1'):
         # Check units and assign conversion factors

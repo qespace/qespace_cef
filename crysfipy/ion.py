@@ -69,14 +69,17 @@ class Ion:
                         "j2":[0.157, 18.5553, 0.8484, 6.5403, 0.888, 2.0367, 0.0318] }},
         }
 
+        if self.name not in atomicDatabase.keys():
+            raise KeyError(f'{ion_name} - ion with that name not implemented')
+
         elementData = atomicDatabase[self.name]
 
-        self.J     = elementData['J']
-        self.J2p1  = int(2 * self.J + 1)
-        self.gJ    = elementData['gJ']
-        self.Alpha = elementData['alpha']
-        self.Beta  = elementData['beta']
-        self.Gamma = elementData['gamma']
+        self.J     : float = elementData['J']
+        self.J2p1  : float = int(2 * self.J + 1)
+        self.gJ    : float = elementData['gJ']
+        self.Alpha : float = elementData['alpha']
+        self.Beta  : float = elementData['beta']
+        self.Gamma : float = elementData['gamma']
         self.mffCoefficients = elementData['js']
 
     def __str__(self):

@@ -5,7 +5,7 @@ def sympy_expression_mapping():
     return {'sqrt':np.emath.sqrt, 'I':1j}
 
 
-def point_group_synonyms(name: Union[str, int]):
+def point_group_synonyms(name: Union[str, int]) -> tuple[str,str,str, int]:
     '''
     Return the synonyms of a given point group name.
 
