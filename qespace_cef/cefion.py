@@ -285,9 +285,9 @@ class CEFion:
         evecs : bool, optional
             If True (default), list the eigenvectors under each level.
         precision : int, optional
-            Significant digits of the energies (meV) and decimals of the
-            eigenvector coefficients. Default 3. ``str(cefion)`` always uses
-            the defaults.
+            Decimals of the energies (meV) and of the eigenvector
+            coefficients. Default 3. ``str(cefion)`` always uses the
+            defaults; :meth:`summary` is meant to take the options.
 
         Returns
         -------
@@ -315,7 +315,7 @@ class CEFion:
             energy = x[0]
             degeneracy = int(x[1])
             level_str += (
-                f"E({level:d}) =\t{energy:.{precision}} meV\t{degeneracy:2d}fold-degenerated\n"
+                f"E({level:d}) =\t{energy:.{precision}f} meV\t{degeneracy:2d}fold-degenerated\n"
             )
 
             # List degenerated eigenvectors
@@ -333,3 +333,21 @@ class CEFion:
 
         ret += "\n".join(levels)
         return ret
+
+    def summary(self, evecs: bool = True, precision: int = 3) -> str:
+        """Energy levels and eigenvectors as text, with options. Not implemented yet.
+
+        Planned home of what ``str(cefion)`` prints, with the ``evecs`` and
+        ``precision`` options that ``str()`` cannot pass (AUDIT Q7). It waits
+        for the API redesign (AUDIT A2); until then call
+        ``cefion.__str__(evecs, precision)``.
+
+        Raises
+        ------
+        NotImplementedError
+            Always, for now.
+        """
+        # AUDIT Q7: stub, to be implemented with A2.
+        raise NotImplementedError(
+            "CEFion.summary is planned (AUDIT Q7, A2); use cefion.__str__(evecs, precision)."
+        )
