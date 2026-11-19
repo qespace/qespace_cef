@@ -22,7 +22,8 @@ broken.
 
 **Status, 2026-11-19.** The maintainer's decisions on this audit are in
 section 7. Done: 6.1 (with P12), Q1, Q4, Q8, Q9 (`chore/cleanup`); X1–X3
-(`build/numpy-only`); D1–D12, A13 (`docs/docstrings`). Every P item still in
+(`build/numpy-only`); D1–D12, A13 (`docs/docstrings`); Q3, Q6, Q2 in text
+(`style/quality`). Q7 in part (see its row). Every P item still in
 the code carries an `# AUDIT Pn:` comment there and, except P15
 (`constants`), a Warnings section in the docstring of the public object it
 affects; the P items stay open until each fix is reviewed.
@@ -93,7 +94,7 @@ affects; the P items stay open until each fix is reviewed.
 | Q4 | Docstrings mix NumPy style, Google style ("Parameters:"), Markdown (`## Class`) and RST `\|` blocks, and lack array shapes (CLAUDE.md 5.4) |
 | Q5 | Unused imports: `conj`, `transpose`, `zeros` in `cefmatrices`; `np` and `Union` used only for small things; commented imports in `cefion` lines 10–11 and `observables` line 2 |
 | Q6 | NumPy scalars leak into results and strings: `get_degeneracies` returns `np.float64`/`np.int64` (CLAUDE.md 5.7.3) |
-| Q7 | `CEFion.__str__(evecs, precision)` takes arguments `str()` can't pass; `{energy:.{precision}}` gives significant digits, not decimals; the kets are created only for J % 1 in {0, 0.5}, so other values leave the attribute undefined |
+| Q7 | `CEFion.__str__(evecs, precision)` takes arguments `str()` can't pass; `{energy:.{precision}}` gives significant digits, not decimals; the kets are created only for J % 1 in {0, 0.5}, so other values leave the attribute undefined. **Partly done:** energies are printed with decimals; `CEFion.summary(evecs, precision)` exists as a stub that raises `NotImplementedError`, to be implemented with A2; the kets remain (no `Ion` gives another J) |
 | Q8 | Tests: `test_cefion.py` and `test_cefpars.py` contain only `__main__` scripts; `test_cefmatrices.py` keeps a verbatim copy of PyCrystalField's operator code (GPL-3, compatible, but without attribution or version) and an old implementation as reference; `test_implementation` asserts nothing; `tests/__init__.py` exists (the suite's DEV.md asks for none) |
 | Q9 | No linter or formatter configured (CLAUDE.md 6.7 `OPEN:` ruff) |
 
@@ -179,9 +180,9 @@ branch (CLAUDE.md 1.3).
    sympy in the dependency group `symbolic` (X1–X3, Q14).
 3. **`docs/docstrings`**: D1–D12 and A13 in NumPy style (Q4); markers and
    Warnings sections for the P items.
-4. **`style/quality`** (next): Q3 type hints and the mutable default, Q6
-   plain floats, Q7 `__str__`, Q2 typos in text only; renaming public names
-   waits for A2.
+4. **`style/quality`**: Q3 type hints and the mutable default, Q6
+   plain floats, Q7 `__str__` (energies with decimals, a `summary()` stub),
+   Q2 typos in text only; renaming public names waits for A2.
 5. Delayed: the P fixes, the A items except A13, the items of 6.2 and 6.3
    (C1–C12), X4 (the numpy floor, once tests show what it can be), and the
    questions Q11–Q13.

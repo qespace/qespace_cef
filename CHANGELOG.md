@@ -18,6 +18,10 @@
   performance stubs (`pytest -m perf -s`).
 - Docstrings in NumPy style with units and shapes; known problems from
   `AUDIT.md` marked in the code and in Warnings sections.
+- `str(CEFion)` prints energies with `precision` decimals (`9.968 meV`,
+  was `9.97 meV`) and "2-fold degenerate". `CEFion.summary()` is a stub
+  for later. `get_degeneracies`, `magnetization` and `CEFpars.Bpars` give
+  Python floats and ints instead of NumPy scalars.
 
 ## 1.3.0
 
