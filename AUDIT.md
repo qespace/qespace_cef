@@ -10,7 +10,10 @@ it is. Remove an item when its change lands; IDs are never reused.
 
 Places are named by module and function. Every P item still in the code has
 an `# AUDIT Pn:` comment where it happens and, except P15, a Warnings section
-in the docstring of the public object it affects.
+in the docstring of the public object it affects. P1–P3, P5–P11 and P17
+also have strict `xfail` tests with expected values that don't come from
+the code (`test/known-problems`); a fix turns its tests green and removes
+the markers. P4 gets its test with C7; P13–P16 are data and conventions.
 
 Severity: **bug** = wrong result, verified by running it; **bug (read)** =
 wrong from reading, not run; **rule** = breaks a rule in CLAUDE.md;
@@ -41,9 +44,7 @@ from `747c871` and does not depend on what changed since.
 
 ## 2. Documentation against behaviour
 
-| ID | Where | Finding | Proposal |
-|---|---|---|---|
-| D13 | `StevensBase` docstring, Notes, "Observations" | Observations 1 and 2 say O(n, ±(n−1)) = ½{O(n, ±n), Jz}, which cannot hold: the two sides change m by n−1 and by n. The form that holds, and that the code comments use (`O32 = 0.5 (O22 Jz + Jz O22)`), is O(n, ±(n−1)) = ½{O(n−1, ±(n−1)), Jz}: checked for J = 1/2 … 8, n = 2 … 6, both signs, 160 cases, on `610c884`. Observation 4 (q < 0: purely imaginary, not symmetric) holds; 3 is too general to check as written. (From the maintainer's notes: "validate observations ... maybe can go to tests?") | Correct 1 and 2; turn 1, 2 and 4 into tests in `tests/test_cefmatrices.py`: an independent check of the hand-written table, also for A6 |
+None open.
 
 ## 3. Architecture
 
@@ -120,19 +121,11 @@ API redesign last, as version 2.0. Each package is one branch (CLAUDE.md
 fix is its own commit with a physics explanation, so you can review them one
 by one.
 
-1. **`test/known-problems`.** A strict `xfail` test for each P item with an
-   expected result that does not come from the code under test: P1 (the two
-   susceptibility methods agree, in μB/T), P2 (χ(110) = χ(100) for a
-   tetragonal case), P3 (`S = −∂F/∂T`, `Cv = T ∂S/∂T`, `S → ln(2J+1)` at high
-   T, in k_B), P5 (a second `diagonalize()` changes nothing), P6
-   (`sortWithE=False` runs), P7 (the Pr cubic doublet is one level), P8
-   (`str` shows 5/2), P9 (single-crystal weights against the full projector,
-   computed in the test), P10 (field along (1,0,1)), P11 (M = 0 gives 0, not
-   NaN), P17 (g gᵀ unchanged under a rotation of the doublet basis). Tests
-   that pass now: the sum rules of `spectral_weight`, and the D13 identities
-   (with the docstring corrected). P4 gets its test with C7. The
-   references are analytic limits and identities only (Q22). About 4–5
-   commits.
+1. **`test/known-problems`** (this branch, done): 25 strict `xfail` tests
+   for P1–P3, P5–P11 and P17, and passing tests for the exact
+   susceptibility (magnetization method along z), the sum rules of
+   `spectral_weight`, the axial g values and the corrected D13 identities.
+   References: analytic limits and identities only (Q22).
 2. **`build/numpy-floor`** (X4): `nox` as a dev dependency (Q23) and a
    `noxfile.py` that runs the tests on a matrix of numpy (1 and 2) and
    Python versions; set the numpy floor that passes; record the command in

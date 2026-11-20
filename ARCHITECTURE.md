@@ -74,19 +74,23 @@ tests/
   reference/
     old_stevens.py      first implementation of the Stevens operators
     pycrystalfield.py   PyCrystalField's StevensOp, with attribution
-  test_cefmatrices.py   Stevens matrices vs both references, Hermiticity;
-                        J = 1/2 ... 8
+  test_cefmatrices.py   Stevens matrices vs both references, Hermiticity,
+                        the StevensBase observations; J = 1/2 ... 8
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
-                        Zeeman, sorting, orthonormality, H = U E U^dagger
+                        Zeeman, sorting, orthonormality, H = U E U^dagger;
+                        strict xfail for P5-P7
   test_cefpars.py       unit conversion, point-group tables
-  test_ion.py           J and gJ from Hund's rules, form factor
-  test_observables.py   return types only, so far
+  test_ion.py           J and gJ from Hund's rules, form factor; xfail P8
+  test_observables.py   exact susceptibility, thermodynamic identities, sum
+                        rules, g values; strict xfail for P1-P3, P9-P11, P17
   test_performance.py   timing stubs, marker `perf`, deselected by default
 ```
 
 `pyproject.toml` puts `tests/` on the path, so the tests import the
-references as `reference.*`. `observables` has only a return-type test; its known
-problems are in AUDIT.md (P1–P4, P9–P11, P17).
+references as `reference.*`. A known problem from AUDIT.md is a strict `xfail`
+that names its ID; it fails (XPASS) once the problem is fixed, and the fix
+removes the marker. The expected values come from formulas in the tests,
+not from the code under test.
 
 ## Documentation
 
