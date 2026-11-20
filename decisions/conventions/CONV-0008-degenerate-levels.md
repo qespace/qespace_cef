@@ -28,8 +28,22 @@ only chooses between equal branches of the formula. Grouping into levels is
 for counting and reporting: degeneracies, level lists, per-level
 intensities, the ground doublet of the g-tensor.
 
-`OPEN:` whether a basis inside a level is ever shown (eigenvectors, a print
-of the level scheme), and if so, which operator fixes it (AUDIT Q41).
+Where a basis inside a level is shown (the eigenvectors of `summary`), it is
+the canonical basis below. Numbers the package returns stay basis invariant.
+
+1. Diagonalise J_z (in the frame of the J operators, CONV-0004) inside the
+   level, and order its eigenstates by `<J_z>`, ascending.
+2. Kramers ion (half-integer J) in zero field: every level is made of
+   Kramers pairs. For each eigenstate |μ> with `<J_z> < 0`, fix its phase so
+   that its largest component is real and positive; its partner is `Θ|μ>`,
+   with time reversal `Θ|m> = (−1)^(J−m) |−m>` followed by complex
+   conjugation, and has `<J_z> > 0`.
+3. Every other case (integer J, or a field): each eigenstate gets its own
+   phase, largest component real and positive.
+
+`OPEN:` the operator when J_z is itself degenerate inside a level, and the
+phase of a state with `<J_z> = 0`, which `Θ` maps to itself (integer J).
+`OPEN:` the defaults `rtol = 1e-10`, `E_floor = 1` meV.
 
 ## Rationale
 
@@ -64,6 +78,20 @@ with `expm1`, stays exact.
 Grouping consecutive sorted energies can chain a slow drift into one level;
 with a tolerance this close to rounding it does not happen in practice.
 
+The canonical basis is degenerate perturbation theory for an infinitesimal
+field along z: diagonalising J_z inside the level gives the B → 0 limit of
+the states in a field along z, without a fake field in H. Diagonalising
+leaves one phase per state free, not one common phase: a common phase
+cancels in every `<i|O|j>`, while the relative phase of two states rotates
+the off-diagonal elements. For Ce³⁺ (`B20 = 0.5, B40 = 0.01, B44 = 0.1` meV)
+the ground doublet has `<−|J_x|+> = −0.602` and `<−|J_y|+> = +0.602 i` with
+`|+> = Θ|−>`; an extra relative phase `e^{iπ/3}` turns them into
+`−0.301 − 0.521 i` and `−0.521 + 0.301 i`, with the same modulus.
+Taking the partner from time reversal fixes the relative phase physically:
+the pair then transforms like a spin ½. Two different, equally valid outputs
+of `eigh` for that doublet gave the identical canonical states (scratch run,
+2026-11-21).
+
 ## Consequences
 
 - Observables sum over each degenerate level; tests compare projectors or sums,
@@ -74,7 +102,11 @@ with a tolerance this close to rounding it does not happen in practice.
 - CONV-0009 fixes the degeneracy of the susceptibility to the absolute
   `constants.numerical_zero`. Once this CONV is accepted, a new CONV
   supersedes CONV-0009 so that it uses this rule.
+- `summary` groups levels with this tolerance and prints the canonical
+  basis.
 - Tests:
+  - the canonical basis is the same after a random unitary rotation inside
+    each level, and `Θ|−> = |+>` for every Kramers pair;
   - grouping is unchanged when H gets a random Hermitian perturbation of
     size ε `max|E|`;
   - every exact Kramers doublet of low-symmetry Hamiltonians is one level;
