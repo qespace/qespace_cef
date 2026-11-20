@@ -10,6 +10,7 @@ import pytest
 
 import qespace_cef as qc
 from qespace_cef import constants as C
+from qespace_cef.cefmatrices import StevensBase
 
 KRAMERS_IONS = ["Ce", "Nd", "Sm", "Dy", "Er", "Yb"]  # odd number of 4f electrons
 ALL_IONS = ["Ce", "Pr", "Nd", "Sm", "Tb", "Dy", "Ho", "Er", "Tm", "Yb"]
@@ -121,6 +122,66 @@ def test_summary_is_a_stub():
     """``summary`` is planned (AUDIT Q7, A2) and raises until then."""
     with pytest.raises(NotImplementedError):
         _cefion("Ce", dict(B20=1.0)).summary()
+
+
+# --- CONV-0010: the zero of energy ----------------------------------------
+# Expected values from formulas in the tests (CONV-0010, Consequences).
+
+MUB_CODATA = 0.057883818060  # meV/T, CODATA 2018 (mu_B = 5.7883818060e-5 eV/T)
+
+
+@pytest.mark.parametrize("name", ["Ce", "Ho"])
+@pytest.mark.parametrize("field", [(0, 0, 0), (0.3, 0.0, 1.0)])
+def test_conv_0010_energies_are_eigenvalues_centred_on_zero(name, field):
+    """``energies`` are the eigenvalues of ``hamiltonian``; with B00 = 0 they average to 0."""
+    cef = _cefion(name, LOW_SYMMETRY, field=field)
+    scale = np.abs(cef.energies).max()
+    assert np.allclose(
+        cef.energies, np.linalg.eigvalsh(cef.hamiltonian), rtol=0, atol=1e-12 * scale
+    )
+    assert abs(np.mean(cef.energies)) <= 1e-12 * scale
+
+
+def test_conv_0010_B00_shifts_every_level():
+    """B00 multiplies the identity, so it moves every energy by B00."""
+    shift = 0.7  # meV, a test value
+    plain = _cefion("Ce", LOW_SYMMETRY).energies
+    shifted = _cefion("Ce", dict(LOW_SYMMETRY, B00=shift)).energies
+    assert np.allclose(shifted - plain, shift, rtol=0, atol=1e-12 * np.abs(plain).max())
+
+
+@pytest.mark.parametrize("B", [0.5, 2.0])  # T
+def test_conv_0010_free_ion_ground_state_in_field(B):
+    """Free Ho3+ in a field along z: E_0 = -gJ muB J B, measured from the free-ion energy."""
+    cef = _cefion("Ho", {}, field=(0, 0, B))
+    expected = -cef.ion.gJ * MUB_CODATA * cef.ion.J * B
+    assert cef.energies[0] == pytest.approx(expected, rel=1e-6)
+
+
+def test_conv_0010_excitation_energies():
+    """``excitation_energies`` is ``energies - energies[0]`` and starts at 0."""
+    cef = _cefion("Er", LOW_SYMMETRY, field=(0.1, 0.2, 0.3))
+    assert np.array_equal(cef.excitation_energies, cef.energies - cef.energies[0])
+    assert cef.excitation_energies[0] == 0
+
+
+def test_conv_0010_hellmann_feynman():
+    """dE_n/dB40 = <n|O_40|n> for the unshifted energies, against a finite difference.
+
+    Low-symmetry Ce3+ in a field, so no level is degenerate. With energies
+    shifted to the ground state the derivative would gain -<0|O_40|0>.
+    """
+    field = (0.3, 0.0, 1.0)
+    cef = _cefion("Ce", LOW_SYMMETRY, field=field)
+    O40 = StevensBase(cef.Jval)["40"]
+    expected = np.einsum("ni,ij,nj->n", cef.eigenvectors.conj(), O40, cef.eigenvectors).real
+    h = 1e-6  # meV
+    up = _cefion("Ce", dict(LOW_SYMMETRY, B40=LOW_SYMMETRY["B40"] + h), field=field).energies
+    down = _cefion("Ce", dict(LOW_SYMMETRY, B40=LOW_SYMMETRY["B40"] - h), field=field).energies
+    assert np.min(np.diff(cef.energies)) > 1e-3  # no degenerate level
+    np.testing.assert_allclose(
+        (up - down) / (2 * h), expected, rtol=0, atol=1e-5 * np.abs(expected).max()
+    )
 
 
 # --- known problems (AUDIT.md), strict xfail until fixed ------------------
