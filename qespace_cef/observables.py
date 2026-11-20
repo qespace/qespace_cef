@@ -267,15 +267,17 @@ def susceptibility(
 
     .. math::
 
-        \chi = g_J^2 \sum_n p_n \Big[
-            \sum_{m:\,E_m = E_n} \frac{|J^{\hat{n}}_{nm}|^2}{k_B T}
-          + \sum_{m:\,E_m > E_n} \frac{1 - e^{-(E_m - E_n)/k_B T}}{E_m - E_n} |J^{\hat{n}}_{nm}|^2
+        \chi = g_J^2 \Big[
+            \sum_{n,m:\,E_m = E_n} \frac{p_n}{k_B T} |J^{\hat{n}}_{nm}|^2
+          + \sum_{n,m:\,E_m \ne E_n} \frac{p_n - p_m}{E_m - E_n} |J^{\hat{n}}_{nm}|^2
         \Big],
         \qquad
         |J^{\hat{n}}_{nm}|^2 = \frac{\sum_\alpha n_\alpha |\langle n|\hat{J}_\alpha|m\rangle|^2}{|\vec{n}|},
 
-    with :math:`\vec{n}` = ``Hfield_direction``, :math:`p_n` the Boltzmann
-    populations and levels equal within ``constants.numerical_zero`` (meV).
+    Van Vleck's formula (CONV-0009), with :math:`\vec{n}` =
+    ``Hfield_direction``, :math:`p_n` the Boltzmann populations, the sums
+    over all states in both orders, and levels equal within
+    ``constants.numerical_zero`` (meV).
     The result is in :math:`\mu_B^2`/meV per ion; multiply by
     ``constants.uB`` (meV/T) for :math:`\mu_B`/T.
 
@@ -311,11 +313,6 @@ def susceptibility(
     --------
     Known problems, not fixed yet (AUDIT.md):
 
-    - P1 (``'perturbation'``): the van Vleck sum takes only the pairs with
-      :math:`E_m > E_n`; the pairs with :math:`E_m < E_n` contribute the
-      same, so that term is half what it should be. Ce3+ with
-      ``B20=0.5, B40=0.01, B44=0.1``, field along z, 5 K: 0.12704 instead
-      of 0.13130 :math:`\mu_B`/T (after multiplying by ``constants.uB``).
     - P2 (``'perturbation'``): the direction enters as
       :math:`\sum_\alpha n_\alpha |J_\alpha|^2 / |\vec{n}|` instead of
       :math:`|\hat{n} \cdot \hat{\vec{J}}|^2`; along (1, 1, 0) this gives
@@ -344,10 +341,8 @@ def susceptibility(
         # Tricky way to create a 2D array of energies associated with transitions between levels
         jumps = cefion.energies - cefion.energies[np.newaxis].T
 
-        # Clean up
-        jumps_with_zero_energy = np.where(np.abs(jumps) < C.numerical_zero)
-        # AUDIT P1: only the E_m > E_n pairs; the van Vleck term comes out halved.
-        jumps_with_positive_energy = np.where(jumps > 0)
+        # jumps[n, m] = E_m - E_n; degenerate pairs as in CONV-0009.
+        degenerate = np.abs(jumps) < C.numerical_zero
 
         # Calculate the J^2 matrix
         J2 = np.square(np.abs(cefion.J))
@@ -356,19 +351,15 @@ def susceptibility(
 
         print(jumps)
         for it, temperature in enumerate(temperatures):
-            # Define the transition matrix taking into account the diagonal and negative energy jumps
-            Tmx = np.zeros(np.shape(jumps))
-            Tmx[jumps_with_zero_energy] = 1 * C.meV2K / temperature
-            Tmx[jumps_with_positive_energy] = (
-                -np.expm1(-jumps[jumps_with_positive_energy] * C.meV2K / temperature)
-                / jumps[jumps_with_positive_energy]
+            # W[n, m]: Curie p_n / k_B T for degenerate pairs, van Vleck
+            # (p_n - p_m) / (E_m - E_n) for every other pair, in both orders.
+            p = boltzman_population(cefion.energies, temperature)
+            W = np.where(
+                degenerate,
+                p[:, np.newaxis] * C.meV2K / temperature,
+                (p[:, np.newaxis] - p[np.newaxis, :]) / np.where(degenerate, 1.0, jumps),
             )
-
-            # Include the Boltzmann factor
-            transition_probs = boltzman_population(cefion.energies, temperature)
-            Tmx = Tmx * transition_probs[:, np.newaxis]
-
-            susceptibility[it] = (cefion.ion.gJ) ** 2 * np.sum(Tmx * J2_directed)
+            susceptibility[it] = (cefion.ion.gJ) ** 2 * np.sum(W * J2_directed)
     else:
         raise ValueError(f"Unknown method {method!r}; use 'perturbation' or 'magnetization'.")
 

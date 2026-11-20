@@ -70,7 +70,6 @@ def test_susceptibility_magnetization_method_along_z(temperature):
     assert chi == pytest.approx(_chi_exact(_ce(), temperature, [0, 0, 1]) * MUB, rel=1e-5)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P1: the van Vleck term is halved")
 @pytest.mark.parametrize("temperature", T)
 def test_susceptibility_perturbation_along_z(temperature):
     """``method='perturbation'`` along z equals the exact formula, in muB^2/meV."""

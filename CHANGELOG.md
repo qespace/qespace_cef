@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- **Breaking:** `susceptibility(method='perturbation')` counts the van
+  Vleck term over every pair of levels in both orders (CONV-0009); it
+  was half as large (AUDIT P1). Ce³⁺ with `B20=0.5, B40=0.01, B44=0.1`
+  along z: +3 %, +11 %, +18 % at 5, 20, 100 K.
 - Decisions are recorded in `decisions/`: design choices as ADRs, physics
   conventions as CONVs. The CEF parameters and the Stevens operators follow
   McPhase (CONV-0001), checked by tests against its table, signs included.

@@ -11,11 +11,11 @@ are never reused.
 
 Places are named by module and function. Every P item still in the code has
 an `# AUDIT Pn:` comment where it happens and, except P15, a Warnings section
-in the docstring of the public object it affects. P1–P3, P5–P11 and P17
+in the docstring of the public object it affects. P2, P3, P5–P11 and P17
 also have strict `xfail` tests with expected values that don't come from
 the code (`test/known-problems`); a fix turns its tests green and removes
 the markers. P4 gets its test with the g-tensor convention (C7); P13–P16
-are data and conventions; P19 breaks CONV-0009 and is fixed with P1, P2,
+are data and conventions; P19 breaks CONV-0009 and is fixed with P2 and
 P10 in `fix/susceptibility`.
 
 Severity: **bug** = wrong result, verified by running it; **bug (read)** =
@@ -28,8 +28,7 @@ from `747c871` and does not depend on what changed since.
 
 | ID | Severity | Where | Finding | Evidence | Proposal |
 |---|---|---|---|---|---|
-| P1 | bug, rule | `observables.susceptibility`, `method='perturbation'` | The van Vleck term counts only the pairs with `E_m > E_n`. The `E_m < E_n` pairs contribute the same amount, so the van Vleck part is half what it should be | Ce, `B20=0.5, B40=0.01, B44=0.1`, H ∥ z. χ in μB/T: exact formula 0.13130 / 0.02981 / 0.00999 at 5 / 20 / 100 K, code (perturbation, × `C.uB`) 0.12704 / 0.02680 / 0.00847, code (magnetization) 0.13130 / 0.02981 / 0.00999 | The van Vleck weight of CONV-0009, `(p_n − p_m)/(E_m − E_n)` over every non-degenerate pair in both orders; test it against `method='magnetization'` |
-| P2 | bug, rule | same | The field direction enters as `Σ_α n_α \|J_α\|² / \|n\|` instead of `\|n̂·J\|²`. For n = (1,1,0) this gives √2 times the x value | Same ion, 20 K: χ(110) / χ(100) = 1.414 with `perturbation`, 1.000 with `magnetization` (for this tetragonal case, rank-2 symmetry requires 1). Rerun on `610c884` | Return the tensor `χ_αβ` from `Re(<n\|J_α\|m><m\|J_β\|n>)` (CONV-0009); with no direction to project, the problem goes |
+| P2 | bug, rule | `observables.susceptibility`, `method='perturbation'` | The field direction enters as `Σ_α n_α \|J_α\|² / \|n\|` instead of `\|n̂·J\|²`. For n = (1,1,0) this gives √2 times the x value | Same ion, 20 K: χ(110) / χ(100) = 1.414 with `perturbation`, 1.000 with `magnetization` (for this tetragonal case, rank-2 symmetry requires 1). Rerun on `610c884` | Return the tensor `χ_αβ` from `Re(<n\|J_α\|m><m\|J_β\|n>)` (CONV-0009); with no direction to project, the problem goes |
 | P3 | bug | `observables.thermodynamics` | Energies in meV are mixed with temperatures in K: `F = −T ln Z` is in K, while `E` stays in meV, so `S = (E − F)/T` and `Cv` come out in mixed units | Entropy (k_B) at 10 / 20 / 40 K: exact 1.293 / 1.374 / 1.494, code 1.054 / 1.203 / 1.325. Cv (k_B): exact 0.170 / 0.108 / 0.239, code 0.00126 / 0.00080 / 0.00177 (low by a factor of 11.6², about 135) | Convert the energies to `k_B T` once and state the units of the returns (CONV-0003); test against `−∂F/∂T` and the high-T limit `ln(2J+1)` |
 | P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the draft on degenerate levels (CONV-0008) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 (CONV-0008) |
 | P5 | bug | `CEFion.diagonalize` | Calling it a second time rotates `Jx`, `Jy`, `Jz`, which are already in the eigenbasis, again | Ce, `B20=0.5, B40=0.01, B44=0.1`, field (0.3, 0, 1) T: after a second `diagonalize()` the moments change by up to 2.94 μB. Rerun on `610c884` | Rotate from the free-ion operators every time (keep them), or make diagonalisation run once (A2) |
@@ -103,7 +102,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
 | CONV-0008 degenerate levels | draft | the degeneracy tolerance; CONV-0009 already fixes it for χ (`numerical_zero`) | P4, P7, A11 |
-| CONV-0009 susceptibility | accepted | – | P1, P2, P10, P19 |
+| CONV-0009 susceptibility | accepted | – | P2, P10, P19 |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
 
 ## 7. Work packages for the open findings
@@ -112,7 +111,7 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`fix/susceptibility`**: P1, P2, P10, P19, A12 and the tests of
+1. **`fix/susceptibility`**: P2, P10, P19, A12 and the tests of
    CONV-0009 (`PLAN.md`).
 2. **`fix/cefion`**: P5, P6, P8, P11. P7 waits for A11 and CONV-0008.
 3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
