@@ -63,8 +63,8 @@ None open.
 
 | ID | Finding | Proposal |
 |---|---|---|
-| Q2 | Naming is not uniform, and no rule says what it should be. camelCase: `shiftToZero`, `pointGroup`, `pointGroupName`, `mffCoefficients`, `implementedOps`. Words fused with symbols or capitalised: `Hfield`, `Hfield_direction`, `Bpars`, `Bdict`, `allowed_Bpars`, `Jval`, `J2p1`, `Eimag_precision`, `Alpha/Beta/Gamma`, the classes `CEFion`, `CEFpars`. The typo in `boltzman_population`. Physics symbols (`J`, `Q`, `T`, `Ei`, `B_iso`, `gJ`, `Jx`, `O4m3`) follow the formulas. The code and the docstrings index the operators and parameters with k, q; CONV-0001 and the documentation use l, m. Scanned at run time on `8a39456` | The classes are renamed in ADR-0002 (`CEFpars` → `Blm`, `CEFion` → `Hamiltonian`, `import qespace_cef as cef`). For the rest, a written rule (Q26): snake_case for words, physics symbols as in the formulas, listed; then rename with A2, in v2, possibly with deprecated aliases in a last 1.x |
-| Q7 | `CEFion.summary(evecs, precision)` is a stub that raises `NotImplementedError`; `__str__` still takes `evecs` and `precision`, which `str()` can't pass | Implement `summary` with A2 and give `__str__` no arguments |
+| Q2 | Naming is not uniform, and no rule says what it should be. camelCase: `pointGroup`, `pointGroupName`, `mffCoefficients`, `implementedOps`. Words fused with symbols or capitalised: `Hfield`, `Hfield_direction`, `Bpars`, `Bdict`, `allowed_Bpars`, `Jval`, `J2p1`, `Eimag_precision`, `Alpha/Beta/Gamma`, the classes `CEFion`, `CEFpars`. The typo in `boltzman_population`. Physics symbols (`J`, `Q`, `T`, `Ei`, `B_iso`, `gJ`, `Jx`, `O4m3`) follow the formulas. The code and the docstrings index the operators and parameters with k, q; CONV-0001 and the documentation use l, m. Scanned at run time on `8a39456` | The classes are renamed in ADR-0002 (`CEFpars` → `Blm`, `CEFion` → `Hamiltonian`, `import qespace_cef as cef`). For the rest, a written rule (Q26): snake_case for words, physics symbols as in the formulas, listed; then rename with A2, in v2, possibly with deprecated aliases in a last 1.x |
+| Q7 | `CEFion.summary(evecs, precision)` is a stub that raises `NotImplementedError`, the placeholder for a print of the level scheme; `CEFion` has no `str()` of its own (CONV-0010) | Implement the print with A2 (`ROADMAP.md`); what it shows, including a basis inside a degenerate level (Q41), is decided with it |
 
 ## 5. Dependencies
 
@@ -77,7 +77,6 @@ None open. The runtime needs only `numpy>=1.26`.
 | Where | Text (shortened) | Goes to |
 |---|---|---|
 | `cefmatrices` module docstring | the matrices and conventions "need to be cross-checked against some reliable book" | Done: CONV-0001 and its tests; the comment can go |
-| `CEFion.__str__` | "After refactoring the precision there might be cleanup needed" | P7, Q7 |
 
 ### 6.2 Conventions the findings wait for
 
@@ -88,14 +87,14 @@ names its ID (CLAUDE.md 6.6).
 | CONV | Status | Open | Findings waiting |
 |---|---|---|---|
 | CONV-0001 parameters and operators | accepted | Q12, Q33 | P16 |
-| CONV-0003 units | draft | the units of the API; χ is already μB/T per ion by CONV-0009 | P3, P15 |
+| CONV-0003 units | accepted | its Statement still says `OPEN:` the units of the API (Q42) | P3, P15 |
 | CONV-0004 frames | draft | the local frame and its relation to the crystal frame | A7 |
 | CONV-0005 basis | draft | whether the order of states is a convention | – |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
 | CONV-0008 degenerate levels | draft | Q41 (a basis inside a level). Decided (Q40): the tolerance `rtol · max(max\|E\|, E_floor)` from the config; CONV-0009 then needs superseding | P4, P7, P20, A11 |
 | CONV-0009 susceptibility | accepted | – | – |
-| CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F); implemented in `feat/energy-zero` (`PLAN.md`) |
+| CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
 
 ## 7. Work packages for the open findings
@@ -105,14 +104,12 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
 1. **`fix/van-vleck`**: P20, needs no new decision; one commit with its test.
-2. **`feat/energy-zero`**: `energies` unshifted, `excitation_energies`,
-   `CEFion.__str__` removed (CONV-0010, `PLAN.md`).
-3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
+2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
-4. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,
+3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,
    A11 with P7, A14, A15, Q2 (with Q26), Q7. Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
-5. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
+4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
 
@@ -120,8 +117,8 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
 `PLAN.md`. The IDs continue after those of the review sessions.
 
 - **Q11 (section 6.2).** Which draft do you want to decide next? P4 and P17
-  wait for C7 (no draft yet) and CONV-0008, P9 for CONV-0007, P3 for
-  CONV-0003.
+  wait for C7 (no draft yet) and CONV-0008, P9 for CONV-0007, P3 for the
+  units of the thermodynamic quantities (Q44).
 - **Q12 (P16, CONV-0001).** Should `CEFpars` accept odd-rank parameters
   (l = 1, 3, 5)? CONV-0001 tabulates only even l.
 - **Q26 (Q2).** The naming rule for everything but the classes (ADR-0002):
@@ -152,3 +149,14 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   diagonalising a named operator inside the level (e.g. J_z, then J_x if
   J_z is degenerate there) and a phase rule; the numbers returned stay
   basis invariant either way.
+- **Q42 (CONV-0003).** The accepted CONV-0003 still says "`OPEN:` the
+  units of the API" and lists the units "As implemented" (meV, K, T, Å⁻¹,
+  μB per ion, χ in μB/T per ion). Is that list the decision? An accepted
+  CONV is never edited, so the clean form is a new CONV that supersedes it
+  without the `OPEN:` line.
+- **Q43 (P15, CONV-0003).** Which CODATA set for `constants.py`? I
+  recommend 2022; the tests use 2018, the package mixes 1986 and 2010.
+  Results move by about 10⁻⁷ relative.
+- **Q44 (P3).** The units of the thermodynamic quantities, which no CONV
+  states: U and F in meV per ion from the zero of CONV-0010, S and C_v in
+  k_B per ion? With that, P3 can be fixed.

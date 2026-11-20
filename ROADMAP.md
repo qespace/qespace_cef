@@ -22,6 +22,10 @@ Decided in ADR-0002 (the objects) and ADR-0003 (broadcasting); still to build.
   observables as functions or methods (AUDIT Q29, Q31).
 - Memory: J in the eigenbasis is `S + (3, n, n)`, 139 MB per 10⁴ points at
   J = 8; compute only what an observable needs, or work in chunks.
+- A print of the level scheme (`summary`, the stub today): the levels from
+  the excitation energies, their degeneracies and, if wanted, the
+  eigenvectors in the free-ion kets. What it shows is decided with it
+  (CONV-0010, AUDIT Q7, Q41).
 
 ## Fitting
 

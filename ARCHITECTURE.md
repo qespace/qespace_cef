@@ -13,7 +13,8 @@ Ion('Ce')                 J, gJ, Stevens factors, form-factor coefficients
 CEFpars({'B20': ...})     CEF parameters B_lm, converted to meV
    |
 CEFion(ion, cfp, Hfield)  H = sum B_lm O_lm  - muB gJ J.H     (2J+1 x 2J+1)
-   |  diagonalize()       energies (meV, ground state = 0), eigenvectors,
+   |  diagonalize()       energies (meV, eigenvalues of H, zero at the centre
+   |                      of gravity), excitation energies, eigenvectors,
    |                      J operators rotated into the eigenbasis
    v
 observables               populations, S(Q, w), M(H, T), chi(T), g-tensor,
@@ -36,7 +37,7 @@ per field axis.
 | `ion.py` | `Ion(name)`: rare-earth ions Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm, Yb (3+). J, `gJ`, Stevens factors α, β, γ, `<j0>` and `<j2>` coefficients, and `mff(Q)`, the dipole magnetic form factor | numpy |
 | `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_lm` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
 | `data_containers.py` | `point_group_synonyms` (Hermann–Mauguin, Schoenflies, lattice) | numpy |
-| `cefion.py` | `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh` (levels ascending), rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `magnetic_moment`, `get_degeneracies`, `__str__` | `ion`, `cefpars`, `cefmatrices`, `constants`, numpy |
+| `cefion.py` | `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh` (levels ascending), rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `energies`, `excitation_energies`, `magnetic_moment`, `get_degeneracies`, the `summary` stub | `ion`, `cefpars`, `cefmatrices`, `constants`, numpy |
 | `observables.py` | `boltzman_population`, `spectral_weight`, `magnetization`, `magnetization_exchange`, `susceptibility`, `gtensor`, `thermodynamics` | `cefion`, `constants` |
 | `symbolic/` | Experimental `sympy` scripts and their own `cefmatrices.py`. Not imported, not tested, not API | sympy (dependency group `symbolic`) |
 | `atoms-form-factors.txt` | J. Brown's form-factor table (ILL), from which the ion table in `ion.py` was generated (the generator, `composeTables`, is in the history at 747c871) | – |
@@ -53,7 +54,7 @@ in `decisions/conventions/`; no row here sets one.
 
 | Topic | Implemented as | Where |
 |---|---|---|
-| Energy | meV internally; `CEFpars` accepts `meV`, `K`, `invcm`. After diagonalisation the ground state is set to 0 | `cefpars`, `cefion.diagonalize` |
+| Energy | meV internally; `CEFpars` accepts `meV`, `K`, `invcm`. `energies` are the eigenvalues of H, not shifted: with `B00 = 0` they average to zero, the centre of gravity of the J multiplet. `excitation_energies` are measured from the ground state (CONV-0010, tested) | `cefpars`, `cefion.diagonalize` |
 | Temperature, field | K; T (a 3-vector in the frame of the J operators) | `observables`, `CEFion` |
 | Momentum transfer | \|Q\| in Å⁻¹ (assumed: the code computes s = Q/4π, as in the ILL tables) | `Ion.mff` |
 | Basis | Ground J multiplet, `\|J>, \|J-1>, ..., \|-J>` (the first vector component is m = +J) | `cefmatrices` |
@@ -86,7 +87,8 @@ tests/
                         xfail where PyCrystalField's sign differs
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
                         Zeeman, ascending energies, orthonormality, H = U E
-                        U^dagger, eigenvectors paired with energies,
+                        U^dagger, eigenvectors paired with energies, the
+                        zero of energy (CONV-0010),
                         repeated diagonalisation; strict
                         xfail for P7
   test_cefpars.py       unit conversion, point-group tables, the parameter
