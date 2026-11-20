@@ -17,7 +17,10 @@ class CEFion:
 
     and, by default, diagonalises it (:meth:`diagonalize`). The basis is
     :math:`|J\rangle, |J-1\rangle, \dots, |-J\rangle`, so the first vector
-    component belongs to :math:`m = +J`. Energies are in meV.
+    component belongs to :math:`m = +J`. Energies are in meV, with the zero
+    of CONV-0010: the eigenvalues of the Hamiltonian, not shifted, so with
+    ``B00 = 0`` they average to zero (the centre of gravity of the J
+    multiplet).
 
     Parameters
     ----------
@@ -52,8 +55,12 @@ class CEFion:
         ``[Jx, Jy, Jz]``: a list before :meth:`diagonalize`, an ndarray of
         shape (3, 2J+1, 2J+1) after.
     energies : ndarray, shape (2J+1,)
-        Eigenenergies in meV, ascending, the lowest at 0 (see
-        :meth:`diagonalize`). An empty list before diagonalisation.
+        Eigenvalues of ``hamiltonian`` in meV, ascending, not shifted
+        (CONV-0010). An empty list before diagonalisation.
+    excitation_energies : ndarray, shape (2J+1,)
+        ``energies - energies[0]`` in meV: the energy of each state above the
+        ground state, starting at 0, as in a level scheme or a neutron
+        spectrum. An empty list before diagonalisation.
     eigenvectors : ndarray, shape (2J+1, 2J+1)
         Row ``i`` is the eigenvector of ``energies[i]`` in the free-ion basis.
         An empty list before diagonalisation.
@@ -73,11 +80,14 @@ class CEFion:
 
     Examples
     --------
-    Ce3+ (J = 5/2) in an axial field splits into three Kramers doublets:
+    Ce3+ (J = 5/2) in an axial field splits into three Kramers doublets,
+    at :math:`B_2^0 (3m^2 - J(J+1))` for :math:`|m| = 1/2, 3/2, 5/2`:
 
     >>> import qespace_cef as qc
     >>> cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)))
     >>> cef.energies.round(6).tolist()
+    [-8.0, -8.0, -2.0, -2.0, 10.0, 10.0]
+    >>> cef.excitation_energies.round(6).tolist()
     [0.0, 0.0, 6.0, 6.0, 18.0, 18.0]
     """
 
@@ -126,23 +136,23 @@ class CEFion:
         # Uncomputed, empty fields
         self.eigenvectors = []
         self.energies = []
+        self.excitation_energies = []
 
         # Diagonalize the Hamiltonian
         if diagonalize:
             self.diagonalize()
 
-    def diagonalize(self, shiftToZero: bool = True, Eimag_precision: int = 10):
+    def diagonalize(self, Eimag_precision: int = 10):
         r"""Diagonalise the Hamiltonian and rotate the J operators into its eigenbasis.
 
-        Sets ``energies``, ``eigenvectors``, ``Jx``, ``Jy``, ``Jz`` and ``J``
-        (see the class attributes). After the call, state ``i`` of every
-        matrix is the eigenstate with energy ``energies[i]``. The states are
-        in the order of ``numpy.linalg.eigh``: energies ascending.
+        Sets ``energies``, ``excitation_energies``, ``eigenvectors``, ``Jx``,
+        ``Jy``, ``Jz`` and ``J`` (see the class attributes). After the call,
+        state ``i`` of every matrix is the eigenstate with energy
+        ``energies[i]``. The states are in the order of ``numpy.linalg.eigh``:
+        energies ascending.
 
         Parameters
         ----------
-        shiftToZero : bool, optional
-            If True (default), shift the energies so that the lowest is 0 meV.
         Eimag_precision : int, optional
             Number of decimals to which the Hamiltonian must equal its
             Hermitian conjugate (in meV). Default 10.
@@ -150,7 +160,8 @@ class CEFion:
         Returns
         -------
         E : ndarray, shape (2J+1, 2J+1)
-            Diagonal matrix of the eigenvalues in meV, ascending, not shifted.
+            Diagonal matrix of the eigenvalues in meV, ascending, the same as
+            ``energies``.
         U : ndarray, shape (2J+1, 2J+1)
             Unitary matrix whose columns are the eigenvectors, with
             :math:`H = U E U^\dagger`.
@@ -175,7 +186,8 @@ class CEFion:
         eigenvalues, U = np.linalg.eigh(H)
         E = np.diag(eigenvalues)
 
-        self.energies = eigenvalues - int(shiftToZero) * eigenvalues[0]  # shift to zero level
+        self.energies = eigenvalues  # not shifted (CONV-0010)
+        self.excitation_energies = eigenvalues - eigenvalues[0]
         self.eigenvectors = U.T  # row i belongs to energies[i]
 
         # Rotate the free-ion operators, built anew, into the eigenbasis

@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- **Breaking:** `CEFion.energies` are the eigenvalues of the Hamiltonian,
+  not shifted (CONV-0010): with `B00 = 0` they average to zero, the centre
+  of gravity of the J multiplet. The new `CEFion.excitation_energies`
+  (`energies - energies[0]`) start at 0, as `energies` did. `diagonalize`
+  has no `shiftToZero` argument any more. `get_degeneracies` and U and F of
+  `thermodynamics` move with `energies`; populations, χ, M, the spectra, S
+  and C_v do not depend on the zero.
 - `magnetization_exchange` stops after `max_iterations` steps (new keyword,
   default 1000) and raises `RuntimeError` if the mean field has not
   converged; it could loop forever. A zero moment converges at once

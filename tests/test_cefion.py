@@ -31,8 +31,10 @@ def test_free_ion_is_degenerate(name):
 def test_axial_levels():
     """B20 alone: E(m) = B20 (3 m^2 - J(J+1)), here Ce (J = 5/2), B20 = 1 meV."""
     cef = _cefion("Ce", dict(B20=1.0))
-    expected = np.array([0, 0, 6, 6, 18, 18], dtype=float)  # m = ±1/2, ±3/2, ±5/2
+    expected = np.array([-8, -8, -2, -2, 10, 10], dtype=float)  # m = ±1/2, ±3/2, ±5/2
     assert np.allclose(cef.energies, expected, atol=1e-12 * expected.max())
+    excitations = expected - expected[0]
+    assert np.allclose(cef.excitation_energies, excitations, atol=1e-12 * expected.max())
 
 
 def test_cubic_doublet_quartet():
@@ -60,10 +62,11 @@ def test_zeeman_levels_equally_spaced(name):
 
 
 @pytest.mark.parametrize("name", ["Ce", "Tb", "Er"])
-def test_energies_sorted_from_zero(name):
-    """Energies are sorted ascending and the ground state is at zero."""
-    e = _cefion(name, LOW_SYMMETRY, field=(0.1, 0.2, 0.3)).energies
-    assert e[0] == 0 and np.all(np.diff(e) >= 0)
+def test_energies_ascending_excitations_from_zero(name):
+    """Energies are ascending; the excitation energies start at zero."""
+    cef = _cefion(name, LOW_SYMMETRY, field=(0.1, 0.2, 0.3))
+    assert np.all(np.diff(cef.energies) >= 0)
+    assert cef.excitation_energies[0] == 0 and np.all(np.diff(cef.excitation_energies) >= 0)
 
 
 @pytest.mark.parametrize("name", ["Ce", "Tb", "Er"])
@@ -103,15 +106,15 @@ def test_diagonalize_rejects_non_hermitian_hamiltonian():
 def test_degeneracies_are_plain_python_numbers():
     """``get_degeneracies`` returns Python float and int, not NumPy scalars (CLAUDE.md 5.7.3)."""
     levels = _cefion("Ce", dict(B20=1.0)).get_degeneracies()
-    assert levels == [[0.0, 2], [6.0, 2], [18.0, 2]]
+    assert levels == [[-8.0, 2], [-2.0, 2], [10.0, 2]]
     assert all(type(e) is float and type(d) is int for e, d in levels)
 
 
 def test_str_prints_energies_with_decimals():
     """Energies in ``str()`` have ``precision`` decimals, like the coefficients (AUDIT Q7)."""
     cef = _cefion("Ce", dict(B20=1.0))
-    assert "E(1) =\t6.000 meV" in str(cef)
-    assert "E(2) =\t18.0 meV" in cef.__str__(evecs=False, precision=1)
+    assert "E(1) =\t-2.000 meV" in str(cef)
+    assert "E(2) =\t10.0 meV" in cef.__str__(evecs=False, precision=1)
 
 
 def test_summary_is_a_stub():
@@ -137,10 +140,9 @@ def test_eigenvectors_belong_to_energies(name):
     """Row i of ``eigenvectors`` is the eigenvector of ``energies[i]``: H v_i = E_i v_i."""
     cef = _cefion(name, LOW_SYMMETRY, field=(0.1, 0.2, 0.3))
     H = cef.hamiltonian
-    E0 = np.linalg.eigvalsh(H)[0]  # energies are shifted so the lowest is 0
     scale = np.max(np.abs(H))
     for energy, v in zip(cef.energies, cef.eigenvectors):
-        assert np.allclose(H @ v, (energy + E0) * v, atol=1e-10 * scale)
+        assert np.allclose(H @ v, energy * v, atol=1e-10 * scale)
 
 
 CUBIC_PR = dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4)  # B44 = 5 B40, B64 = -21 B60

@@ -35,7 +35,8 @@ ion = qc.Ion("Ce")  # Ce3+, J = 5/2
 cfp = qc.CEFpars(dict(B20=0.5, B40=0.01, B44=0.1), units="meV")
 cef = qc.CEFion(ion, cfp, Hfield=[0, 0, 0])  # field in T; diagonalised on creation
 
-cef.energies  # eigenenergies in meV, shifted so the ground state is 0
+cef.energies  # eigenvalues of H in meV, not shifted (CONV-0010)
+cef.excitation_energies  # the same, measured from the ground state
 cef.get_degeneracies()  # [[energy, degeneracy], ...]: three Kramers doublets here
 
 qc.gtensor(cef)  # g-tensor of the ground doublet
