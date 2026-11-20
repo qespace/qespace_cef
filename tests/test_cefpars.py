@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from reference import mcphase
 
 import qespace_cef as qc
 
@@ -50,3 +51,25 @@ def test_parameters_stored_as_python_floats():
     """NumPy scalars in the input are stored as Python floats (CLAUDE.md 5.7.3)."""
     cfp = qc.CEFpars(dict(B20=np.float32(0.5), B40=np.int64(2)), units="K")
     assert all(type(v) is float for v in cfp.Bpars.values())
+
+
+def _label(rank, m):
+    """The CONV-0001 label of B_lm: B20, B43, B4m3, ..."""
+    return f"B{rank}{m}" if m >= 0 else f"B{rank}m{-m}"
+
+
+@pytest.mark.parametrize("ion", ["Yb", "Pr", "Ho"])  # J = 7/2, 4, 8
+@pytest.mark.parametrize("lm", mcphase.LM, ids=[_label(*lm) for lm in mcphase.LM])
+def test_conv_0001_labels(ion, lm):
+    """CONV-0001: the parameter ``Blm`` multiplies O_lm, ``B4m3`` the sine-type O_4,-3.
+
+    The Hamiltonian matrix is compared, not its energies: a rotation about z by
+    pi/m turns O_lm into -O_lm and leaves the spectrum unchanged, so the
+    energies cannot see the sign of a single B_lm with m != 0.
+    """
+    value = 0.3  # meV, an arbitrary test value
+    cef_ion = qc.CEFion(qc.Ion(ion), qc.CEFpars({_label(*lm): value}))
+    expected = value * mcphase.stevens(cef_ion.Jval, *lm)
+    np.testing.assert_allclose(
+        cef_ion.hamiltonian, expected, rtol=0, atol=1e-10 * np.abs(expected).max()
+    )
