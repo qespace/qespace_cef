@@ -131,21 +131,16 @@ class CEFion:
         if diagonalize:
             self.diagonalize()
 
-    def diagonalize(
-        self, sortWithE: bool = True, shiftToZero: bool = True, Eimag_precision: int = 10
-    ):
+    def diagonalize(self, shiftToZero: bool = True, Eimag_precision: int = 10):
         r"""Diagonalise the Hamiltonian and rotate the J operators into its eigenbasis.
 
         Sets ``energies``, ``eigenvectors``, ``Jx``, ``Jy``, ``Jz`` and ``J``
         (see the class attributes). After the call, state ``i`` of every
-        matrix is the eigenstate with energy ``energies[i]``.
+        matrix is the eigenstate with energy ``energies[i]``. The states are
+        in the order of ``numpy.linalg.eigh``: energies ascending.
 
         Parameters
         ----------
-        sortWithE : bool, optional
-            If True (default), sort the eigenstates by energy, ascending. If
-            False, keep the order of ``numpy.linalg.eigh``, which is also
-            ascending.
         shiftToZero : bool, optional
             If True (default), shift the energies so that the lowest is 0 meV.
         Eimag_precision : int, optional
@@ -155,8 +150,7 @@ class CEFion:
         Returns
         -------
         E : ndarray, shape (2J+1, 2J+1)
-            Diagonal matrix of the eigenvalues in meV, ascending, neither
-            shifted nor sorted by ``sortWithE``.
+            Diagonal matrix of the eigenvalues in meV, ascending, not shifted.
         U : ndarray, shape (2J+1, 2J+1)
             Unitary matrix whose columns are the eigenvectors, with
             :math:`H = U E U^\dagger`.
@@ -175,23 +169,14 @@ class CEFion:
                 "Check `Eimag_precision` option."
             )
 
-        # eigh returns orthonormal eigenvectors also within degenerate subspaces,
-        # as columns of U, with H = U diag(eigenvalues) U^dagger.
+        # eigh returns the eigenvalues ascending and orthonormal eigenvectors,
+        # also within degenerate subspaces, as columns of U, with
+        # H = U diag(eigenvalues) U^dagger. No further sorting is needed.
         eigenvalues, U = np.linalg.eigh(H)
         E = np.diag(eigenvalues)
-        eigenvectors = U.T
 
-        energies = eigenvalues - int(shiftToZero) * min(eigenvalues)  # shift to zero level
-
-        # Sorting
-        if sortWithE:
-            sortedIndices = energies.argsort()
-        else:
-            sortedIndices = np.arange(len(energies))  # 2J+1 states, in eigh's order
-
-        # Assign main values
-        self.energies = energies[sortedIndices]
-        self.eigenvectors = eigenvectors[sortedIndices]
+        self.energies = eigenvalues - int(shiftToZero) * eigenvalues[0]  # shift to zero level
+        self.eigenvectors = U.T  # row i belongs to energies[i]
 
         # Rotate the free-ion operators, built anew, into the eigenbasis
         # (`self.eigenvectors[i]` is the vector of the i-th energy). Not the

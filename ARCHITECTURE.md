@@ -36,7 +36,7 @@ per field axis.
 | `ion.py` | `Ion(name)`: rare-earth ions Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm, Yb (3+). J, `gJ`, Stevens factors α, β, γ, `<j0>` and `<j2>` coefficients, and `mff(Q)`, the dipole magnetic form factor | numpy |
 | `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_lm` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
 | `data_containers.py` | `point_group_synonyms` (Hermann–Mauguin, Schoenflies, lattice) | numpy |
-| `cefion.py` | `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh`, sorts the levels, rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `magnetic_moment`, `get_degeneracies`, `__str__` | `ion`, `cefpars`, `cefmatrices`, `constants`, numpy |
+| `cefion.py` | `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh` (levels ascending), rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `magnetic_moment`, `get_degeneracies`, `__str__` | `ion`, `cefpars`, `cefmatrices`, `constants`, numpy |
 | `observables.py` | `boltzman_population`, `spectral_weight`, `magnetization`, `magnetization_exchange`, `susceptibility`, `gtensor`, `thermodynamics` | `cefion`, `constants` |
 | `symbolic/` | Experimental `sympy` scripts and their own `cefmatrices.py`. Not imported, not tested, not API | sympy (dependency group `symbolic`) |
 | `atoms-form-factors.txt` | J. Brown's form-factor table (ILL), from which the ion table in `ion.py` was generated (the generator, `composeTables`, is in the history at 747c871) | – |
@@ -85,8 +85,9 @@ tests/
                         StevensBase observations; J = 1/2 ... 8; strict
                         xfail where PyCrystalField's sign differs
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
-                        Zeeman, sorting, orthonormality, H = U E U^dagger;
-                        repeated diagonalisation, sortWithE=False; strict
+                        Zeeman, ascending energies, orthonormality, H = U E
+                        U^dagger, eigenvectors paired with energies,
+                        repeated diagonalisation; strict
                         xfail for P7
   test_cefpars.py       unit conversion, point-group tables, the parameter
                         labels of CONV-0001

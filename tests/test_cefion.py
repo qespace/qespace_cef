@@ -132,12 +132,15 @@ def test_second_diagonalize_changes_nothing():
     assert np.allclose(cef.magnetic_moment, moments, atol=1e-10)
 
 
-def test_diagonalize_without_sorting():
-    """``sortWithE=False`` gives the same energies, in some order."""
-    sorted_energies = _cefion("Ce", LOW_SYMMETRY).energies
-    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(LOW_SYMMETRY), diagonalize=False)
-    cef.diagonalize(sortWithE=False)
-    assert np.allclose(np.sort(cef.energies), sorted_energies)
+@pytest.mark.parametrize("name", ["Ce", "Tb", "Er"])
+def test_eigenvectors_belong_to_energies(name):
+    """Row i of ``eigenvectors`` is the eigenvector of ``energies[i]``: H v_i = E_i v_i."""
+    cef = _cefion(name, LOW_SYMMETRY, field=(0.1, 0.2, 0.3))
+    H = cef.hamiltonian
+    E0 = np.linalg.eigvalsh(H)[0]  # energies are shifted so the lowest is 0
+    scale = np.max(np.abs(H))
+    for energy, v in zip(cef.energies, cef.eigenvectors):
+        assert np.allclose(H @ v, (energy + E0) * v, atol=1e-10 * scale)
 
 
 CUBIC_PR = dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4)  # B44 = 5 B40, B64 = -21 B60

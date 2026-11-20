@@ -10,8 +10,9 @@
   instead of giving 0/0 (AUDIT P11).
 - `str(Ion)` shows a half-integer J as a fraction, `'Ce: J = 5/2, gJ =
   0.86'`; it printed 2 (AUDIT P8).
-- `CEFion.diagonalize(sortWithE=False)` works; it raised `IndexError`
-  (AUDIT P6).
+- **Breaking:** `CEFion.diagonalize` has no `sortWithE` argument any more.
+  `numpy.linalg.eigh` already returns the levels ascending, so sorting
+  changed nothing, and `sortWithE=False` raised `IndexError` (AUDIT P6).
 - `CEFion.diagonalize` can be called again: it rotates the free-ion J
   operators, not the already rotated ones (AUDIT P5). The first call is
   unchanged.
