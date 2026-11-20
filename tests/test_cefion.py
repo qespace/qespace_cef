@@ -132,7 +132,6 @@ def test_second_diagonalize_changes_nothing():
     assert np.allclose(cef.magnetic_moment, moments, atol=1e-10)
 
 
-@pytest.mark.xfail(strict=True, raises=IndexError, reason="AUDIT P6: np.arange(J)")
 def test_diagonalize_without_sorting():
     """``sortWithE=False`` gives the same energies, in some order."""
     sorted_energies = _cefion("Ce", LOW_SYMMETRY).energies

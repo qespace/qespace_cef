@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- `CEFion.diagonalize(sortWithE=False)` works; it raised `IndexError`
+  (AUDIT P6).
 - `CEFion.diagonalize` can be called again: it rotates the free-ion J
   operators, not the already rotated ones (AUDIT P5). The first call is
   unchanged.

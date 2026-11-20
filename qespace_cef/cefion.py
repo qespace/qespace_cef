@@ -143,7 +143,9 @@ class CEFion:
         Parameters
         ----------
         sortWithE : bool, optional
-            If True (default), sort the eigenstates by energy, ascending.
+            If True (default), sort the eigenstates by energy, ascending. If
+            False, keep the order of ``numpy.linalg.eigh``, which is also
+            ascending.
         shiftToZero : bool, optional
             If True (default), shift the energies so that the lowest is 0 meV.
         Eimag_precision : int, optional
@@ -163,12 +165,6 @@ class CEFion:
         ------
         ValueError
             If the Hamiltonian is not Hermitian to ``Eimag_precision`` decimals.
-
-        Warnings
-        --------
-        Known problems, not fixed yet (AUDIT.md):
-
-        - P6: ``sortWithE=False`` raises ``IndexError``.
         """
 
         # A Hermitian Hamiltonian has real energies; eigh assumes Hermiticity, so check it first.
@@ -191,8 +187,7 @@ class CEFion:
         if sortWithE:
             sortedIndices = energies.argsort()
         else:
-            # AUDIT P6: float J and length J instead of 2J+1; raises IndexError.
-            sortedIndices = np.arange(self.Jval)
+            sortedIndices = np.arange(len(energies))  # 2J+1 states, in eigh's order
 
         # Assign main values
         self.energies = energies[sortedIndices]
