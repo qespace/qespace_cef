@@ -1,18 +1,18 @@
 # Architecture of qespace_cef
 
-How the package is built today (version 1.3.0). Known problems and the plan
-to fix them are in [`AUDIT.md`](AUDIT.md); this file describes the code as it
-is and is updated with every change that moves a module, a name or a
-convention (CLAUDE.md, section 7).
+How the package is built today (version 1.3.0). Known problems are in
+[`AUDIT.md`](AUDIT.md), the next step in [`PLAN.md`](PLAN.md); this file
+describes the code as it is and is updated with every change that moves a
+module, a name or a convention (CLAUDE.md, section 7).
 
 ## Data flow
 
 ```
 Ion('Ce')                 J, gJ, Stevens factors, form-factor coefficients
    |
-CEFpars({'B20': ...})     CEF parameters B_k^q, converted to meV
+CEFpars({'B20': ...})     CEF parameters B_lm, converted to meV
    |
-CEFion(ion, cfp, Hfield)  H = sum B_k^q O_k^q  - muB gJ J.H   (2J+1 x 2J+1)
+CEFion(ion, cfp, Hfield)  H = sum B_lm O_lm  - muB gJ J.H     (2J+1 x 2J+1)
    |  diagonalize()       energies (meV, ground state = 0), eigenvectors,
    |                      J operators rotated into the eigenbasis
    v
@@ -30,9 +30,9 @@ Every observable takes a diagonalised `CEFion`. Observables in a field
 |---|---|---|
 | `__init__.py` | Public API: `Ion`, `CEFpars`, `CEFion` and `from .observables import *`; `__version__` read from the package metadata | all below |
 | `constants.py` | Physical constants and unit conversions (meV, K, T, cm⁻¹, emu) | – |
-| `cefmatrices.py` | Angular-momentum matrices `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`; class `StevensBase(J)`, which gives the Stevens operators `O_k^q` for k = 0 to 6, every q, as methods `O20()`, `O4m3()` and as `StevensBase(J)['20']` | numpy |
+| `cefmatrices.py` | Angular-momentum matrices `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`; class `StevensBase(J)`, which gives the Stevens operators `O_lm` for l = 0 to 6, every m, as methods `O20()`, `O4m3()` and as `StevensBase(J)['20']` | numpy |
 | `ion.py` | `Ion(name)`: rare-earth ions Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm, Yb (3+). J, `gJ`, Stevens factors α, β, γ, `<j0>` and `<j2>` coefficients, and `mff(Q)`, the dipole magnetic form factor | numpy |
-| `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_k^q` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
+| `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_lm` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
 | `data_containers.py` | `point_group_synonyms` (Hermann–Mauguin, Schoenflies, lattice) | numpy |
 | `cefion.py` | `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh`, sorts the levels, rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `magnetic_moment`, `get_degeneracies`, `__str__` | `ion`, `cefpars`, `cefmatrices`, `constants`, numpy |
 | `observables.py` | `boltzman_population`, `spectral_weight`, `magnetization`, `magnetization_exchange`, `susceptibility`, `gtensor`, `thermodynamics` | `cefion`, `constants` |
@@ -46,9 +46,8 @@ Layering inside the package, from the bottom up: `constants` and
 
 ## Conventions as implemented
 
-These are what the code does today, not decisions: the conventions are the
-CONVs in `decisions/conventions/`, all still drafts, and no row here settles
-one.
+These are what the code does today. The conventions themselves are the CONVs
+in `decisions/conventions/`; no row here sets one.
 
 | Topic | Implemented as | Where |
 |---|---|---|
@@ -56,8 +55,8 @@ one.
 | Temperature, field | K; T (a 3-vector in the frame of the J operators) | `observables`, `CEFion` |
 | Momentum transfer | \|Q\| in Å⁻¹ (assumed: the code computes s = Q/4π, as in the ILL tables) | `Ion.mff` |
 | Basis | Ground J multiplet, `\|J>, \|J-1>, ..., \|-J>` (the first vector component is m = +J) | `cefmatrices` |
-| Operators | Stevens `O_k^q`; q < 0 written `m`, e.g. `O4m3`. Taken from McPhase and EasySpin; the tests compare them with PyCrystalField up to a sign | `cefmatrices`, `tests/test_cefmatrices.py` |
-| Parameters | `B_k^q` in the Stevens convention, `H = Σ B_k^q O_k^q`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
+| Operators | Stevens `O_lm`; m < 0 written `m`, e.g. `O4m3`, the sine-type operators. Taken from McPhase and EasySpin; the tests compare them with PyCrystalField up to a sign | `cefmatrices`, `tests/test_cefmatrices.py` |
+| Parameters | `B_lm` in the Stevens convention, `H = Σ B_lm O_lm`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
 | Zeeman term | `H_Z = -μB gJ J·H`; the moment is `+gJ <J>` | `cefion` |
 | Degenerate levels | The eigenvectors inside a degenerate level are whatever `eigh` returns (orthonormal, otherwise arbitrary) | `cefion.diagonalize` |
 | Tolerance | Absolute: `constants.numerical_zero = 1e-12`, plus parameters for the decimal places in `diagonalize` and `get_degeneracies` | `constants`, `cefion` |
@@ -109,4 +108,4 @@ findings themselves are in [`AUDIT.md`](AUDIT.md).
 `decisions/` (ADR-0001): design choices in `decisions/adr/` (`ADR-xxxx`),
 physics conventions in `decisions/conventions/` (`CONV-xxxx`), one file per
 decision, each from the `_template.md` in its folder. They are not part of
-the Sphinx build. `AUDIT.md` and `PLAN.md` track the work.
+the Sphinx build. `AUDIT.md`, `PLAN.md` and `ROADMAP.md` track the work.

@@ -48,7 +48,7 @@ Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
 | Name | What it is |
 |---|---|
 | `Ion` | Free rare-earth ion: `J`, Landé `gJ`, Stevens factors α, β, γ, magnetic form factor in the dipole approximation (`mff`; for Ce the coefficients are those of Ce²⁺) |
-| `CEFpars` | Set of CEF parameters `Bkq` (e.g. `B20`, `B44`, `B6m1` for q = −1); input in `meV`, `K` or `invcm`, stored in meV |
+| `CEFpars` | Set of CEF parameters `Blm` (e.g. `B20`, `B44`, `B6m1` for m = −1); input in `meV`, `K` or `invcm`, stored in meV |
 | `CEFion` | Ion in the CEF and an external field: Hamiltonian, `J` operators, energies, eigenvectors, degeneracies |
 | `boltzman_population` | Thermal populations of the levels |
 | `spectral_weight` | Energies and neutron scattering intensities of all transitions at a given temperature and Q |
@@ -64,12 +64,11 @@ Hamiltonian symbolically with `sympy`; they are not part of the public API.
 
 ## Conventions
 
-The code currently works with energies in meV, temperatures in K and magnetic
-fields in T, and takes CEF parameters in the Stevens notation,
-$\mathcal{H} = \sum_{kq} B_k^q \hat{O}_k^q$. These conventions are not fixed
-yet: the energy unit, the Stevens operator normalisation, the quantisation axis
-and the relation to the Wybourne notation are still open and will be recorded
-here once decided.
+The conventions are recorded in [`decisions/conventions/`](decisions/conventions/),
+one file per convention. The CEF parameters and the Stevens operators follow
+McPhase: $\mathcal{H} = \sum_{lm} B_{lm} \hat{O}_{lm}$, with the parameters
+named `B20`, `B44`, `B4m3` (m = −3), and so on. The code works with energies in
+meV, temperatures in K and magnetic fields in T.
 
 ## Documentation
 

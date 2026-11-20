@@ -1,10 +1,12 @@
 # Developing qespace_cef
 
-Commands and rules for working on the package. The rules for agents are in
+Commands for working on the package. The rules for agents are in
 [`CLAUDE.md`](CLAUDE.md) and the decisions in [`decisions/`](decisions/)
-(ADRs and CONVs), the code in [`ARCHITECTURE.md`](ARCHITECTURE.md), the open
-problems in [`AUDIT.md`](AUDIT.md), the next step in [`PLAN.md`](PLAN.md). Everything goes through `uv`;
-`python` is not expected on the PATH.
+(ADRs and CONVs); the code is described in
+[`ARCHITECTURE.md`](ARCHITECTURE.md); the open problems are in
+[`AUDIT.md`](AUDIT.md), the next step in [`PLAN.md`](PLAN.md) and feature
+ideas in [`ROADMAP.md`](ROADMAP.md). Everything goes through `uv`; `python`
+is not expected on the PATH.
 
 ## Environment
 

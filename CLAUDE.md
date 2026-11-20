@@ -158,22 +158,22 @@ holds for subagents and worktrees.
 4. **Never loosen or delete a test to make it pass.** Fix the code, or record
    the bug as a strict `xfail` with the reason.
 5. Check physics against independent results: analytic limits (free ion,
-   cubic CEF, Kramers degeneracy, sum rules, traces) and reference codes
-   (`OPEN:` which ones, e.g. McPhase, PyCrystalField, Mantid CrystalField).
-6. Regression reference data are regenerated only after a deliberate change of
+   cubic CEF, Kramers degeneracy, sum rules, traces).
+6. Every accepted CONV gets a test that names its ID; it may be written after
+   the CONV is accepted.
+7. Regression reference data are regenerated only after a deliberate change of
    results, and the summary and commit body say so, with the size of the change.
-7. Before finishing: `uv run pytest`, `uv run ruff check .` and
+8. Before finishing: `uv run pytest`, `uv run ruff check .` and
    `uv run ruff format --check .`, and the numpy × Python matrix with
    `uv run nox` (commands in `DEV.md`).
 
 ## 7. Documentation
 
 Keep in sync with the code, in the same change: the module map and test tree in
-`ARCHITECTURE.md`, the commands and rules in `DEV.md`, the usage in `README.md`
-(copy-pasteable commands). Record significant decisions in a short ADR
-(context, decision, consequences; under 20 lines) in `decisions/adr/`, and
-physics conventions as CONVs in `decisions/conventions/`, each from the
-`_template.md` there. Only the maintainer accepts one. Never edit an accepted
+`ARCHITECTURE.md`, the commands in `DEV.md`, the usage in `README.md`
+(copy-pasteable commands). Record significant design decisions as short ADRs
+in `decisions/adr/`, and physics conventions as CONVs in
+`decisions/conventions/`, each from the `_template.md` there. Only the maintainer accepts one. Never edit an accepted
 one; supersede it.
 
 ## 8. Commit messages (section 1.2 and 1.3)
