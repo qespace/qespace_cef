@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from reference import mcphase
 from reference import old_stevens as old
 from reference.pycrystalfield import StevensOpPCF
 
@@ -64,6 +65,18 @@ def _close(a, b):
 def test_implemented_operators():
     """Every O_k^q with k <= 6 is implemented, and nothing else."""
     assert sorted(StevensBase.implementedOps()) == sorted(ALL_OPERATORS)
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_conv_0001_operators(J):
+    """CONV-0001: every even-rank O_lm equals the McPhase definition, signs included.
+
+    The reference (tests/reference/mcphase.py) is built from the formulas and
+    the polynomials copied into CONV-0001, for l = 2, 4, 6 and m = -l ... l.
+    """
+    ops = StevensBase(J)
+    mismatches = [lm for lm in mcphase.LM if not _close(ops[_name(*lm)], mcphase.stevens(J, *lm))]
+    assert mismatches == []
 
 
 @pytest.mark.parametrize("J", J_VALUES)
