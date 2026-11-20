@@ -49,11 +49,34 @@ rejected bare-array objects).
   McPhase's Tables 5 and 6 (copied in CONV-0001); today `Blm` only.
 - Rotation of the parameters between the crystal frame and the local frame
   (CONV-0004).
-- Point-group support: the allowed parameters and the relations between them
-  (AUDIT A7, C8).
 - Stevens operators generated from one closed formula, with the hand-written
   table kept as a test fixture (AUDIT A6).
 - The g-tensor of a non-Kramers ground doublet.
+
+## Symmetry
+
+- Point-group support: the allowed parameters of a site and the relations
+  between them (cubic `B44 = 5 B40`, ...), in the setting of CONV-0004
+  (AUDIT A7).
+- Exact degeneracies by construction. A q-fold axis along z couples only m
+  and m ± q, so H splits into blocks that are diagonalised separately. For a
+  Kramers ion, the partner of |a⟩ is Θ|a⟩, built by time reversal, so the
+  doublets are exactly paired, not paired up to rounding (CONV-0008).
+- Levels labelled by the irreducible representations of the site group
+  (Γ6, Γ7, Γ8, ...), which also gives a canonical basis inside each level.
+
+## Crystal structure and point charges
+
+- Take a `Crystal` from `qespace_crystallography`: the lattice, the site of
+  the magnetic ion and its neighbours. It gives the site symmetry (above),
+  the local frame and its rotation from the crystal frame (CONV-0004), and
+  fields and Q given in crystal coordinates. Whether `qespace_cef` may depend
+  on `qespace_crystallography` is a question for the suite's layer rules.
+- Point-charge model: the parameters from the charges of the neighbours,
+  `A_lm ∝ Σ_j q_j Z_lm(r̂_j) / r_j^(l+1)`, then `B_lm = A_lm <r^l> θ_l` and
+  the other types of CONV-0001 (Table 5). It needs the radial integrals
+  `<r^l>` and, if used, shielding factors, each with its source, and it gives
+  starting values for a fit rather than final parameters.
 
 ## Validation against reference codes
 
