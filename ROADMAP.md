@@ -65,4 +65,6 @@ codes would live in a test dependency group, not in the core.
 
 On 2026-11-20 the Stevens operators of the package were compared by hand with
 McPhase's table (manual node132): 601 matrices, l = 1–6 (except l = 5, m = 0),
-J = 1/2–8, no difference. That comparison is not a test yet.
+J = 1/2–8, no difference. The even ranks are now tests (`test_conv_0001_*`);
+against PyCrystalField the operators with l + m odd have the opposite sign,
+recorded as a strict `xfail`.

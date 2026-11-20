@@ -15,7 +15,7 @@ in the docstring of the public object it affects. P1–P3, P5–P11 and P17
 also have strict `xfail` tests with expected values that don't come from
 the code (`test/known-problems`); a fix turns its tests green and removes
 the markers. P4 gets its test with the g-tensor convention (C7); P13–P16
-and P18 are data, conventions and tests.
+are data and conventions.
 
 Severity: **bug** = wrong result, verified by running it; **bug (read)** =
 wrong from reading, not run; **rule** = breaks a rule (CLAUDE.md, an ADR or a CONV);
@@ -43,7 +43,6 @@ from `747c871` and does not depend on what changed since.
 | P15 | rule | `constants.py` | No source or CODATA year. The values mix vintages (h, e from CODATA 1986; μB, k_B, N_A from 2010), `pi` is hard-coded to 11 digits, and `meV2K = 11.60452` and `K2meV = 0.086173` are separate numbers, not reciprocals. `R0`, `_gamn`, `C1`–`C3`, `NA`, `kB_SI` are unused | read | One CODATA set (2022), derived conversions, `np.pi`; drop what's unused (CLAUDE.md 3.2.1) |
 | P16 | physics question | `cefmatrices`, `CEFpars` | Odd-rank operators (l = 1, 3, 5) are implemented and accepted as CEF parameters. Inside one J multiplet, parity removes odd l from the CEF Hamiltonian | `CEFpars(dict(B52=0.1, B3m1=0.2))` is accepted. Rerun on `610c884` | Keep them as building blocks, but decide whether `CEFpars` accepts them (Q12) |
 | P17 | bug | `observables.gtensor` | The z column uses `\|<0\|J_α\|0>\|`. The `abs()` makes even `G = g gᵀ` depend on the basis inside the doublet, so the principal g values are wrong in a general basis. (From the maintainer's notes: "I feel implementation of `gtensor` is wrong") | Ce, 5 random bases of the ground doublet: the spread of g gᵀ is 2.93 (`B20=1`) and 2.15 (low symmetry) with the code's formula, 4e-15 with `g_αβ = gJ Tr(P J_α σ_β)`. For `B20=1` the principal values of the latter are 0.857, 2.571, 2.571 (correct). Run on `610c884` | `g_αβ = gJ Tr(P J_α σ_β)` over the doublet, reported as G or principal values (P4); the convention with C7; non-Kramers doublets need their own treatment |
-| P18 | rule | `tests/test_cefmatrices.py`, `test_matrices_match_pycrystalfield` | The test accepts PyCrystalField's operators up to an overall sign. CONV-0001 (Consequences): "a comparison records the case instead of accepting ±". 16 of the 37 compared operators differ in sign, all with l + m odd | Run on `eae002d`: O10, O21, O2m1, O30, O32, O3m2, O41, O4m1, O43, O4m3, O61, O6m1, O63, O6m3, O65, O6m5 equal −PyCrystalField for every J where they are non-zero | Compare sign by sign; the 16 as a strict `xfail` naming CONV-0001 (`PLAN.md`) |
 
 ## 2. Documentation against behaviour
 
@@ -84,7 +83,7 @@ None open. The runtime needs only `numpy>=1.26`.
 
 | Where | Text (shortened) | Goes to |
 |---|---|---|
-| `cefmatrices` module docstring | the matrices and conventions "need to be cross-checked against some reliable book" | CONV-0001; its test is `PLAN.md` |
+| `cefmatrices` module docstring | the matrices and conventions "need to be cross-checked against some reliable book" | Done: CONV-0001 and its tests; the comment can go |
 | `CEFion.__str__` | "After refactoring the precision there might be cleanup needed" | P7, Q7 |
 
 ### 6.2 Conventions the findings wait for
@@ -95,7 +94,7 @@ names its ID (CLAUDE.md 6.6).
 
 | CONV | Status | Open | Findings waiting |
 |---|---|---|---|
-| CONV-0001 parameters and operators | accepted | no test yet; Q12, Q33 | P16, P18 |
+| CONV-0001 parameters and operators | accepted | Q12, Q33 | P16 |
 | CONV-0003 units | draft | the units of the API, one unit for χ, the shift to the ground state | P3, P15 |
 | CONV-0004 frames | draft | the local frame and its relation to the crystal frame | A7 |
 | CONV-0005 basis | draft | whether the order of states is a convention | – |
@@ -110,15 +109,14 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`test/conv-0001`**: P18 and the test of CONV-0001 (`PLAN.md`).
-2. **`fix/susceptibility`**: P1, P2, P10, A12. Needs no convention.
-3. **`fix/cefion`**: P5, P6, P8, P11. P7 waits for A11 and CONV-0008.
-4. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
+1. **`fix/susceptibility`**: P1, P2, P10, A12. Needs no convention.
+2. **`fix/cefion`**: P5, P6, P8, P11. P7 waits for A11 and CONV-0008.
+3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
-5. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,
+4. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,
    A11 with P7, A14, A15, Q2 (with Q26), Q7. Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
-6. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
+5. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
 
@@ -151,5 +149,5 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   `B4m3` and map McPhase files on input, or switch to `B43S`?
 - **Q34 (CONV-0001).** The CONV template has an `enforced_by` line naming the
   test; CONV-0001 has none, and an accepted CONV is never edited. Leave it,
-  with the test naming the CONV (`test_conv_0001_*`), or supersede CONV-0001
+  with the tests naming the CONV (`test_conv_0001_*`), or supersede CONV-0001
   with a copy that adds the line?

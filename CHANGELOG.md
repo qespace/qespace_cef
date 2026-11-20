@@ -6,7 +6,8 @@
 
 - Decisions are recorded in `decisions/`: design choices as ADRs, physics
   conventions as CONVs. The CEF parameters and the Stevens operators follow
-  McPhase (CONV-0001). No change to the code or its results.
+  McPhase (CONV-0001), checked by tests against its table, signs included.
+  No change to the code or its results.
 - The numpy floor is 1.26 (it was 2.4.4); numpy 1 and 2 are tested on
   Python 3.12–3.14 with `nox`. `DEV.md` lists the commands.
 - **Breaking:** the only runtime dependency is `numpy`. `scipy` and

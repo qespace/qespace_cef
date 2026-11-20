@@ -91,15 +91,51 @@ def test_matrices_match_old_implementation(J):
     assert mismatches == []
 
 
+# PyCrystalField's operators with the opposite sign, all with l + m odd. The
+# package follows McPhase (CONV-0001), so the difference is recorded, not
+# accepted up to a sign: exactly -1 (a passing test) and a strict xfail.
+PCF_OPPOSITE_SIGN = {
+    "O10", "O21", "O2m1", "O30", "O32", "O3m2", "O41", "O4m1",
+    "O43", "O4m3", "O61", "O6m1", "O63", "O6m3", "O65", "O6m5",
+}  # fmt: skip
+
+
 @pytest.mark.parametrize("J", J_VALUES)
 def test_matrices_match_pycrystalfield(J):
-    """Stevens matrices equal PyCrystalField's, up to an overall sign."""
+    """Stevens matrices equal PyCrystalField's, signs included, except PCF_OPPOSITE_SIGN."""
     ops = StevensBase(J)
-    mismatches = []
-    for name, (_, (k, q)) in REFERENCES.items():
-        new, pcf = ops[name[1:]], StevensOpPCF(J, k, q)
-        if not (_close(new, pcf) or _close(new, -pcf)):
-            mismatches.append(name)
+    mismatches = [
+        name
+        for name, (_, (k, q)) in REFERENCES.items()
+        if name not in PCF_OPPOSITE_SIGN and not _close(ops[name[1:]], StevensOpPCF(J, k, q))
+    ]
+    assert mismatches == []
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_pycrystalfield_opposite_sign(J):
+    """The operators of PCF_OPPOSITE_SIGN are exactly -1 times PyCrystalField's."""
+    ops = StevensBase(J)
+    mismatches = [
+        name
+        for name in sorted(PCF_OPPOSITE_SIGN)
+        if not _close(ops[name[1:]], -StevensOpPCF(J, *REFERENCES[name][1]))
+    ]
+    assert mismatches == []
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="PyCrystalField's O_lm with l + m odd have the opposite sign to McPhase, "
+    "which the package follows (CONV-0001)",
+)
+@pytest.mark.parametrize("name", sorted(PCF_OPPOSITE_SIGN))
+def test_pycrystalfield_sign_conv_0001(name):
+    """CONV-0001: PyCrystalField's O_lm equals the package's, signs included."""
+    k, q = REFERENCES[name][1]
+    mismatches = [
+        J for J in J_VALUES if not _close(StevensBase(J)[name[1:]], StevensOpPCF(J, k, q))
+    ]
     assert mismatches == []
 
 

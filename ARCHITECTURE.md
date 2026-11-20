@@ -55,7 +55,7 @@ in `decisions/conventions/`; no row here sets one.
 | Temperature, field | K; T (a 3-vector in the frame of the J operators) | `observables`, `CEFion` |
 | Momentum transfer | \|Q\| in Å⁻¹ (assumed: the code computes s = Q/4π, as in the ILL tables) | `Ion.mff` |
 | Basis | Ground J multiplet, `\|J>, \|J-1>, ..., \|-J>` (the first vector component is m = +J) | `cefmatrices` |
-| Operators | Stevens `O_lm`; m < 0 written `m`, e.g. `O4m3`, the sine-type operators. Taken from McPhase and EasySpin; the tests compare them with PyCrystalField up to a sign | `cefmatrices`, `tests/test_cefmatrices.py` |
+| Operators | Stevens `O_lm`; m < 0 written `m`, e.g. `O4m3`, the sine-type operators. As in McPhase (CONV-0001), tested against its table; PyCrystalField has the opposite sign for l + m odd | `cefmatrices`, `tests/test_cefmatrices.py` |
 | Parameters | `B_lm` in the Stevens convention, `H = Σ B_lm O_lm`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
 | Zeeman term | `H_Z = -μB gJ J·H`; the moment is `+gJ <J>` | `cefion` |
 | Degenerate levels | The eigenvectors inside a degenerate level are whatever `eigh` returns (orthonormal, otherwise arbitrary) | `cefion.diagonalize` |
@@ -73,14 +73,19 @@ with `sympy`, for the scripts in `symbolic/`. Build: `uv_build`.
 ```
 tests/
   reference/
+    mcphase.py          Stevens operators from the formulas and table in
+                        CONV-0001 (even l), with its own J matrices
     old_stevens.py      first implementation of the Stevens operators
     pycrystalfield.py   PyCrystalField's StevensOp, with attribution
-  test_cefmatrices.py   Stevens matrices vs both references, Hermiticity,
-                        the StevensBase observations; J = 1/2 ... 8
+  test_cefmatrices.py   Stevens matrices vs the three references (CONV-0001
+                        for even l, signs included), Hermiticity, the
+                        StevensBase observations; J = 1/2 ... 8; strict
+                        xfail where PyCrystalField's sign differs
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
                         Zeeman, sorting, orthonormality, H = U E U^dagger;
                         strict xfail for P5-P7
-  test_cefpars.py       unit conversion, point-group tables
+  test_cefpars.py       unit conversion, point-group tables, the parameter
+                        labels of CONV-0001
   test_ion.py           J and gJ from Hund's rules, form factor; xfail P8
   test_observables.py   exact susceptibility, thermodynamic identities, sum
                         rules, g values; strict xfail for P1-P3, P9-P11, P17
@@ -90,8 +95,10 @@ tests/
 `pyproject.toml` puts `tests/` on the path, so the tests import the
 references as `reference.*`. A known problem from AUDIT.md is a strict `xfail`
 that names its ID; it fails (XPASS) once the problem is fixed, and the fix
-removes the marker. The expected values come from formulas in the tests,
-not from the code under test.
+removes the marker. A test of a CONV names its ID (`test_conv_0001_*`); a
+reference code that disagrees with an accepted CONV is a strict `xfail`
+naming the CONV. The expected values come from formulas in the tests, not
+from the code under test.
 
 ## Documentation
 
