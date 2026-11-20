@@ -67,14 +67,9 @@ class CEFion:
 
     Warnings
     --------
-    Known problems, not fixed yet (AUDIT.md):
-
-    - P5: a second call of :meth:`diagonalize` rotates ``Jx``, ``Jy``, ``Jz``
-      again, though they are already in the eigenbasis, and every result
-      computed from them changes.
-    - Inside a degenerate level the eigenvectors are an arbitrary orthonormal
-      basis (CLAUDE.md, "Degenerate levels"), and so is anything computed
-      from single eigenvectors of that level; sums over the level are not.
+    Inside a degenerate level the eigenvectors are an arbitrary orthonormal
+    basis (CLAUDE.md, "Degenerate levels"), and so is anything computed from
+    single eigenvectors of that level; sums over the level are not.
 
     Examples
     --------
@@ -173,8 +168,6 @@ class CEFion:
         --------
         Known problems, not fixed yet (AUDIT.md):
 
-        - P5: a second call rotates the already rotated ``Jx``, ``Jy``,
-          ``Jz`` again. Call it once per object.
         - P6: ``sortWithE=False`` raises ``IndexError``.
         """
 
@@ -205,12 +198,13 @@ class CEFion:
         self.energies = energies[sortedIndices]
         self.eigenvectors = eigenvectors[sortedIndices]
 
-        # Change the basis of principal operators to the eigenstate basis with specified sorting scheme
-        # However obtained, keep notation that `self.eigenvectors[i]` is a vector of ith eigenvalue.
-        # AUDIT P5: rotates the current Jx, Jy, Jz, already rotated after a first call.
-        self.Jx = self.eigenvectors.conj() @ self.Jx @ self.eigenvectors.T
-        self.Jy = self.eigenvectors.conj() @ self.Jy @ self.eigenvectors.T
-        self.Jz = self.eigenvectors.conj() @ self.Jz @ self.eigenvectors.T
+        # Rotate the free-ion operators, built anew, into the eigenbasis
+        # (`self.eigenvectors[i]` is the vector of the i-th energy). Not the
+        # current Jx, Jy, Jz: after a first call they are already rotated.
+        V = self.eigenvectors
+        self.Jx = V.conj() @ J_x(self.Jval) @ V.T
+        self.Jy = V.conj() @ J_y(self.Jval) @ V.T
+        self.Jz = V.conj() @ J_z(self.Jval) @ V.T
 
         # Handy for calculations is the overall J operator, shape = (3, 2J+1, 2J+1)
         self.J = np.array([self.Jx, self.Jy, self.Jz])

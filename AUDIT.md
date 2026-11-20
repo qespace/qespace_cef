@@ -11,7 +11,7 @@ are never reused.
 
 Places are named by module and function. Every P item still in the code has
 an `# AUDIT Pn:` comment where it happens and, except P15, a Warnings section
-in the docstring of the public object it affects. P3, P5–P9, P11 and P17
+in the docstring of the public object it affects. P3, P6–P9, P11 and P17
 also have strict `xfail` tests with expected values that don't come from
 the code (`test/known-problems`); a fix turns its tests green and removes
 the markers. P4 gets its test with the g-tensor convention (C7); P13–P16
@@ -29,7 +29,6 @@ from `747c871` and does not depend on what changed since.
 |---|---|---|---|---|---|
 | P3 | bug | `observables.thermodynamics` | Energies in meV are mixed with temperatures in K: `F = −T ln Z` is in K, while `E` stays in meV, so `S = (E − F)/T` and `Cv` come out in mixed units | Entropy (k_B) at 10 / 20 / 40 K: exact 1.293 / 1.374 / 1.494, code 1.054 / 1.203 / 1.325. Cv (k_B): exact 0.170 / 0.108 / 0.239, code 0.00126 / 0.00080 / 0.00177 (low by a factor of 11.6², about 135) | Convert the energies to `k_B T` once and state the units of the returns (CONV-0003); test against `−∂F/∂T` and the high-T limit `ln(2J+1)` |
 | P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the draft on degenerate levels (CONV-0008) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 (CONV-0008) |
-| P5 | bug | `CEFion.diagonalize` | Calling it a second time rotates `Jx`, `Jy`, `Jz`, which are already in the eigenbasis, again | Ce, `B20=0.5, B40=0.01, B44=0.1`, field (0.3, 0, 1) T: after a second `diagonalize()` the moments change by up to 2.94 μB. Rerun on `610c884` | Rotate from the free-ion operators every time (keep them), or make diagonalisation run once (A2) |
 | P6 | bug | `CEFion.diagonalize(sortWithE=False)` | `np.arange(self.Jval)` takes a float J and has the wrong length (2J+1 is needed) | `IndexError: arrays used as indices must be of integer (or boolean) type`. Rerun on `610c884` | `np.arange(2*J+1)` |
 | P7 | bug | `CEFion.get_degeneracies(precision)` | The argument is overwritten with `precision = 5`, and `astype(int)` truncates instead of rounding, so two degenerate states whose energies differ by rounding noise can come out as two levels | `get_degeneracies(precision=1)` still gives 5 decimals (0.78397). Pr³⁺ with `B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4`: the 28.584 meV doublet comes out of `eigh` as 28.584000000000000 and 28.583999999999996 meV, two levels. Rerun on `610c884` | Group levels by a relative tolerance from one config place (A11), not by decimals; waits for A11 and CONV-0008 |
 | P8 | bug | `Ion.__str__` | `%d` prints J = 5/2 as 2 | `str(Ion('Ce'))` gives `'Ce: J = 2, gJ = 0.86'`. Rerun on `610c884` | Print the fraction |
@@ -49,7 +48,7 @@ None open.
 
 | ID | Severity | Finding | Proposal |
 |---|---|---|---|
-| A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This causes P5 and makes every observable depend on the call order | ADR-0002 (`Hamiltonian`). Open there: when it is solved and whether it is immutable (Q29), observables as functions or methods (Q31) |
+| A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This made a second `diagonalize()` rotate J twice (P5, fixed) and makes every observable depend on the call order | ADR-0002 (`Hamiltonian`). Open there: when it is solved and whether it is immutable (Q29), observables as functions or methods (Q31) |
 | A3 | suggestion | Observables in a field rebuild a whole `CEFion` from `ion` and `cfp` and ignore `cefion.Hfield`, so the field lives in two places | Pass the field to the solver only; the observables take a solved state |
 | A4 | rule | `from .observables import *` exports `np`, `C`, `ArrayLike`, `CEFion` again, and the submodules. With no `__all__`, the public API is undefined (CLAUDE.md 6.2 "public entry point") | `__all__` in `__init__` and in every module |
 | A5 | suggestion | The J matrices are built twice (`J_x`… functions and `StevensBase.__init__`); `symbolic/cefmatrices.py` is a third, sympy, copy | `StevensBase` uses the module functions |
@@ -106,7 +105,7 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`fix/cefion`**: P5, P6, P8, P11. P7 waits for A11 and CONV-0008.
+1. **`fix/cefion`**: P6, P8, P11. P7 waits for A11 and CONV-0008.
 2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
 3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,

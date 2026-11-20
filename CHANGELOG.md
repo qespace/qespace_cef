@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- `CEFion.diagonalize` can be called again: it rotates the free-ion J
+  operators, not the already rotated ones (AUDIT P5). The first call is
+  unchanged.
 - **Breaking:** `susceptibility(cefion, temperatures, method)` returns the
   tensor `chi_ab`, shape `S + (3, 3)` for temperatures of shape `S`, in
   μB/T per ion from both methods (CONV-0009). `Hfield_direction` is

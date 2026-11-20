@@ -123,7 +123,6 @@ def test_summary_is_a_stub():
 # --- known problems (AUDIT.md), strict xfail until fixed ------------------
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P5: a second diagonalize() rotates J again")
 def test_second_diagonalize_changes_nothing():
     """Calling ``diagonalize`` again leaves energies and moments unchanged."""
     cef = _cefion("Ce", LOW_SYMMETRY, field=(0.3, 0, 1))
