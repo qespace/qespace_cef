@@ -6,96 +6,99 @@ The step being worked on now, in the form of CLAUDE.md 2.3. It borrows from
 tracking, not a rule (ADR-0001). Ideas for later are in
 [`ROADMAP.md`](ROADMAP.md).
 
-## Now: `fix/cefion`, P5, P6, P8 and P11
+## Now: `feat/energy-zero`, CONV-0010
 
-**Goal.** Four bugs that need no convention, each fixed with its strict
-`xfail` turning green:
+**Goal.** `CEFion` follows CONV-0010 (accepted):
 
-- `CEFion.diagonalize` can be called twice;
-- `sortWithE=False` works;
-- `str(Ion)` shows a half-integer J;
-- `magnetization_exchange` stops when the mean field doesn't converge.
+- `energies` are the eigenvalues of `hamiltonian`, not shifted. With
+  `B00 = 0` their zero is the centre of gravity of the J multiplet.
+- `excitation_energies = energies − energies[0]` sits next to them and starts
+  at 0.
+- `diagonalize` loses `shiftToZero`.
+- `CEFion.__str__` goes. The `summary` stub stays as the placeholder for a
+  print of the level scheme (AUDIT Q7, `ROADMAP.md`).
 
-No computed result of a correct call changes.
+**Steps.** Branch `feat/energy-zero`, 4 commits.
 
-**Steps.** Branch `fix/cefion`, 4 commits. Each removes its `# AUDIT`
-marker, Warnings entry, `xfail` marker and AUDIT row, and adds a CHANGELOG
-line.
+1. `feat(cefion)!: keep the energies unshifted, add excitation_energies
+   (CONV-0010)`.
+   - `diagonalize` stores the eigenvalues as `energies`, and `energies −
+     energies[0]` as `excitation_energies` (`[]` before diagonalisation,
+     like `energies`). `shiftToZero` goes.
+   - The class docstring, its doctest and the README line describe both.
+   - Tests that encoded the shift move to the new convention, with the same
+     assertions:
+     - `test_axial_levels` checks `energies` against its own docstring
+       formula, `B20 (3m² − J(J+1))` = −8, −2, 10 meV, and
+       `excitation_energies` against 0, 6, 18;
+     - `test_energies_sorted_from_zero` becomes ascending `energies` plus
+       `excitation_energies[0] == 0`;
+     - `test_eigenvectors_belong_to_energies` loses its `E0` correction;
+     - `test_degeneracies_are_plain_python_numbers` expects −8, −2, 10.
+   - Results change: `energies`, `get_degeneracies`, and U and F of
+     `thermodynamics` (P3, still open) shift by `E_0`. Everything else is
+     shift invariant: populations, χ, M, the spectra, S and C_v.
+2. `test(cefion): check the zero of energy against CONV-0010`.
+   - `test_conv_0010_*`, from its Consequences:
+     - `energies` equal `eigvalsh(hamiltonian)` and average to 0, with and
+       without a field;
+     - free Ho³⁺ at 2 T along z gives `E_0 = −gJ μB J B`;
+     - `excitation_energies` is `energies − energies[0]`;
+     - Hellmann–Feynman, `∂E_n/∂B40 = <n|O_40|n>`, against a finite
+       difference on low-symmetry Ce³⁺ in a field.
+3. `refactor(cefion)!: remove CEFion.__str__`.
+   - `__str__` goes, with `test_str_prints_energies_with_decimals`, which
+     tests only the removed method.
+   - The `summary` stub stays, and its message points to the planned print
+     of the level scheme instead of `__str__`.
+4. `docs: describe the energies of CONV-0010`.
+   - `ARCHITECTURE.md`: the data flow, the Energy row of the conventions
+     and the test tree.
+   - `AUDIT.md`: Q7 and section 6.2 (CONV-0010 accepted).
+   - `ROADMAP.md`: the print of the level scheme.
+   - `CHANGELOG.md`.
 
-1. `fix(cefion): rotate J from the free-ion operators (P5)`.
-   - `diagonalize` rotates `J_x(J)`, `J_y(J)`, `J_z(J)`, built anew, instead
-     of the current `Jx`, `Jy`, `Jz`, which are already in the eigenbasis
-     after a first call. The operators were rotated twice; now a repeated
-     call gives the same state.
-   - `test_second_diagonalize_changes_nothing` turns green.
-   - The first call is unchanged: in the scratch run the rotated operators
-     match today's to 0.0.
-2. `fix(cefion): keep the order of eigh with sortWithE=False (P6)`.
-   - The indices are `np.arange(2J + 1)` (an int) instead of
-     `np.arange(J)` (a float, of the wrong length).
-   - `test_diagonalize_without_sorting` turns green. Its marker has
-     `raises=IndexError`, so it can't turn green any other way.
-   - `eigh` already returns ascending energies, so the order is the same as
-     with sorting; the docstring says so.
-3. `fix(ion): show a half-integer J as a fraction (P8)`.
-   - `str(Ion)` prints J with `Fraction(float(J))` (CLAUDE.md 5.7.2):
-     `'Ce: J = 5/2, gJ = 0.86'`, and `'Ho: J = 8, ...'` stays as it is.
-   - `test_str_shows_half_integer_J` turns green (Ce, Dy).
-4. `fix(observables): stop the mean-field iteration (P11)`.
-   - At most `max_iterations` steps (a new keyword argument, default
-     1000), then `RuntimeError`.
-   - The convergence test becomes `|M_k+1 − M_k| ≤ precision · max(|M_k+1|,
-     |M_k|)`, so M = 0 converges at once, without the 0/0.
-   - The placeholder `residual = 42` goes.
-   - Both P11 tests turn green: the stand-in that never converges raises
-     `RuntimeError` before its 10000-call guard, and the zero field gives
-     exactly (0, 0, 0) without a warning.
-   - The same commit updates the test tree in `ARCHITECTURE.md` and AUDIT
-     section 7.
+**Files.** `qespace_cef/cefion.py`, `tests/test_cefion.py`, `README.md`,
+`ARCHITECTURE.md`, `AUDIT.md`, `ROADMAP.md`, `CHANGELOG.md`.
 
-**Files.** `qespace_cef/cefion.py`, `qespace_cef/ion.py`,
-`qespace_cef/observables.py`, `tests/test_cefion.py`, `tests/test_ion.py`,
-`tests/test_observables.py`, `AUDIT.md`, `CHANGELOG.md`,
-`ARCHITECTURE.md`.
-
-**Checked in advance** (scratch script on `efb4a0b`, not a test):
-- P5: rotating the free-ion operators gives the first call's operators
-  exactly.
-- P6: the indices are `[0 … 5]` for Ce.
-- P8: Ce 5/2, Dy 15/2, Ho 8, Pr 4.
-- P11, with the new loop: zero field gives (0, 0, 0) with warnings as
-  errors; Ce³⁺ (tetragonal test values) at 5 K, 1 T along z, λ = 1 T/μB
-  converges to M_z = 0.15001 μB.
+**Checked in advance** (scratch run on `c94cb46`, with a pytest plugin that
+forces `shiftToZero=False`, the package unchanged):
+- 9 tests and the `CEFion` doctest fail, and each of them encodes the shift:
+  - `test_axial_levels`;
+  - `test_energies_sorted_from_zero` (3 ions);
+  - `test_eigenvectors_belong_to_energies` (3 ions);
+  - `test_degeneracies_are_plain_python_numbers`;
+  - `test_str_prints_energies_with_decimals`.
+- All other 347 tests pass. The 30 strict xfails stay xfails, P3 and P7
+  among them.
+- The four checks of step 2 hold: mean 0 to 10⁻¹²; E_0 = −1.15768 meV
+  exactly; Hellmann–Feynman to 1.4·10⁻⁷ on a largest value of 60.5.
 
 **Risks.**
-- **The cap.** `max_iterations = 1000` is my choice of default, not a
-  physics value; CLAUDE.md 5.6 asks for tolerances from one config place
-  (A11). `precision` stays a keyword argument as today. Both move to the
-  config with A11.
-- **The error type.** `RuntimeError` on no convergence is a new error the
-  caller can see. A10 (`ValueError` at the boundary) is about invalid
-  arguments, not this.
-- **Not in this step:**
-  - `CEFion.J` is still a list before `diagonalize` and an array after
-    (A2, v2);
-  - P7 (degeneracy grouping) waits for A11 and CONV-0008;
-  - the mean field still uses `magnetization`, one `CEFion` per step (A3).
+- **`get_degeneracies` (P7)** truncates `energies` to 5 decimals. With
+  negative energies, truncation goes towards zero, so a level at −7.9999999…
+  and one at −8.0000000… can land in different groups. The P7 xfail stays.
+  The fix of P7 waits for A11 and CONV-0008.
+- **`thermodynamics`:** U and F change by `E_0` while P3 is still open. The
+  P3 xfails don't depend on the zero and stay xfails.
+- **`str(cefion)`** prints Python's default representation after step 3. Any
+  script that printed a `CEFion` changes.
 
-**Tests.** `uv run pytest`: the five `xfail`s of P5, P6, P8 and P11 (two
-of them) turn green; 36 → 31 xfailed. Then `ruff check`,
+**Tests.** `uv run pytest`: the rewritten tests and the `test_conv_0010_*`
+tests pass, and the xfails stay at 30. Then `ruff check`,
 `ruff format --check` and `uv run nox`.
 
 ## In parallel: decisions only you can take
 
-- The `OPEN:` parts of the drafts CONV-0003 to CONV-0008 (AUDIT section 6.2,
-  Q11), and a draft for the g-tensor (C7). CONV-0003 (units) should agree
-  with CONV-0009: χ in μB/T per ion.
+- The `OPEN:` parts of the drafts CONV-0003 to CONV-0008 (AUDIT section
+  6.2, Q11), and a draft for the g-tensor (C7). CONV-0003 now states χ in
+  μB/T per ion, as CONV-0009 does.
 - Q29 and Q31 (ADR-0002), which block `refactor/api-v2`.
 
 ## Next
 
 Most remaining fixes wait for a convention (AUDIT section 6.2, Q11):
-- P3 for CONV-0003;
+- P3 for CONV-0003 (its zero of U and F is CONV-0010, accepted);
 - P4 and P17 for C7 and CONV-0008;
 - P9 and P13 for CONV-0007;
 - P7 for A11 and CONV-0008.

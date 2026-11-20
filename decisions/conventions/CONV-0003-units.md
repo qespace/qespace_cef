@@ -10,13 +10,11 @@ owner: qespace_cef
 `OPEN:` the units of the API.
 
 As implemented: energies and CEF parameters in meV (parameters can also be
-given in K and cm⁻¹ and are converted); level energies shifted so the ground
-state is at 0; temperature in K; magnetic field `B = μ0 H` in T; |Q| in Å⁻¹;
-moments in μB per ion; the susceptibility in μB²/meV per ion with
-`method='perturbation'` and in μB/T per ion with `method='magnetization'`.
+given in K and cm⁻¹ and are converted); temperature in K; magnetic field
+`B = μ0 H` in T; |Q| in Å⁻¹; moments in μB per ion; the susceptibility
+tensor in μB/T per ion (CONV-0009, accepted).
 
-`OPEN:` one unit for the susceptibility (μB/T per ion, or emu/mol), and
-whether level energies are always shifted to the ground state.
+The zero of the energies is not a unit; it is CONV-0010.
 
 ## Rationale
 
