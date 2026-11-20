@@ -115,6 +115,82 @@ def test_susceptibility_prints_nothing(capsys):
     assert capsys.readouterr().out == ""
 
 
+# --- CONV-0009: the susceptibility tensor ---------------------------------
+# Expected values from formulas in the tests (CONV-0009, Consequences).
+
+CHI_LOW_SYMMETRY = dict(B20=0.5, B22=0.2, B40=0.01, B43=0.05, B4m2=0.03)  # Ce3+, meV, test values
+
+
+def _curie(ion, temperature):
+    """Free-ion Curie law gJ^2 muB J(J+1) / (3 k_B T), in muB/T per ion."""
+    return ion.gJ**2 * MUB * ion.J * (ion.J + 1) / (3 * KB * temperature)
+
+
+@pytest.mark.parametrize(("method", "rel"), [("perturbation", 1e-6), ("magnetization", 1e-5)])
+def test_conv_0009_free_ion_curie_law(method, rel):
+    """H_CEF = 0: chi_ab = delta_ab gJ^2 muB J(J+1) / (3 k_B T)."""
+    ion = qc.Ion("Ho")
+    cef = qc.CEFion(ion, qc.CEFpars(dict(B20=0.0)))
+    for temperature in [2.0, 50.0]:
+        chi = qc.susceptibility(cef, temperature, method=method)
+        expected = _curie(ion, temperature) * np.eye(3)
+        np.testing.assert_allclose(chi, expected, rtol=0, atol=rel * expected.max())
+
+
+def test_conv_0009_high_temperature_limit():
+    """Tr chi / 3 approaches the free-ion Curie law as T grows."""
+    ion = qc.Ion("Ce")
+    cef = qc.CEFion(ion, qc.CEFpars(CHI_LOW_SYMMETRY))
+    T_high = np.array([1e2, 1e3, 1e4])
+    deviation = np.abs(
+        np.trace(qc.susceptibility(cef, T_high), axis1=-2, axis2=-1) / 3 / _curie(ion, T_high) - 1
+    )
+    assert deviation[-1] < 1e-4 and np.all(np.diff(deviation) < 0)
+
+
+@pytest.mark.parametrize("temperature", [2.0, 20.0, 200.0])
+def test_conv_0009_perturbation_equals_finite_difference(temperature):
+    """The formula and the finite difference M(eps e_b)/eps agree, off-diagonal terms included."""
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(CHI_LOW_SYMMETRY))
+    chi = qc.susceptibility(cef, temperature)
+    chi_fd = qc.susceptibility(cef, temperature, method="magnetization")
+    off_diagonal = chi[~np.eye(3, dtype=bool)]
+    assert np.abs(off_diagonal).max() > 1e-3 * np.abs(chi).max()  # the test sees them
+    np.testing.assert_allclose(chi_fd, chi, rtol=0, atol=1e-5 * np.abs(chi).max())
+
+
+def test_conv_0009_symmetric_positive_semidefinite():
+    """chi is real, symmetric and positive semi-definite."""
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(CHI_LOW_SYMMETRY))
+    for chi in qc.susceptibility(cef, [1.0, 10.0, 100.0]):
+        assert np.allclose(chi, chi.T, rtol=0, atol=1e-14 * np.abs(chi).max())
+        assert np.linalg.eigvalsh(chi).min() >= -1e-14 * np.abs(chi).max()
+
+
+def test_conv_0009_invariant_inside_degenerate_levels():
+    """chi is unchanged when the basis inside each Kramers doublet is rotated."""
+    cef = _ce()
+    chi = qc.susceptibility(cef, T)
+    rng = np.random.default_rng(1)
+    n = len(cef.energies)
+    U = np.zeros((n, n), complex)
+    for k in range(0, n, 2):  # Ce3+: three Kramers doublets
+        Q, _ = np.linalg.qr(rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)))
+        U[k : k + 2, k : k + 2] = Q
+    cef.J = np.einsum("ki,akl,lj->aij", U.conj(), np.asarray(cef.J), U)
+    np.testing.assert_allclose(
+        qc.susceptibility(cef, T), chi, rtol=0, atol=1e-12 * np.abs(chi).max()
+    )
+
+
+def test_conv_0009_tetragonal_tensor():
+    """Tetragonal field, z the fourfold axis: chi_xx = chi_yy and no off-diagonal terms."""
+    for chi in qc.susceptibility(_ce(), T):
+        scale = np.abs(chi).max()
+        assert chi[0, 0] == pytest.approx(chi[1, 1], rel=1e-12)
+        assert np.abs(chi[~np.eye(3, dtype=bool)]).max() <= 1e-14 * scale
+
+
 # --- thermodynamics -------------------------------------------------------
 # Identities that hold in any consistent set of units, so they do not choose
 # the units of the returns (C1, C11).
