@@ -111,10 +111,42 @@ def test_degeneracies_are_plain_python_numbers():
     assert all(type(e) is float and type(d) is int for e, d in levels)
 
 
-def test_summary_is_a_stub():
-    """``summary`` is planned (AUDIT Q7, A2) and raises until then."""
-    with pytest.raises(NotImplementedError):
-        _cefion("Ce", dict(B20=1.0)).summary()
+def test_summary_lists_levels_from_the_ground_state():
+    """``summary`` prints excitation energies with degeneracies, and E_0 in its header."""
+    text = _cefion("Ce", dict(B20=1.0)).summary()
+    assert "(E_0 = -8.000 meV)" in text
+    for level, energy in enumerate(["0.000", "6.000", "18.000"]):
+        assert f"E({level}) =\t{energy} meV\t 2-fold degenerate" in text
+    assert text.count("ev_") == 6  # one line per state
+
+
+def test_summary_options():
+    """``precision`` sets the decimals; ``evecs=False`` leaves out the eigenvectors."""
+    text = _cefion("Ce", dict(B20=1.0)).summary(evecs=False, precision=1)
+    assert "E(2) =\t18.0 meV" in text and "ev_" not in text
+
+
+def test_summary_groups_levels_for_printing():
+    """States within 1e-10 meV print as one level; a larger splitting does not.
+
+    Cubic Pr3+: eigh returns the 28.584 meV doublet as two values that differ
+    by rounding noise (AUDIT P7); the print groups them. Ce3+ in 1e-6 T splits
+    each doublet by about 5e-8 meV, which the print keeps apart.
+    """
+    pr = _cefion("Pr", CUBIC_PR).summary(evecs=False)
+    assert [line.split("\t")[-1] for line in pr.splitlines() if line.startswith("E(")] == [
+        " 3-fold degenerate",
+        " 1-fold degenerate",
+        " 3-fold degenerate",
+        " 2-fold degenerate",
+    ]
+    ce = _cefion("Ce", dict(B20=1.0), field=(0, 0, 1e-6)).summary(evecs=False)
+    assert ce.count(" 1-fold degenerate") == 6
+
+
+def test_summary_before_diagonalisation():
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)), diagonalize=False)
+    assert cef.summary() == "Undiagonalized Hamiltonian"
 
 
 # --- CONV-0010: the zero of energy ----------------------------------------

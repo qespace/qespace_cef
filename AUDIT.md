@@ -55,7 +55,7 @@ None open.
 | A8 | suggestion | The ion data sit in a dictionary literal in `Ion.__init__`, rebuilt on every `Ion()`; `data_containers.py` holds only the point groups | Put the data tables (ions, point groups, allowed parameters) in one data module with their sources; move `atoms-form-factors.txt` out of the package (e.g. `tools/`) |
 | A9 | suggestion | Files that ship without a use: `thermodynamics-magnetism.png`, `qespace_cef/README.md`, `atoms-form-factors.txt` (kept for now, by your decision) | Move the reference to the README or the docs; keep the rest out of the wheel when the data question is settled |
 | A10 | rule | Validation: `assert` in `gtensor` (removed by `python -O`), a bare `Exception` for a non-Hermitian H in `CEFion`, `NameError` for an unknown point group, `KeyError` for an unknown ion; the Hermiticity check in the constructor is an absolute `allclose` (CLAUDE.md 5.5, 5.6) | `ValueError` at the public boundary, relative tolerances from one config place |
-| A11 | rule | No central tolerance config: `numerical_zero = 1e-12` (meV, absolute), `Eimag_precision=10`, `precision=5`, a print threshold of `10⁻³`, `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | One `config` with relative tolerances, read at call time. CONV-0009 fixes the degeneracy rule of the susceptibility to the absolute `constants.numerical_zero`; a config must keep that for χ, or a new CONV supersedes CONV-0009 |
+| A11 | rule | No central tolerance config: `numerical_zero = 1e-12` (meV, absolute), `Eimag_precision=10`, `precision=5`, the print thresholds of `CEFion.summary` (states within an absolute 10⁻¹⁰ meV printed as one level, temporary by the maintainer's decision until CONV-0008; coefficients below `10⁻precision` left out), `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | One `config` with relative tolerances, read at call time. CONV-0009 fixes the degeneracy rule of the susceptibility to the absolute `constants.numerical_zero`; a config must keep that for χ, or a new CONV supersedes CONV-0009 |
 | A14 | suggestion | Stevens operators can be had two ways, `StevensBase(J).O4m3()` and `StevensBase(J)['4m3']`, and `implementedOps` finds them through `cls.__dict__`: two access paths for one thing, with string keys to parse. (From the maintainer's notes: "Should we settle on just one of them?") | Settle on one with A2 and A6, e.g. `stevens(J, l, m)` or `ops[l, m]` with integers; the methods go when A6 generates the operators. Breaking (v2) |
 | A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects, 15× slower than one batched diagonalisation (ADR-0003, measured on `afa1dd5`) | ADR-0002 and ADR-0003, in `refactor/api-v2`; the feature in `ROADMAP.md` |
 
@@ -64,7 +64,6 @@ None open.
 | ID | Finding | Proposal |
 |---|---|---|
 | Q2 | Naming is not uniform, and no rule says what it should be. camelCase: `pointGroup`, `pointGroupName`, `mffCoefficients`, `implementedOps`. Words fused with symbols or capitalised: `Hfield`, `Hfield_direction`, `Bpars`, `Bdict`, `allowed_Bpars`, `Jval`, `J2p1`, `Eimag_precision`, `Alpha/Beta/Gamma`, the classes `CEFion`, `CEFpars`. The typo in `boltzman_population`. Physics symbols (`J`, `Q`, `T`, `Ei`, `B_iso`, `gJ`, `Jx`, `O4m3`) follow the formulas. The code and the docstrings index the operators and parameters with k, q; CONV-0001 and the documentation use l, m. Scanned at run time on `8a39456` | The classes are renamed in ADR-0002 (`CEFpars` → `Blm`, `CEFion` → `Hamiltonian`, `import qespace_cef as cef`). For the rest, a written rule (Q26): snake_case for words, physics symbols as in the formulas, listed; then rename with A2, in v2, possibly with deprecated aliases in a last 1.x |
-| Q7 | `CEFion.summary(evecs, precision)` is a stub that raises `NotImplementedError`, the placeholder for a print of the level scheme; `CEFion` has no `str()` of its own (CONV-0010) | Implement the print with A2 (`ROADMAP.md`); what it shows, including a basis inside a degenerate level (Q41), is decided with it |
 
 ## 5. Dependencies
 
@@ -107,7 +106,7 @@ its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
 3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,
-   A11 with P7, A14, A15, Q2 (with Q26), Q7. Planned first (CLAUDE.md 2.3),
+   A11 with P7, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
 4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 

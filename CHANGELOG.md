@@ -5,8 +5,10 @@
 ## Unreleased
 
 - **Breaking:** `CEFion.__str__` is removed (CONV-0010); `str(cefion)`
-  gives Python's default text. A print of the level scheme is planned as
-  `CEFion.summary` (still a stub).
+  gives Python's default text. `CEFion.summary(evecs, precision)` prints
+  the level scheme instead: the levels above the ground state with their
+  degeneracies and eigenvectors, and E_0 in the header. For this print
+  only, states within 10⁻¹⁰ meV count as one level.
 - **Breaking:** `CEFion.energies` are the eigenvalues of the Hamiltonian,
   not shifted (CONV-0010): with `B00 = 0` they average to zero, the centre
   of gravity of the J multiplet. The new `CEFion.excitation_energies`

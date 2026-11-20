@@ -6,6 +6,11 @@ from .cefmatrices import J_x, J_y, J_z, StevensBase
 from .cefpars import CEFpars
 from .ion import Ion
 
+# Levels closer than this (meV) are printed as one level by CEFion.summary.
+# Temporary and for printing only, by the maintainer's decision, until the
+# degeneracy convention (CONV-0008) is accepted; no computation uses it.
+_PRINT_DEGENERACY_ATOL = 1e-10
+
 
 class CEFion:
     r"""
@@ -259,19 +264,61 @@ class CEFion:
         return [[float(e), int(c)] for e, c in zip(unique_energies / 10**precision, counts)]
 
     def summary(self, evecs: bool = True, precision: int = 3) -> str:
-        """Energy levels and eigenvectors as text, with options. Not implemented yet.
+        """The level scheme as text: levels, degeneracies and eigenvectors.
 
-        Placeholder for a print of the level scheme: the levels, their
-        degeneracies and eigenvectors, with the ``evecs`` and ``precision``
-        options (AUDIT Q7, ``ROADMAP.md``). ``CEFion`` has no ``str()`` of
-        its own (CONV-0010); what the print shows is decided with it.
+        The levels are the ``excitation_energies``, measured from the ground
+        state, whose energy ``energies[0]`` is given in the first line
+        (CONV-0010). States whose energies differ by less than
+        ``_PRINT_DEGENERACY_ATOL`` (10⁻¹⁰ meV) are printed as one level; this
+        grouping is for printing only, until the degeneracy convention is
+        decided (CONV-0008). Each eigenvector is written in the free-ion
+        kets, leaving out coefficients smaller than ``10**-precision``.
 
-        Raises
-        ------
-        NotImplementedError
-            Always, for now.
+        Parameters
+        ----------
+        evecs : bool, optional
+            If True (default), list the eigenvectors under each level.
+        precision : int, optional
+            Decimals of the energies (meV) and of the eigenvector
+            coefficients. Default 3.
+
+        Returns
+        -------
+        str
+            One block per level, e.g. ``'E(1) =\\t6.000 meV\\t 2-fold
+            degenerate'`` followed by its eigenvectors. Before
+            :meth:`diagonalize`: ``'Undiagonalized Hamiltonian'``.
+
+        Warnings
+        --------
+        Inside a degenerate level the printed eigenvectors are one arbitrary
+        orthonormal basis of the level (AUDIT Q41); only the level as a whole
+        is defined.
         """
-        # AUDIT Q7: stub, to be implemented with A2.
-        raise NotImplementedError(
-            "CEFion.summary, a print of the level scheme, is planned (AUDIT Q7, ROADMAP.md)."
-        )
+        if not len(self.energies):
+            return "Undiagonalized Hamiltonian"
+
+        # Group neighbouring states into levels: printing only (see above).
+        breaks = np.flatnonzero(np.diff(self.energies) >= _PRINT_DEGENERACY_ATOL) + 1
+        starts = np.concatenate(([0], breaks))
+        ends = np.concatenate((breaks, [len(self.energies)]))
+
+        lines = [
+            f"Energy levels{' and eigenvectors' if evecs else ''}, energies above the "
+            f"ground state (E_0 = {self.energies[0]:.{precision}f} meV):"
+        ]
+        for level, (start, end) in enumerate(zip(starts, ends)):
+            energy = self.excitation_energies[start]
+            block = [
+                f"E({level:d}) =\t{energy:.{precision}f} meV\t{end - start:2d}-fold degenerate"
+            ]
+            if evecs:
+                for ev in self.eigenvectors[start:end]:
+                    components = [
+                        f"({c:.{precision}f}){ket}"
+                        for c, ket in zip(ev, self.freeionkets)
+                        if np.abs(c) > 10.0**-precision
+                    ]
+                    block.append(f"ev_{level}: " + " + ".join(components))
+            lines.append("\n".join(block))
+        return "\n\n".join(lines) + "\n"
