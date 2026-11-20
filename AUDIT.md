@@ -63,6 +63,7 @@ None open.
 | A11 | rule | No central tolerance config: `numerical_zero = 1e-12` (meV, absolute), `Eimag_precision=10`, `precision=5`, a print threshold of `10⁻³`, `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | One `config` with relative tolerances, read at call time |
 | A12 | rule | `susceptibility(method='perturbation')` prints the matrix of transition energies (CLAUDE.md 5.8) | Remove the print (Q25) |
 | A14 | suggestion | Stevens operators can be had two ways, `StevensBase(J).O4m3()` and `StevensBase(J)['4m3']`, and `implementedOps` finds them through `cls.__dict__`: two access paths for one thing, with string keys to parse. (From the maintainer's notes: "Should we settle on just one of them?") | Settle on one with A2 and A6, e.g. `stevens(J, k, q)` or `ops[k, q]` with integers; the methods go when A6 generates the operators. Breaking (v2) |
+| A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects. The Hamiltonian is linear in the parameters and the field, `H = Σ_k B_k O_k − μB gJ H·J`, with operators fixed per ion, so a whole grid is one `einsum` over the operator stack, and `np.linalg.eigh` diagonalises stacks `(..., n, n)`. T and Q don't enter H; they act after the diagonalisation. Measured on `afa1dd5` (scratch script): Ho³⁺, 8 parameters, 100 B20 × 100 fields, M_z at 5 K: 1.07 s batched against about 16 s with the current API (15×), max \|ΔM\| = 2·10⁻¹³ μB | Broadcasting is the design principle of v2 (Q27): `hamiltonian(ion, pars, field)` with `pars` values array_like and `field` `(..., 3)`, `solve(H)` → an immutable eigensystem `(..., n)`, `(..., n, n)` (A2, A3), observables as pure functions of it and of T or Q, with the shape rule of Q28; a single point is the shape `()` case, and a test checks batched against a loop. Care: memory (the full rotated J is 139 MB per 10⁴ points at J = 8; compute only the matrix elements an observable needs, or work in chunks); degenerate levels only through basis-independent masks, never per-point grouping (P7); levels sorted per point are not continuous branches where they cross; one ion per batch (n = 2J+1); spectral weight grows as `(..., nQ, n, n)`. Later, for fits: ∂E_n/∂B_k = <n\|O_k\|n> (Hellmann–Feynman) from the same eigensystem |
 
 ## 4. Code quality
 
@@ -143,9 +144,9 @@ by one.
    numerical reference, in a test dependency group. Its conventions and
    its own bugs are separate questions, so each disagreement is a strict
    `xfail` with the reason until you decide which side is right (Q22).
-8. **`refactor/api-v2`**, version 2.0: A2, A3, A4, A5, A10, A11 with P7,
-   A14, Q2 (with the naming rule, Q26), Q7. Planned first (CLAUDE.md 2.3),
-   after Q13.
+8. **`refactor/api-v2`**, version 2.0, built around broadcasting (A15,
+   Q27): A2, A3, A4, A5, A10, A11 with P7, A14, Q2 (with the naming rule,
+   Q26), Q7. Planned first (CLAUDE.md 2.3), after Q13 and Q28.
 9. Later: A6 (generated operators), A7 and A8 (point groups, data tables),
    A9 (package data).
 
@@ -155,7 +156,8 @@ The IDs continue after the questions asked in the review sessions (Q15–Q21),
 so they don't clash. Answered on 2026-11-20 and moved into section 7: Q22
 (analytic limits and identities only; PyCrystalField in its own branch),
 Q23 (`nox` as a dev dependency, numpy × Python matrix), Q24 (P7 waits for
-A11), Q25 (A12 goes with P1).
+A11), Q25 (A12 goes with P1). Q27 (broadcasting is the principle of the
+v2 API, A15) on 2026-11-20.
 
 - **Q11 (C1–C12).** Which conventions do you want to decide first? P4, P17
   (the g-tensor) and P9 (the cross section) wait for C7 and C10.
@@ -166,3 +168,11 @@ A11), Q25 (A12 goes with P1).
 - **Q26 (Q2).** The naming rule: snake_case for words and physics symbols
   as in the formulas (which ones?), and is it a rule for this package or
   for the whole suite (the workspace's `DEV.md` and glossary)?
+- **Q28 (A15).** The shape rule. Decided: a vector has its component on the
+  last axis, `(..., 3)`, as `Qhkl` in the maintainer's spin-wave code. Open:
+  how T and Q combine with the leading shape `S` of a solved eigensystem.
+  (a) Always appended: `magnetization(sol, T)` with T `(nT,)` gives
+  `(*S, nT, 3)`. (b) numpy broadcasting: T must broadcast against `S`, so
+  `field (100, 1, 3)` with `T (50,)` gives `(100, 50, 3)` on 100
+  diagonalisations, and a measurement log `field (500, 3)` with `T (500,)`
+  gives `(500, 3)`, paired point by point, which (a) cannot do.
