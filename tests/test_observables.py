@@ -59,42 +59,59 @@ def test_magnetization_returns_python_floats():
 # --- susceptibility -------------------------------------------------------
 
 
+def _along(chi, direction):
+    """n.chi.n for the unit vector of ``direction``; chi of shape (..., 3, 3)."""
+    n = np.asarray(direction, float) / np.linalg.norm(direction)
+    return np.einsum("a,...ab,b->...", n, chi, n)
+
+
 @pytest.mark.parametrize("temperature", T)
 def test_susceptibility_magnetization_method_along_z(temperature):
-    """``method='magnetization'`` along z equals the exact formula, in muB/T.
-
-    Along a symmetry axis M is parallel to H, so P10 does not show here; the
-    test checks the exact formula as much as the code.
-    """
-    chi = qc.susceptibility(_ce(), [temperature], [0, 0, 1], method="magnetization")[0]
-    assert chi == pytest.approx(_chi_exact(_ce(), temperature, [0, 0, 1]) * MUB, rel=1e-5)
+    """``method='magnetization'``: chi_zz equals the exact formula, in muB/T."""
+    chi = qc.susceptibility(_ce(), [temperature], method="magnetization")[0]
+    assert chi[2, 2] == pytest.approx(_chi_exact(_ce(), temperature, [0, 0, 1]) * MUB, rel=1e-5)
 
 
 @pytest.mark.parametrize("temperature", T)
 def test_susceptibility_perturbation_along_z(temperature):
-    """``method='perturbation'`` along z equals the exact formula, in muB^2/meV."""
-    chi = qc.susceptibility(_ce(), [temperature], [0, 0, 1])[0]
-    assert chi == pytest.approx(_chi_exact(_ce(), temperature, [0, 0, 1]), rel=1e-6)
+    """``method='perturbation'``: chi_zz equals the exact formula, in muB/T."""
+    chi = qc.susceptibility(_ce(), [temperature])[0]
+    assert chi[2, 2] == pytest.approx(_chi_exact(_ce(), temperature, [0, 0, 1]) * MUB, rel=1e-6)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P2: the field direction is not projected")
+@pytest.mark.parametrize("direction", [[1, 0, 0], [1, 1, 0], [1, 0, 1]])
+def test_susceptibility_perturbation_off_axis(direction):
+    """``method='perturbation'``: n.chi.n equals the exact formula off the axes (P2)."""
+    chi = qc.susceptibility(_ce(), [20.0])[0]
+    assert _along(chi, direction) == pytest.approx(
+        _chi_exact(_ce(), 20.0, direction) * MUB, rel=1e-6
+    )
+
+
 def test_susceptibility_perturbation_tetragonal_in_plane():
     """Tetragonal symmetry: chi is the same along (1,0,0) and (1,1,0)."""
-    chi_100 = qc.susceptibility(_ce(), T, [1, 0, 0])
-    chi_110 = qc.susceptibility(_ce(), T, [1, 1, 0])
-    assert np.allclose(chi_110, chi_100, rtol=1e-10)
+    chi = qc.susceptibility(_ce(), T)
+    assert np.allclose(_along(chi, [1, 1, 0]), _along(chi, [1, 0, 0]), rtol=1e-10)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P10: returns |M|/eps, not M.n/eps")
 def test_susceptibility_magnetization_method_off_axis():
-    """Off a symmetry axis, ``'magnetization'`` gives n.chi.n, in muB/T."""
-    chi = qc.susceptibility(_ce(), [20.0], [1, 0, 1], method="magnetization")[0]
-    assert chi == pytest.approx(_chi_exact(_ce(), 20.0, [1, 0, 1]) * MUB, rel=1e-5)
+    """Off a symmetry axis, ``'magnetization'`` gives n.chi.n, in muB/T (P10)."""
+    chi = qc.susceptibility(_ce(), [20.0], method="magnetization")[0]
+    assert _along(chi, [1, 0, 1]) == pytest.approx(
+        _chi_exact(_ce(), 20.0, [1, 0, 1]) * MUB, rel=1e-5
+    )
+
+
+@pytest.mark.parametrize("method", ["perturbation", "magnetization"])
+@pytest.mark.parametrize(("temperatures", "shape"), [(5.0, (3, 3)), ([[5.0, 20.0]], (1, 2, 3, 3))])
+def test_susceptibility_shape(method, temperatures, shape):
+    """Temperatures of shape S give a tensor of shape S + (3, 3) (CONV-0009)."""
+    assert qc.susceptibility(_ce(), temperatures, method=method).shape == shape
 
 
 def test_susceptibility_prints_nothing(capsys):
     """A computation writes nothing to stdout (CLAUDE.md 5.8)."""
-    qc.susceptibility(_ce(), T, [0, 0, 1])
+    qc.susceptibility(_ce(), T)
     assert capsys.readouterr().out == ""
 
 

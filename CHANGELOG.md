@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- **Breaking:** `susceptibility(cefion, temperatures, method)` returns the
+  tensor `chi_ab`, shape `S + (3, 3)` for temperatures of shape `S`, in
+  μB/T per ion from both methods (CONV-0009). `Hfield_direction` is
+  removed; `n @ chi @ n` gives the value along `n`. `'perturbation'` was
+  in μB²/meV and took the direction wrongly (AUDIT P2); `'magnetization'`
+  returned |M|/ε instead of the component along the field (P10).
 - `susceptibility(method='perturbation')` no longer prints the matrix of
   transition energies (AUDIT A12).
 - **Breaking:** `susceptibility(method='perturbation')` counts the van

@@ -256,96 +256,80 @@ def magnetization_exchange(
 def susceptibility(
     cefion: CEFion,
     temperatures: ArrayLike,
-    Hfield_direction: ArrayLike,
     method: str = "perturbation",
 ) -> np.ndarray:
-    r"""Single-ion magnetic susceptibility along a direction, versus temperature.
+    r"""Single-ion magnetic susceptibility tensor in zero field, versus temperature.
 
-    The two methods return **different units**.
+    The susceptibility of CONV-0009,
+    :math:`\chi_{\alpha\beta} = \partial \langle m_\alpha \rangle / \partial B_\beta`
+    at :math:`B = 0`, with :math:`m = g_J \mu_B J`, in :math:`\mu_B`/T per
+    ion. Both methods return the same quantity.
 
-    ``'perturbation'`` (default) evaluates, in zero field,
+    ``'perturbation'`` (default) evaluates Van Vleck's formula,
 
     .. math::
 
-        \chi = g_J^2 \Big[
-            \sum_{n,m:\,E_m = E_n} \frac{p_n}{k_B T} |J^{\hat{n}}_{nm}|^2
-          + \sum_{n,m:\,E_m \ne E_n} \frac{p_n - p_m}{E_m - E_n} |J^{\hat{n}}_{nm}|^2
-        \Big],
+        \chi_{\alpha\beta} = g_J^2 \mu_B \sum_{n,m} W_{nm}\,
+            \mathrm{Re}\,\langle n|\hat{J}_\alpha|m\rangle\langle m|\hat{J}_\beta|n\rangle,
         \qquad
-        |J^{\hat{n}}_{nm}|^2 = \frac{\sum_\alpha n_\alpha |\langle n|\hat{J}_\alpha|m\rangle|^2}{|\vec{n}|},
+        W_{nm} = \begin{cases}
+            p_n / k_B T & E_m = E_n \
+            (p_n - p_m) / (E_m - E_n) & E_m \ne E_n
+        \end{cases}
 
-    Van Vleck's formula (CONV-0009), with :math:`\vec{n}` =
-    ``Hfield_direction``, :math:`p_n` the Boltzmann populations, the sums
-    over all states in both orders, and levels equal within
-    ``constants.numerical_zero`` (meV).
-    The result is in :math:`\mu_B^2`/meV per ion; multiply by
-    ``constants.uB`` (meV/T) for :math:`\mu_B`/T.
+    with :math:`p_n` the Boltzmann populations, both sums over all states,
+    energies in meV, :math:`\mu_B` in meV/T, and two levels equal when they
+    differ by less than ``constants.numerical_zero`` (meV).
 
     ``'magnetization'`` takes the finite difference
-    :math:`\chi = |\vec{M}(\epsilon \hat{n})| / \epsilon` with
-    :math:`\epsilon = 10^{-5}` T and :func:`magnetization`, in
-    :math:`\mu_B`/T per ion.
+    :math:`\chi_{\alpha\beta} = M_\alpha(\epsilon \hat{e}_\beta) / \epsilon`
+    with :math:`\epsilon = 10^{-5}` T and :func:`magnetization`, one field
+    direction per axis.
+
+    The susceptibility along a unit vector :math:`\hat{n}` is
+    ``n @ chi @ n``; the powder average is ``np.trace(chi, axis1=-2,
+    axis2=-1) / 3``.
 
     Parameters
     ----------
     cefion : CEFion
         Diagonalised ion in the crystal field; its ``Hfield`` is not used.
-    temperatures : array_like of float, shape (n,)
-        Temperatures in K.
-    Hfield_direction : array_like of float, shape (3,)
-        Field direction in the frame of the J operators; its length does
-        not matter.
+    temperatures : array_like of float, shape S
+        Temperatures in K, any shape (a scalar gives ``S = ()``).
     method : {'perturbation', 'magnetization'}, optional
         See above.
 
     Returns
     -------
-    ndarray, shape (n,)
-        Susceptibility at each temperature, in :math:`\mu_B^2`/meV
-        (``'perturbation'``) or :math:`\mu_B`/T (``'magnetization'``) per ion.
+    ndarray of float, shape S + (3, 3)
+        :math:`\chi_{\alpha\beta}` in :math:`\mu_B`/T per ion, at each
+        temperature; α is the moment component and β the field component,
+        both in the frame of the J operators. Real and symmetric.
 
     Raises
     ------
     ValueError
         If ``method`` is unknown.
-
-    Warnings
-    --------
-    Known problems, not fixed yet (AUDIT.md):
-
-    - P2 (``'perturbation'``): the direction enters as
-      :math:`\sum_\alpha n_\alpha |J_\alpha|^2 / |\vec{n}|` instead of
-      :math:`|\hat{n} \cdot \hat{\vec{J}}|^2`; along (1, 1, 0) this gives
-      :math:`\sqrt{2}` times the value along x.
-    - P10 (``'magnetization'``): returns :math:`|\vec{M}|/\epsilon`, not the
-      component along the field, so the sign is lost and the result is
-      wrong when :math:`\vec{M}` is not parallel to the field.
     """
 
+    temperatures = np.asarray(temperatures, dtype=float)
+    chi = np.empty(temperatures.shape + (3, 3))
+    chi_flat = chi.reshape(-1, 3, 3)
+
     if method == "magnetization":
-        susceptibility = np.zeros(len(temperatures))
-        eps = 1e-5
-
-        for it, temperature in enumerate(temperatures):
-            Hfield = eps * np.array(Hfield_direction) / np.linalg.norm(Hfield_direction)
-            M = magnetization(cefion, temperature, Hfield)
-            # AUDIT P10: |M|/eps, not the component along the field.
-            susceptibility[it] = np.linalg.norm(M) / eps
+        eps = 1e-5  # T
+        for it, temperature in enumerate(temperatures.ravel()):
+            for beta in range(3):
+                Hfield = np.zeros(3)
+                Hfield[beta] = eps
+                chi_flat[it, :, beta] = np.array(magnetization(cefion, temperature, Hfield)) / eps
     elif method == "perturbation":
-        susceptibility = np.empty(len(temperatures))
-
-        # Tricky way to create a 2D array of energies associated with transitions between levels
-        jumps = cefion.energies - cefion.energies[np.newaxis].T
-
+        J = np.asarray(cefion.J)  # (3, n, n), in the eigenbasis
         # jumps[n, m] = E_m - E_n; degenerate pairs as in CONV-0009.
+        jumps = cefion.energies[np.newaxis, :] - cefion.energies[:, np.newaxis]
         degenerate = np.abs(jumps) < C.numerical_zero
 
-        # Calculate the J^2 matrix
-        J2 = np.square(np.abs(cefion.J))
-        # AUDIT P2: sum_a n_a |J_a|^2 / |n| instead of |n.J|^2 / |n|^2.
-        J2_directed = np.einsum("i,ijk", Hfield_direction, J2) / np.linalg.norm(Hfield_direction)
-
-        for it, temperature in enumerate(temperatures):
+        for it, temperature in enumerate(temperatures.ravel()):
             # W[n, m]: Curie p_n / k_B T for degenerate pairs, van Vleck
             # (p_n - p_m) / (E_m - E_n) for every other pair, in both orders.
             p = boltzman_population(cefion.energies, temperature)
@@ -354,11 +338,13 @@ def susceptibility(
                 p[:, np.newaxis] * C.meV2K / temperature,
                 (p[:, np.newaxis] - p[np.newaxis, :]) / np.where(degenerate, 1.0, jumps),
             )
-            susceptibility[it] = (cefion.ion.gJ) ** 2 * np.sum(W * J2_directed)
+            # <n|J_a|m><m|J_b|n> = J_a[n, m] conj(J_b[n, m]) for Hermitian J_b
+            chi_flat[it] = np.einsum("nm,anm,bnm->ab", W, J, J.conj()).real
+        chi *= cefion.ion.gJ**2 * C.uB
     else:
         raise ValueError(f"Unknown method {method!r}; use 'perturbation' or 'magnetization'.")
 
-    return susceptibility
+    return chi
 
 
 def gtensor(cefion: CEFion) -> np.ndarray:

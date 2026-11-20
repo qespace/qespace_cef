@@ -57,10 +57,10 @@ def test_susceptibility():
     T = np.linspace(1, 300, 1000)
     chi = _timed(
         "susceptibility(magnetization), 1000 T",
-        lambda: qc.susceptibility(cef, T, [0, 0, 1], method="magnetization"),
+        lambda: qc.susceptibility(cef, T, method="magnetization"),
         repeat=1,
     )
-    assert chi.shape == T.shape and np.all(np.isfinite(chi))
+    assert chi.shape == T.shape + (3, 3) and np.all(np.isfinite(chi))
 
 
 def test_spectral_weight():
