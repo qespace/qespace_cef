@@ -92,6 +92,12 @@ def test_susceptibility_magnetization_method_off_axis():
     assert chi == pytest.approx(_chi_exact(_ce(), 20.0, [1, 0, 1]) * MUB, rel=1e-5)
 
 
+def test_susceptibility_prints_nothing(capsys):
+    """A computation writes nothing to stdout (CLAUDE.md 5.8)."""
+    qc.susceptibility(_ce(), T, [0, 0, 1])
+    assert capsys.readouterr().out == ""
+
+
 # --- thermodynamics -------------------------------------------------------
 # Identities that hold in any consistent set of units, so they do not choose
 # the units of the returns (C1, C11).

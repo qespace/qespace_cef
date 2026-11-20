@@ -63,7 +63,6 @@ None open.
 | A9 | suggestion | Files that ship without a use: `thermodynamics-magnetism.png`, `qespace_cef/README.md`, `atoms-form-factors.txt` (kept for now, by your decision) | Move the reference to the README or the docs; keep the rest out of the wheel when the data question is settled |
 | A10 | rule | Validation: `assert` in `gtensor` (removed by `python -O`), a bare `Exception` for a non-Hermitian H in `CEFion`, `NameError` for an unknown point group, `KeyError` for an unknown ion; the Hermiticity check in the constructor is an absolute `allclose` (CLAUDE.md 5.5, 5.6) | `ValueError` at the public boundary, relative tolerances from one config place |
 | A11 | rule | No central tolerance config: `numerical_zero = 1e-12` (meV, absolute), `Eimag_precision=10`, `precision=5`, a print threshold of `10⁻³`, `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | One `config` with relative tolerances, read at call time. CONV-0009 fixes the degeneracy rule of the susceptibility to the absolute `constants.numerical_zero`; a config must keep that for χ, or a new CONV supersedes CONV-0009 |
-| A12 | rule | `susceptibility(method='perturbation')` prints the matrix of transition energies (CLAUDE.md 5.8) | Remove the print (`PLAN.md`, step 2) |
 | A14 | suggestion | Stevens operators can be had two ways, `StevensBase(J).O4m3()` and `StevensBase(J)['4m3']`, and `implementedOps` finds them through `cls.__dict__`: two access paths for one thing, with string keys to parse. (From the maintainer's notes: "Should we settle on just one of them?") | Settle on one with A2 and A6, e.g. `stevens(J, l, m)` or `ops[l, m]` with integers; the methods go when A6 generates the operators. Breaking (v2) |
 | A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects, 15× slower than one batched diagonalisation (ADR-0003, measured on `afa1dd5`) | ADR-0002 and ADR-0003, in `refactor/api-v2`; the feature in `ROADMAP.md` |
 
@@ -111,7 +110,7 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`fix/susceptibility`**: P2, P10, P19, A12 and the tests of
+1. **`fix/susceptibility`**: P2, P10, P19 and the tests of
    CONV-0009 (`PLAN.md`).
 2. **`fix/cefion`**: P5, P6, P8, P11. P7 waits for A11 and CONV-0008.
 3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or

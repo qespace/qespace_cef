@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- `susceptibility(method='perturbation')` no longer prints the matrix of
+  transition energies (AUDIT A12).
 - **Breaking:** `susceptibility(method='perturbation')` counts the van
   Vleck term over every pair of levels in both orders (CONV-0009); it
   was half as large (AUDIT P1). Ce³⁺ with `B20=0.5, B40=0.01, B44=0.1`

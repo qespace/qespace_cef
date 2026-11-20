@@ -320,10 +320,6 @@ def susceptibility(
     - P10 (``'magnetization'``): returns :math:`|\vec{M}|/\epsilon`, not the
       component along the field, so the sign is lost and the result is
       wrong when :math:`\vec{M}` is not parallel to the field.
-
-    Notes
-    -----
-    ``'perturbation'`` prints the matrix of transition energies.
     """
 
     if method == "magnetization":
@@ -349,7 +345,6 @@ def susceptibility(
         # AUDIT P2: sum_a n_a |J_a|^2 / |n| instead of |n.J|^2 / |n|^2.
         J2_directed = np.einsum("i,ijk", Hfield_direction, J2) / np.linalg.norm(Hfield_direction)
 
-        print(jumps)
         for it, temperature in enumerate(temperatures):
             # W[n, m]: Curie p_n / k_B T for degenerate pairs, van Vleck
             # (p_n - p_m) / (E_m - E_n) for every other pair, in both orders.
