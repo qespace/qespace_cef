@@ -258,75 +258,13 @@ class CEFion:
         unique_energies, counts = np.unique(energies, return_counts=True)
         return [[float(e), int(c)] for e, c in zip(unique_energies / 10**precision, counts)]
 
-    def __str__(self, evecs: bool = True, precision: int = 3):
-        """Energy levels, degeneracies and eigenvectors as text.
-
-        Each level comes from :meth:`get_degeneracies`; each eigenvector is
-        written in the free-ion kets, leaving out coefficients smaller than
-        ``10**-precision``. Before :meth:`diagonalize` it returns
-        ``'Undiagonalized Hamiltonian'``.
-
-        Parameters
-        ----------
-        evecs : bool, optional
-            If True (default), list the eigenvectors under each level.
-        precision : int, optional
-            Decimals of the energies (meV) and of the eigenvector
-            coefficients. Default 3. ``str(cefion)`` always uses the
-            defaults; :meth:`summary` is meant to take the options.
-
-        Returns
-        -------
-        str
-
-        Warnings
-        --------
-        P7 (AUDIT.md), not fixed yet: the levels come from
-        :meth:`get_degeneracies`, which can split a degenerate level in two.
-        The eigenvectors inside a degenerate level are arbitrary.
-        """
-        # AUDIT P7: levels from get_degeneracies.
-        # After refactoring the precision there might be cleanup needed
-
-        if not len(self.energies):
-            return "Undiagonalized Hamiltonian"
-
-        ret = ""
-        ret += "Energy levels and corresponding eigenfunctions:\n"
-
-        n = 0
-        levels = []
-        for level, x in enumerate(self.get_degeneracies(precision=precision)):
-            level_str = ""
-            energy = x[0]
-            degeneracy = int(x[1])
-            level_str += (
-                f"E({level:d}) =\t{energy:.{precision}f} meV\t{degeneracy:2d}-fold degenerate\n"
-            )
-
-            # List the degenerate eigenvectors
-            if evecs:
-                for ev in self.eigenvectors[n : n + degeneracy]:
-                    ev_components = []
-                    for c, ket in zip(ev, self.freeionkets):
-                        if np.abs(c) > 1 / np.power(10, precision):  # Arbitrary tolerance
-                            ev_components.append(f"({c:.{precision}f}){ket}")
-
-                    level_str += f"ev_{level}: " + " + ".join(ev_components) + "\n"
-
-            levels.append(level_str)
-            n += degeneracy
-
-        ret += "\n".join(levels)
-        return ret
-
     def summary(self, evecs: bool = True, precision: int = 3) -> str:
         """Energy levels and eigenvectors as text, with options. Not implemented yet.
 
-        Planned home of what ``str(cefion)`` prints, with the ``evecs`` and
-        ``precision`` options that ``str()`` cannot pass (AUDIT Q7). It waits
-        for the API redesign (AUDIT A2); until then call
-        ``cefion.__str__(evecs, precision)``.
+        Placeholder for a print of the level scheme: the levels, their
+        degeneracies and eigenvectors, with the ``evecs`` and ``precision``
+        options (AUDIT Q7, ``ROADMAP.md``). ``CEFion`` has no ``str()`` of
+        its own (CONV-0010); what the print shows is decided with it.
 
         Raises
         ------
@@ -335,5 +273,5 @@ class CEFion:
         """
         # AUDIT Q7: stub, to be implemented with A2.
         raise NotImplementedError(
-            "CEFion.summary is planned (AUDIT Q7, A2); use cefion.__str__(evecs, precision)."
+            "CEFion.summary, a print of the level scheme, is planned (AUDIT Q7, ROADMAP.md)."
         )

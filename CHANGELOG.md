@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- **Breaking:** `CEFion.__str__` is removed (CONV-0010); `str(cefion)`
+  gives Python's default text. A print of the level scheme is planned as
+  `CEFion.summary` (still a stub).
 - **Breaking:** `CEFion.energies` are the eigenvalues of the Hamiltonian,
   not shifted (CONV-0010): with `B00 = 0` they average to zero, the centre
   of gravity of the J multiplet. The new `CEFion.excitation_energies`

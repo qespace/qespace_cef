@@ -111,13 +111,6 @@ def test_degeneracies_are_plain_python_numbers():
     assert all(type(e) is float and type(d) is int for e, d in levels)
 
 
-def test_str_prints_energies_with_decimals():
-    """Energies in ``str()`` have ``precision`` decimals, like the coefficients (AUDIT Q7)."""
-    cef = _cefion("Ce", dict(B20=1.0))
-    assert "E(1) =\t-2.000 meV" in str(cef)
-    assert "E(2) =\t10.0 meV" in cef.__str__(evecs=False, precision=1)
-
-
 def test_summary_is_a_stub():
     """``summary`` is planned (AUDIT Q7, A2) and raises until then."""
     with pytest.raises(NotImplementedError):
