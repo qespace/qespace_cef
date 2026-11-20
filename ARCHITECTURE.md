@@ -22,7 +22,9 @@ observables               populations, S(Q, w), M(H, T), chi(T), g-tensor,
 
 Every observable takes a diagonalised `CEFion`. Observables in a field
 (`magnetization`, `susceptibility(method='magnetization')`) build a new
-`CEFion` with that field from the same `Ion` and `CEFpars`.
+`CEFion` with that field from the same `Ion` and `CEFpars`;
+`susceptibility(method='magnetization')` builds three per temperature, one
+per field axis.
 
 ## Module map
 
@@ -58,8 +60,9 @@ in `decisions/conventions/`; no row here sets one.
 | Operators | Stevens `O_lm`; m < 0 written `m`, e.g. `O4m3`, the sine-type operators. As in McPhase (CONV-0001), tested against its table; PyCrystalField has the opposite sign for l + m odd | `cefmatrices`, `tests/test_cefmatrices.py` |
 | Parameters | `B_lm` in the Stevens convention, `H = Σ B_lm O_lm`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
 | Zeeman term | `H_Z = -μB gJ J·H`; the moment is `+gJ <J>` | `cefion` |
+| Susceptibility | The tensor `χ_αβ` in μB/T per ion, shape `S + (3, 3)` for temperatures of shape `S`, from Van Vleck's formula or a finite difference (CONV-0009, tested) | `observables.susceptibility` |
 | Degenerate levels | The eigenvectors inside a degenerate level are whatever `eigh` returns (orthonormal, otherwise arbitrary) | `cefion.diagonalize` |
-| Tolerance | Absolute: `constants.numerical_zero = 1e-12`, plus parameters for the decimal places in `diagonalize` and `get_degeneracies` | `constants`, `cefion` |
+| Tolerance | Absolute: `constants.numerical_zero = 1e-12` (meV), also the degeneracy rule of CONV-0009, plus parameters for the decimal places in `diagonalize` and `get_degeneracies` | `constants`, `cefion` |
 
 ## Dependencies
 
@@ -87,8 +90,9 @@ tests/
   test_cefpars.py       unit conversion, point-group tables, the parameter
                         labels of CONV-0001
   test_ion.py           J and gJ from Hund's rules, form factor; xfail P8
-  test_observables.py   exact susceptibility, thermodynamic identities, sum
-                        rules, g values; strict xfail for P1-P3, P9-P11, P17
+  test_observables.py   susceptibility tensor against the exact formula and
+                        CONV-0009, thermodynamic identities, sum rules, g
+                        values; strict xfail for P3, P9, P11, P17
   test_performance.py   timing stubs, marker `perf`, deselected by default
 ```
 

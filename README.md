@@ -53,7 +53,7 @@ Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
 | `boltzman_population` | Thermal populations of the levels |
 | `spectral_weight` | Energies and neutron scattering intensities of all transitions at a given temperature and Q |
 | `magnetization`, `magnetization_exchange` | Magnetic moment in a field, optionally with a mean-field exchange term |
-| `susceptibility` | Magnetic susceptibility versus temperature |
+| `susceptibility` | Magnetic susceptibility tensor `χ_αβ` in μB/T per ion versus temperature (Van Vleck, CONV-0009) |
 | `gtensor` | g-tensor of the ground state |
 | `thermodynamics` | Partition function, internal energy, free energy, entropy, heat capacity |
 
