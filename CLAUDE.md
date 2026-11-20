@@ -171,8 +171,9 @@ edited here.
    (`OPEN:` which ones, e.g. McPhase, PyCrystalField, Mantid CrystalField).
 6. Regression reference data are regenerated only after a deliberate change of
    results, and the summary and commit body say so, with the size of the change.
-7. Before finishing: `uv run pytest` (`OPEN:` plus `ruff`, and a numpy 1 / 2
-   matrix with `nox`).
+7. Before finishing: `uv run pytest`, `uv run ruff check .` and
+   `uv run ruff format --check .`, and the numpy × Python matrix with
+   `uv run nox` (commands in `DEV.md`).
 
 ## 7. Documentation
 

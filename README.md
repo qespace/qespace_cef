@@ -23,7 +23,7 @@ or from a local checkout, editable:
 uv add --editable path/to/qespace_cef
 ```
 
-Requires Python ≥ 3.12 and `numpy`.
+Requires Python ≥ 3.12 and `numpy` ≥ 1.26; numpy 1 and 2 are both tested.
 
 ## Quick start
 

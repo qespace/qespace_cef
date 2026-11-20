@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- The numpy floor is 1.26 (it was 2.4.4); numpy 1 and 2 are tested on
+  Python 3.12–3.14 with `nox`. `DEV.md` lists the commands.
 - **Breaking:** the only runtime dependency is `numpy`. `scipy` and
   `matplotlib` are dropped; `sympy` moves to the dependency group
   `symbolic`, for the experimental scripts.

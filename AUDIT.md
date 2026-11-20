@@ -50,7 +50,7 @@ None open.
 
 | ID | Severity | Finding | Proposal |
 |---|---|---|---|
-| A1 | rule | `DEV.md` and `CONVENTIONS.md` are required by CLAUDE.md (intro, section 3, section 7) and don't exist | Write `DEV.md` (commands, release steps from the 1.3.0 tag) and `CONVENTIONS.md` once C1–C12 are decided |
+| A1 | rule | `CONVENTIONS.md` is required by CLAUDE.md (section 3) and doesn't exist; `DEV.md` exists since `build/numpy-floor` | Write `CONVENTIONS.md` once C1–C12 are decided |
 | A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This causes P5 and makes every observable depend on the call order | Make the result immutable: `CEFion` holds `ion`, `cfp`, field and H; a `solve()` (or the constructor) returns energies, eigenvectors and the operators in the eigenbasis as read-only arrays; observables are pure functions of that (Q13) |
 | A3 | suggestion | Observables in a field rebuild a whole `CEFion` from `ion` and `cfp` and ignore `cefion.Hfield`, so the field lives in two places | Pass the field to the solver only; the observables take a solved state |
 | A4 | rule | `from .observables import *` exports `np`, `C`, `ArrayLike`, `CEFion` again, and the submodules. With no `__all__`, the public API is undefined (CLAUDE.md 6.2 "public entry point") | `__all__` in `__init__` and in every module |
@@ -73,11 +73,7 @@ None open.
 
 ## 5. Dependencies
 
-The runtime needs only `numpy`.
-
-| ID | Now | Proposal |
-|---|---|---|
-| X4 | `numpy>=2.4.4`: the floor is the latest release, not what's needed, and it excludes numpy 1, which CLAUDE.md 5.7 says must work | Find the real floor (e.g. `>=1.26`) by running the tests on numpy 1 and 2 (Q23), then set it |
+None open. The runtime needs only `numpy>=1.26`.
 
 ## 6. Comments and conventions
 
@@ -121,15 +117,15 @@ API redesign last, as version 2.0. Each package is one branch (CLAUDE.md
 fix is its own commit with a physics explanation, so you can review them one
 by one.
 
-1. **`test/known-problems`** (this branch, done): 25 strict `xfail` tests
+1. **`test/known-problems`** (merged): 25 strict `xfail` tests
    for P1–P3, P5–P11 and P17, and passing tests for the exact
    susceptibility (magnetization method along z), the sum rules of
    `spectral_weight`, the axial g values and the corrected D13 identities.
    References: analytic limits and identities only (Q22).
-2. **`build/numpy-floor`** (X4): `nox` as a dev dependency (Q23) and a
-   `noxfile.py` that runs the tests on a matrix of numpy (1 and 2) and
-   Python versions; set the numpy floor that passes; record the command in
-   `DEV.md`; settle the `OPEN:` on nox in CLAUDE.md 6.7. 2–3 commits.
+2. **`build/numpy-floor`** (this branch, done): `nox` as a dev
+   dependency (Q23) and `noxfile.py`; numpy floor 1.26, tested with
+   1.26.0, 2.0.2 and the newest on Python 3.12–3.14 (X4); `DEV.md` with
+   the commands (part of A1); CLAUDE.md 6.7 settled.
 3. **`fix/susceptibility`**: P1, P2, P10, and A12 (Q25). Each fix
    turns its `xfail` green and carries `!` and `BREAKING CHANGE`, as the
    results change. 3–4 commits.
@@ -138,7 +134,7 @@ by one.
    (A11, Q24).
 5. **`docs/conventions`**: I prepare a decision sheet for C1–C12 (options,
    what each changes, what the code does now); you decide (Q11); I write
-   CLAUDE.md section 3, `CONVENTIONS.md` and `DEV.md` (A1). Suite-wide
+   CLAUDE.md section 3 and `CONVENTIONS.md` (A1). Suite-wide
    conventions go to the workspace as CONV drafts first.
 6. **`fix/conventions`**: the fixes that need a convention: P3 (C1, C11), P4
    and P17 (C7), P9 (C10), P13 and P14 (C9, sources), P15 (CODATA), P16 (C3,

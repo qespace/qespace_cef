@@ -63,9 +63,10 @@ in CLAUDE.md section 3 is still open, and no row here settles it.
 
 ## Dependencies
 
-Runtime: `numpy` only. Dependency groups (not published): `dev` with
-`pytest`, `ruff`, `sphinx`, `furo`; `symbolic` with `sympy`, for the scripts
-in `symbolic/`. Build: `uv_build`.
+Runtime: `numpy>=1.26` only, tested with numpy 1.26.0, 2.0.2 and the newest
+on Python 3.12–3.14 (`noxfile.py`, see `DEV.md`). Dependency groups (not
+published): `dev` with `pytest`, `ruff`, `nox`, `sphinx`, `furo`; `symbolic`
+with `sympy`, for the scripts in `symbolic/`. Build: `uv_build`.
 
 ## Tests
 
