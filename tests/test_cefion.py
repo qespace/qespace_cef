@@ -1,7 +1,8 @@
 """Tests of ``qespace_cef.CEFion`` against analytic limits.
 
-Only behaviour that AUDIT.md does not question is tested here; the known
-problems (P1-P16) get their own tests when they are fixed.
+A known problem from AUDIT.md is a strict ``xfail`` naming its ID: it turns
+into a failure (XPASS) when the problem is fixed, so the marker must then be
+removed.
 """
 
 import numpy as np
@@ -117,3 +118,37 @@ def test_summary_is_a_stub():
     """``summary`` is planned (AUDIT Q7, A2) and raises until then."""
     with pytest.raises(NotImplementedError):
         _cefion("Ce", dict(B20=1.0)).summary()
+
+
+# --- known problems (AUDIT.md), strict xfail until fixed ------------------
+
+
+@pytest.mark.xfail(strict=True, reason="AUDIT P5: a second diagonalize() rotates J again")
+def test_second_diagonalize_changes_nothing():
+    """Calling ``diagonalize`` again leaves energies and moments unchanged."""
+    cef = _cefion("Ce", LOW_SYMMETRY, field=(0.3, 0, 1))
+    energies, moments = cef.energies.copy(), cef.magnetic_moment.copy()
+    cef.diagonalize()
+    assert np.allclose(cef.energies, energies)
+    assert np.allclose(cef.magnetic_moment, moments, atol=1e-10)
+
+
+@pytest.mark.xfail(strict=True, raises=IndexError, reason="AUDIT P6: np.arange(J)")
+def test_diagonalize_without_sorting():
+    """``sortWithE=False`` gives the same energies, in some order."""
+    sorted_energies = _cefion("Ce", LOW_SYMMETRY).energies
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(LOW_SYMMETRY), diagonalize=False)
+    cef.diagonalize(sortWithE=False)
+    assert np.allclose(np.sort(cef.energies), sorted_energies)
+
+
+CUBIC_PR = dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4)  # B44 = 5 B40, B64 = -21 B60
+
+
+@pytest.mark.xfail(strict=True, reason="AUDIT P7: energies truncated, a doublet split in two")
+def test_degeneracies_of_cubic_pr():
+    """Pr3+ in a cubic field: levels grouped within 1e-9 of the largest energy."""
+    e = _cefion("Pr", CUBIC_PR).energies
+    new_level = np.diff(e) > 1e-9 * e.max()
+    expected = np.diff(np.flatnonzero(np.r_[True, new_level, True])).tolist()
+    assert [d for _, d in _cefion("Pr", CUBIC_PR).get_degeneracies()] == expected
