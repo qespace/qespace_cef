@@ -46,8 +46,9 @@ Layering inside the package, from the bottom up: `constants` and
 
 ## Conventions as implemented
 
-These are what the code does today, not decisions: every row marked `OPEN:`
-in CLAUDE.md section 3 is still open, and no row here settles it.
+These are what the code does today, not decisions: the conventions are the
+CONVs in `decisions/conventions/`, all still drafts, and no row here settles
+one.
 
 | Topic | Implemented as | Where |
 |---|---|---|
@@ -103,3 +104,9 @@ and array shapes. Their examples are doctests, run with
 (not part of the default `pytest` run). Known problems are marked in the
 code as `# AUDIT Pn:` and in Warnings sections of the docstrings; the
 findings themselves are in [`AUDIT.md`](AUDIT.md).
+
+`docs/` documents the implementation; the decisions are kept apart in
+`decisions/` (ADR-0001): design choices in `decisions/adr/` (`ADR-xxxx`),
+physics conventions in `decisions/conventions/` (`CONV-xxxx`), one file per
+decision, each from the `_template.md` in its folder. They are not part of
+the Sphinx build. `AUDIT.md` and `PLAN.md` track the work.

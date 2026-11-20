@@ -7,6 +7,9 @@ The open findings of the audit of 2026-11-19 (commit `747c871`, version
 branches `chore/cleanup`, `build/numpy-only`, `docs/docstrings` and
 `style/quality`. [`ARCHITECTURE.md`](ARCHITECTURE.md) describes the code as
 it is. Remove an item when its change lands; IDs are never reused.
+This file tracks; it is not a rule (ADR-0001). The rules are `CLAUDE.md`
+and the decisions in [`decisions/`](decisions/), which this file cites by
+ID; the next implementation step is in [`PLAN.md`](PLAN.md).
 
 Places are named by module and function. Every P item still in the code has
 an `# AUDIT Pn:` comment where it happens and, except P15, a Warnings section
@@ -28,7 +31,7 @@ from `747c871` and does not depend on what changed since.
 | P1 | bug | `observables.susceptibility`, `method='perturbation'` | The van Vleck term counts only the pairs with `E_m > E_n`. The `E_m < E_n` pairs contribute the same amount, so the van Vleck part is half what it should be | Ce, `B20=0.5, B40=0.01, B44=0.1`, H ∥ z. χ in μB/T: exact formula 0.13130 / 0.02981 / 0.00999 at 5 / 20 / 100 K, code (perturbation, × `C.uB`) 0.12704 / 0.02680 / 0.00847, code (magnetization) 0.13130 / 0.02981 / 0.00999 | Sum over both orderings, i.e. `(p_n − p_m)/(E_m − E_n)`; test it against `method='magnetization'` |
 | P2 | bug | same | The field direction enters as `Σ_α n_α \|J_α\|² / \|n\|` instead of `\|n̂·J\|²`. For n = (1,1,0) this gives √2 times the x value | Same ion, 20 K: χ(110) / χ(100) = 1.414 with `perturbation`, 1.000 with `magnetization` (for this tetragonal case, rank-2 symmetry requires 1). Rerun on `610c884` | Project the operator: `Jn = Σ n_α J_α / \|n\|`, then `\|Jn_mn\|²` |
 | P3 | bug | `observables.thermodynamics` | Energies in meV are mixed with temperatures in K: `F = −T ln Z` is in K, while `E` stays in meV, so `S = (E − F)/T` and `Cv` come out in mixed units | Entropy (k_B) at 10 / 20 / 40 K: exact 1.293 / 1.374 / 1.494, code 1.054 / 1.203 / 1.325. Cv (k_B): exact 0.170 / 0.108 / 0.239, code 0.00126 / 0.00080 / 0.00177 (low by a factor of 11.6², about 135) | Convert the energies to `k_B T` once and state the units of the returns (C1, C11); test against `−∂F/∂T` and the high-T limit `ln(2J+1)` |
-| P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the CLAUDE.md section 3 row on degenerate levels (itself marked `OPEN:`) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 |
+| P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the draft on degenerate levels (CONV-0008) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 |
 | P5 | bug | `CEFion.diagonalize` | Calling it a second time rotates `Jx`, `Jy`, `Jz`, which are already in the eigenbasis, again | Ce, `B20=0.5, B40=0.01, B44=0.1`, field (0.3, 0, 1) T: after a second `diagonalize()` the moments change by up to 2.94 μB. Rerun on `610c884` | Rotate from the free-ion operators every time (keep them), or make diagonalisation run once (A2) |
 | P6 | bug | `CEFion.diagonalize(sortWithE=False)` | `np.arange(self.Jval)` takes a float J and has the wrong length (2J+1 is needed) | `IndexError: arrays used as indices must be of integer (or boolean) type`. Rerun on `610c884` | `np.arange(2*J+1)` |
 | P7 | bug | `CEFion.get_degeneracies(precision)` | The argument is overwritten with `precision = 5`, and `astype(int)` truncates instead of rounding, so two degenerate states whose energies differ by rounding noise can come out as two levels | `get_degeneracies(precision=1)` still gives 5 decimals (0.78397). Pr³⁺ with `B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4`: the 28.584 meV doublet comes out of `eigh` as 28.584000000000000 and 28.583999999999996 meV, two levels. Rerun on `610c884` | Group levels by a relative tolerance from one config place (A11), not by decimals; waits for A11 (Q24) |
@@ -50,8 +53,7 @@ None open.
 
 | ID | Severity | Finding | Proposal |
 |---|---|---|---|
-| A1 | rule | `CONVENTIONS.md` is required by CLAUDE.md (section 3) and doesn't exist; `DEV.md` exists since `build/numpy-floor` | Write `CONVENTIONS.md` once C1–C12 are decided |
-| A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This causes P5 and makes every observable depend on the call order | Make the result immutable: `CEFion` holds `ion`, `cfp`, field and H; a `solve()` (or the constructor) returns energies, eigenvectors and the operators in the eigenbasis as read-only arrays; observables are pure functions of that (Q13) |
+| A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This causes P5 and makes every observable depend on the call order | Decided in ADR-0002: `CEFion` becomes `Hamiltonian`, which holds `ion`, the parameters and the field and, once solved, the energies, eigenvectors and J in the eigenbasis. Open: when it is solved and whether it is immutable (Q29), observables as functions or methods (Q31) |
 | A3 | suggestion | Observables in a field rebuild a whole `CEFion` from `ion` and `cfp` and ignore `cefion.Hfield`, so the field lives in two places | Pass the field to the solver only; the observables take a solved state |
 | A4 | rule | `from .observables import *` exports `np`, `C`, `ArrayLike`, `CEFion` again, and the submodules. With no `__all__`, the public API is undefined (CLAUDE.md 6.2 "public entry point") | `__all__` in `__init__` and in every module |
 | A5 | suggestion | The J matrices are built twice (`J_x`… functions and `StevensBase.__init__`); `symbolic/cefmatrices.py` is a third, sympy, copy | `StevensBase` uses the module functions |
@@ -63,13 +65,13 @@ None open.
 | A11 | rule | No central tolerance config: `numerical_zero = 1e-12` (meV, absolute), `Eimag_precision=10`, `precision=5`, a print threshold of `10⁻³`, `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | One `config` with relative tolerances, read at call time |
 | A12 | rule | `susceptibility(method='perturbation')` prints the matrix of transition energies (CLAUDE.md 5.8) | Remove the print (Q25) |
 | A14 | suggestion | Stevens operators can be had two ways, `StevensBase(J).O4m3()` and `StevensBase(J)['4m3']`, and `implementedOps` finds them through `cls.__dict__`: two access paths for one thing, with string keys to parse. (From the maintainer's notes: "Should we settle on just one of them?") | Settle on one with A2 and A6, e.g. `stevens(J, k, q)` or `ops[k, q]` with integers; the methods go when A6 generates the operators. Breaking (v2) |
-| A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects. The Hamiltonian is linear in the parameters and the field, `H = Σ_k B_k O_k − μB gJ H·J`, with operators fixed per ion, so a whole grid is one `einsum` over the operator stack, and `np.linalg.eigh` diagonalises stacks `(..., n, n)`. T and Q don't enter H; they act after the diagonalisation. Measured on `afa1dd5` (scratch script): Ho³⁺, 8 parameters, 100 B20 × 100 fields, M_z at 5 K: 1.07 s batched against about 16 s with the current API (15×), max \|ΔM\| = 2·10⁻¹³ μB | Broadcasting is the design principle of v2 (Q27): `hamiltonian(ion, pars, field)` with `pars` values array_like and `field` `(..., 3)`, `solve(H)` → an immutable eigensystem `(..., n)`, `(..., n, n)` (A2, A3), observables as pure functions of it and of T or Q, with the shape rule of Q28; a single point is the shape `()` case, and a test checks batched against a loop. Care: memory (the full rotated J is 139 MB per 10⁴ points at J = 8; compute only the matrix elements an observable needs, or work in chunks); degenerate levels only through basis-independent masks, never per-point grouping (P7); levels sorted per point are not continuous branches where they cross; one ion per batch (n = 2J+1); spectral weight grows as `(..., nQ, n, n)`. Later, for fits: ∂E_n/∂B_k = <n\|O_k\|n> (Hellmann–Feynman) from the same eigensystem |
+| A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects. The Hamiltonian is linear in the parameters and the field, `H = Σ_k B_k O_k − μB gJ H·J`, with operators fixed per ion, so a whole grid is one `einsum` over the operator stack, and `np.linalg.eigh` diagonalises stacks `(..., n, n)`. T and Q don't enter H; they act after the diagonalisation. Measured on `afa1dd5` (scratch script): Ho³⁺, 8 parameters, 100 B20 × 100 fields, M_z at 5 K: 1.07 s batched against about 16 s with the current API (15×), max \|ΔM\| = 2·10⁻¹³ μB | Decided in ADR-0003 (broadcasting, the shape rule) and ADR-0002 (the objects `Ion`, `Blm`, `Hamiltonian`). A test checks batched against a loop. Care: memory (the full rotated J is 139 MB per 10⁴ points at J = 8; compute only the matrix elements an observable needs, or work in chunks); degenerate levels only through basis-independent masks, never per-point grouping (P7); levels sorted per point are not continuous branches where they cross; one ion per batch (n = 2J+1); spectral weight grows as `(..., nQ, n, n)`. Later, for fits: ∂E_n/∂B_k = <n\|O_k\|n> (Hellmann–Feynman) from the same eigensystem |
 
 ## 4. Code quality
 
 | ID | Finding | Proposal |
 |---|---|---|
-| Q2 | Naming is not uniform, and no rule says what it should be. camelCase: `sortWithE`, `shiftToZero`, `pointGroup`, `pointGroupName`, `mffCoefficients`, `implementedOps`. Words fused with symbols or capitalised: `Hfield`, `Hfield_direction`, `Bpars`, `Bdict`, `allowed_Bpars`, `Jval`, `J2p1`, `Eimag_precision`, `Alpha/Beta/Gamma`, the classes `CEFion`, `CEFpars`. The typo in `boltzman_population`. Physics symbols (`J`, `Q`, `T`, `Ei`, `B_iso`, `gJ`, `Jx`, `O4m3`) follow the formulas. Scanned at run time on `8a39456` | A written rule (Q26): snake_case for words, physics symbols as in the formulas, listed; then rename with A2, in v2, possibly with deprecated aliases in a last 1.x |
+| Q2 | Naming is not uniform, and no rule says what it should be. camelCase: `sortWithE`, `shiftToZero`, `pointGroup`, `pointGroupName`, `mffCoefficients`, `implementedOps`. Words fused with symbols or capitalised: `Hfield`, `Hfield_direction`, `Bpars`, `Bdict`, `allowed_Bpars`, `Jval`, `J2p1`, `Eimag_precision`, `Alpha/Beta/Gamma`, the classes `CEFion`, `CEFpars`. The typo in `boltzman_population`. Physics symbols (`J`, `Q`, `T`, `Ei`, `B_iso`, `gJ`, `Jx`, `O4m3`) follow the formulas. Scanned at run time on `8a39456` | The classes are renamed in ADR-0002 (`CEFpars` → `Blm`, `CEFion` → `Hamiltonian`, `import qespace_cef as cef`). For the rest, a written rule (Q26): snake_case for words, physics symbols as in the formulas, listed; then rename with A2, in v2, possibly with deprecated aliases in a last 1.x |
 | Q7 | `CEFion.summary(evecs, precision)` is a stub that raises `NotImplementedError`; `__str__` still takes `evecs` and `precision`, which `str()` can't pass | Implement `summary` with A2 and give `__str__` no arguments |
 
 ## 5. Dependencies
@@ -87,25 +89,26 @@ None open. The runtime needs only `numpy>=1.26`.
 
 ### 6.2 Definitions that belong in conventions
 
-These define something every result depends on. Each becomes a row in
-CLAUDE.md section 3 and a CONV, with a test. The ones another qespace package
-also relies on (units, the cross-section conventions) are suite conventions
-and go to the workspace first.
+These define something every result depends on. Each goes into a CONV in
+`decisions/conventions/`, with a test; the drafts CONV-0001 to CONV-0008
+were written from the old CLAUDE.md section 3 table and wait for your
+review. The ones another qespace package also relies on (units, the
+cross-section conventions) may come from the suite.
 
-| ID | Definition in the code | Where | CLAUDE.md row |
+| ID | Definition in the code | Where | CONV draft |
 |---|---|---|---|
-| C1 | Energies in meV, shifted so the ground state is at 0; temperatures in K; fields in T; Q in Å⁻¹ | `CEFion.diagonalize`, `Ion.mff` | Energy unit |
-| C2 | Basis order `\|J>, ..., \|-J>` (the first component is m = +J); free-ion kets are labelled in that order | `cefmatrices`, `CEFion.freeionkets` | Basis |
-| C3 | Stevens `O_k^q` (McPhase, EasySpin), q < 0 as sine-type operators; which k are allowed as parameters (P16); the cubic relations B44 = 5 B40, B64 = −21 B60. A removed comment said "Martin's table" has an extra factor ½ that does not reproduce the doublet–quartet scheme; the code's B44 = 5 B40 does (verified) | `cefmatrices`, `CEFpars` | CEF parameters, normalisation |
-| C4 | PyCrystalField agrees only up to a sign for some operators (the test accepts ±) | `tests/test_cefmatrices.py` | Normalisation, reference codes |
-| C5 | Ground J multiplet only; `gJ` Landé; no intermediate coupling (a removed comment wanted to initialise from S, L) | `Ion`, `CEFion` | Basis |
-| C6 | Zeeman `H = −μB gJ J·H`, moment `+gJ<J>`; the field in the frame of the J operators | `CEFion` Hamiltonian, `magnetic_moment` | Zeeman term, quantisation axis |
-| C7 | g-tensor: its definition from the ground doublet (P4, P17), what is returned (g, G or principal values and axes), and what to do when the ground state is not a Kramers doublet | `gtensor` | new row |
-| C8 | Point groups: Hermann–Mauguin ↔ Schoenflies table; the allowed parameters per group from the McPhase manual (node133); which frame (z along the main axis) | `data_containers`, `CEFpars` | Quantisation axis |
-| C9 | Form factor: dipole approximation `j0 + (2 − gJ)/gJ · j2`, the ILL coefficients, Ce²⁺ for Ce | `Ion.mff` | Cross sections |
-| C10 | Neutron cross section: `N(γr0)² = 1` (arbitrary units), the Debye–Waller form (`exp(−B_iso Q²/3)` in the code, not the crystallographic one), `k_f/k_i = √(1 − ΔE/Ei)`, positive ΔE = neutron energy loss, powder average `⅔ Σ_α \|J_α\|²`, the single-crystal projector (P9). The orientation of the transition matrices: `jumps[i, j] = E_j − E_i` and `Sqw[i, j]` for the transition from initial i to final j, rows = initial states (from the maintainer's notes: "this should be a matter of convention, documented somewhere") | `spectral_weight` | Cross sections |
-| C11 | Susceptibility units (μB²/meV per ion from `perturbation`, μB/T from `magnetization`, or emu/mol); the conversions in `constants` (`C1`–`C3`) | `susceptibility`, `constants` | new row |
-| C12 | Degenerate levels: tolerance and grouping (P7); eigenvectors inside a level are arbitrary (P4) | `CEFion` | Degenerate levels (the rule is written, but the row is marked `OPEN:`; the code doesn't follow it) |
+| C1 | Energies in meV, shifted so the ground state is at 0; temperatures in K; fields in T; Q in Å⁻¹ | `CEFion.diagonalize`, `Ion.mff` | CONV-0003 |
+| C2 | Basis order `\|J>, ..., \|-J>` (the first component is m = +J); free-ion kets are labelled in that order | `cefmatrices`, `CEFion.freeionkets` | CONV-0005 |
+| C3 | Stevens `O_k^q` (McPhase, EasySpin), q < 0 as sine-type operators; which k are allowed as parameters (P16); the cubic relations B44 = 5 B40, B64 = −21 B60. A removed comment said "Martin's table" has an extra factor ½ that does not reproduce the doublet–quartet scheme; the code's B44 = 5 B40 does (verified) | `cefmatrices`, `CEFpars` | CONV-0001, CONV-0002 |
+| C4 | PyCrystalField agrees only up to a sign for some operators (the test accepts ±) | `tests/test_cefmatrices.py` | CONV-0002 |
+| C5 | Ground J multiplet only; `gJ` Landé; no intermediate coupling (a removed comment wanted to initialise from S, L) | `Ion`, `CEFion` | CONV-0005 |
+| C6 | Zeeman `H = −μB gJ J·H`, moment `+gJ<J>`; the field in the frame of the J operators | `CEFion` Hamiltonian, `magnetic_moment` | CONV-0006 |
+| C7 | g-tensor: its definition from the ground doublet (P4, P17), what is returned (g, G or principal values and axes), and what to do when the ground state is not a Kramers doublet | `gtensor` | none yet |
+| C8 | Point groups: Hermann–Mauguin ↔ Schoenflies table; the allowed parameters per group from the McPhase manual (node133); which frame (z along the main axis) | `data_containers`, `CEFpars` | CONV-0004 |
+| C9 | Form factor: dipole approximation `j0 + (2 − gJ)/gJ · j2`, the ILL coefficients, Ce²⁺ for Ce | `Ion.mff` | CONV-0007 |
+| C10 | Neutron cross section: `N(γr0)² = 1` (arbitrary units), the Debye–Waller form (`exp(−B_iso Q²/3)` in the code, not the crystallographic one), `k_f/k_i = √(1 − ΔE/Ei)`, positive ΔE = neutron energy loss, powder average `⅔ Σ_α \|J_α\|²`, the single-crystal projector (P9). The orientation of the transition matrices: `jumps[i, j] = E_j − E_i` and `Sqw[i, j]` for the transition from initial i to final j, rows = initial states (from the maintainer's notes: "this should be a matter of convention, documented somewhere") | `spectral_weight` | CONV-0007 |
+| C11 | Susceptibility units (μB²/meV per ion from `perturbation`, μB/T from `magnetization`, or emu/mol); the conversions in `constants` (`C1`–`C3`) | `susceptibility`, `constants` | CONV-0003 |
+| C12 | Degenerate levels: tolerance and grouping (P7); eigenvectors inside a level are arbitrary (P4) | `CEFion` | CONV-0008 |
 
 ## 7. Next work packages
 
@@ -126,17 +129,17 @@ by one.
 2. **`build/numpy-floor`** (this branch, done): `nox` as a dev
    dependency (Q23) and `noxfile.py`; numpy floor 1.26, tested with
    1.26.0, 2.0.2 and the newest on Python 3.12–3.14 (X4); `DEV.md` with
-   the commands (part of A1); CLAUDE.md 6.7 settled.
+   the commands; CLAUDE.md 6.7 settled.
 3. **`fix/susceptibility`**: P1, P2, P10, and A12 (Q25). Each fix
    turns its `xfail` green and carries `!` and `BREAKING CHANGE`, as the
    results change. 3–4 commits.
 4. **`fix/cefion`**: P5 (rotate from the kept free-ion operators, without
    A2), P6, P8, P11. About 4 commits. P7 waits for the central tolerance
    (A11, Q24).
-5. **`docs/conventions`**: I prepare a decision sheet for C1–C12 (options,
-   what each changes, what the code does now); you decide (Q11); I write
-   CLAUDE.md section 3 and `CONVENTIONS.md` (A1). Suite-wide
-   conventions go to the workspace as CONV drafts first.
+5. **`docs/conventions`**: you review the CONV drafts CONV-0001 to
+   CONV-0008 (each lists the options and what the code does now) and
+   decide their `OPEN:` parts (Q11); C7 still needs a draft. Accepted
+   CONVs get their tests.
 6. **`fix/conventions`**: the fixes that need a convention: P3 (C1, C11), P4
    and P17 (C7), P9 (C10), P13 and P14 (C9, sources), P15 (CODATA), P16 (C3,
    Q12). Probably two branches.
@@ -144,9 +147,10 @@ by one.
    numerical reference, in a test dependency group. Its conventions and
    its own bugs are separate questions, so each disagreement is a strict
    `xfail` with the reason until you decide which side is right (Q22).
-8. **`refactor/api-v2`**, version 2.0, built around broadcasting (A15,
-   Q27): A2, A3, A4, A5, A10, A11 with P7, A14, Q2 (with the naming rule,
-   Q26), Q7. Planned first (CLAUDE.md 2.3), after Q13 and Q28.
+8. **`refactor/api-v2`**, version 2.0, built on ADR-0002 (the objects) and
+   ADR-0003 (broadcasting): A2, A3, A4, A5, A10, A11 with P7, A14, A15, Q2
+   (with the naming rule, Q26), Q7. Planned first (CLAUDE.md 2.3), after
+   Q29–Q31.
 9. Later: A6 (generated operators), A7 and A8 (point groups, data tables),
    A9 (package data).
 
@@ -157,22 +161,28 @@ so they don't clash. Answered on 2026-11-20 and moved into section 7: Q22
 (analytic limits and identities only; PyCrystalField in its own branch),
 Q23 (`nox` as a dev dependency, numpy × Python matrix), Q24 (P7 waits for
 A11), Q25 (A12 goes with P1). Q27 (broadcasting is the principle of the
-v2 API, A15) on 2026-11-20.
+v2 API, A15) on 2026-11-20. Also on 2026-11-20, recorded as ADRs: Q13
+(`Hamiltonian` holds its solved state, ADR-0002) and Q28 (rule (b),
+ADR-0003).
 
 - **Q11 (C1–C12).** Which conventions do you want to decide first? P4, P17
   (the g-tensor) and P9 (the cross section) wait for C7 and C10.
 - **Q12 (P16).** Should `CEFpars` accept odd-rank parameters?
-- **Q13 (A2).** Is an immutable solved-state object (section 3, A2) the
-  direction you want for the API, or should `CEFion` stay as it is with only
-  the bugs fixed?
-- **Q26 (Q2).** The naming rule: snake_case for words and physics symbols
-  as in the formulas (which ones?), and is it a rule for this package or
-  for the whole suite (the workspace's `DEV.md` and glossary)?
-- **Q28 (A15).** The shape rule. Decided: a vector has its component on the
-  last axis, `(..., 3)`, as `Qhkl` in the maintainer's spin-wave code. Open:
-  how T and Q combine with the leading shape `S` of a solved eigensystem.
-  (a) Always appended: `magnetization(sol, T)` with T `(nT,)` gives
-  `(*S, nT, 3)`. (b) numpy broadcasting: T must broadcast against `S`, so
-  `field (100, 1, 3)` with `T (50,)` gives `(100, 50, 3)` on 100
-  diagonalisations, and a measurement log `field (500, 3)` with `T (500,)`
-  gives `(500, 3)`, paired point by point, which (a) cannot do.
+- **Q26 (Q2).** The naming rule for everything but the classes (ADR-0002):
+  snake_case for words and physics symbols as in the formulas (which ones?),
+  and is it a rule for this package or for the whole suite (the workspace's
+  `DEV.md` and glossary)?
+- **Q29 (ADR-0002).** When is a `Hamiltonian` solved? (a) It is immutable and
+  solves itself on first access to `energies` (cached); a new `Blm` means a
+  new `Hamiltonian`, so a fit loop never sees a stale solution (A2). (b) An
+  explicit `H.solve()` that fills the object in place. I recommend (a).
+- **Q30 (CONV-0001).** Stevens as in McPhase is the main representation
+  (your draft). Should `Blm` also accept Wybourne parameters and convert
+  them, and from which table?
+- **Q31 (ADR-0002).** Observables as functions, `cef.magnetization(H, T)` as
+  in v1, or as methods, `H.magnetization(T)`? I recommend functions: new
+  observables then don't change the class.
+- **Q32 (ADR-0001).** IDs: this package numbers its own `ADR-xxxx` and
+  `CONV-xxxx`, and a suite ADR copied here keeps its suite ID (CLAUDE.md 3.4),
+  so two different ADR-0001 can meet. Prefix ours (e.g. `CEF-ADR-0001`), or
+  keep suite copies in their own folder?

@@ -5,9 +5,13 @@ electric field (CEF): building the CEF Hamiltonian, diagonalising it, and
 computing the observables that follow from it. Results go into the maintainer's
 research, so **correctness and traceability come before speed and features.**
 
-Read `ARCHITECTURE.md` (module map, conventions, test tree) and `DEV.md`
-(commands, dependencies, releases) before planning anything. When they and this
-file disagree, this file wins; flag the disagreement to the maintainer.
+Before planning anything, read the decisions in `decisions/` that touch the
+task (design choices as ADRs in `decisions/adr/`, physics conventions as CONVs
+in `decisions/conventions/`), then `ARCHITECTURE.md` (module map, test tree)
+and `DEV.md` (commands, dependencies, releases). Precedence: this file < an
+ADR < a CONV. `ARCHITECTURE.md`, `DEV.md` and `README.md` describe; when they
+disagree with a rule, the rule wins. Flag every disagreement to the
+maintainer.
 
 Lines marked `OPEN:` are not decided yet. Do not decide them yourself; ask.
 
@@ -87,10 +91,10 @@ holds for subagents and worktrees.
 ## 3. The physics is the maintainer's decision
 
 1. Physics conventions (signs, units, normalisation, operator basis, frames)
-   are the maintainer's to set. They are recorded in the table below and in
-   `ARCHITECTURE.md`. Don't pick one. When code, a reference code or the
-   literature disagree, record the case as a strict `xfail` with the reason
-   and ask.
+   are the maintainer's to set, as CONVs in `decisions/conventions/`. Don't
+   pick one; a draft or a part marked `OPEN:` is not decided. When code, a
+   reference code or the literature disagree, record the case as a strict
+   `xfail` with the reason and ask.
 2. **Never invent a value silently.** No hard-coded physical constants, CEF
    parameters or literature values without a source:
    1. physical constants live in one module, with their source (e.g. CODATA
@@ -99,23 +103,10 @@ holds for subagents and worktrees.
       value;
    3. a value that is missing is reported as missing, not guessed.
 3. Every quantity in the API and in docstrings states its unit.
-
-| Topic | Convention |
-|---|---|
-| Energy unit | `OPEN:` (meV?) |
-| CEF parameters | `OPEN:` Stevens `B_k^q` / Wybourne `B^k_q`, and the conversion between them |
-| Stevens operator normalisation and tables | `OPEN:` |
-| Quantisation axis and local frame | `OPEN:` and how it relates to the crystal frame |
-| Basis | `OPEN:` ground `J` multiplet only, or intermediate coupling |
-| Zeeman term | `OPEN:` sign, `g_J` vs full `L + 2S` |
-| Cross sections | `OPEN:` normalisation, form factor, units |
-| Degenerate levels | Eigenvectors within a degenerate subspace are basis dependent: compare projectors or sums over the subspace, never single eigenvectors `OPEN: Michal needs to understand it`|
-
-`qespace_cef` is a package of the qespace suite. Suite rules reach this
-repository as entries in `CONVENTIONS.md` (accepted CONVs, with the test that
-enforces them) or as verbatim copies of suite ADRs, which keep their ID and say
-where they came from. Those take precedence over this table; a copy is never
-edited here.
+4. `qespace_cef` is a package of the qespace suite. Suite ADRs and CONVs, and
+   decisions taken from elsewhere, reach this repository as copies in
+   `decisions/`, which keep their ID and say where they came from. A copy is
+   never edited here.
 
 ## 4. Environment
 
@@ -180,7 +171,10 @@ edited here.
 Keep in sync with the code, in the same change: the module map and test tree in
 `ARCHITECTURE.md`, the commands and rules in `DEV.md`, the usage in `README.md`
 (copy-pasteable commands). Record significant decisions in a short ADR
-(context, decision, consequences; under 20 lines).
+(context, decision, consequences; under 20 lines) in `decisions/adr/`, and
+physics conventions as CONVs in `decisions/conventions/`, each from the
+`_template.md` there. Only the maintainer accepts one. Never edit an accepted
+one; supersede it.
 
 ## 8. Commit messages (section 1.2 and 1.3)
 
