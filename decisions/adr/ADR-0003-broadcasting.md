@@ -8,9 +8,9 @@ supersedes:
 
 ## Context
 
-`H = Σ_k B_k O_k − μB gJ H·J` is linear in the parameters and the field, and
-`np.linalg.eigh` diagonalises stacks, so a whole grid is one `einsum` and one
-call. Measured on Ho³⁺ with 8 parameters, 100 × 100 points: 15× faster than a
+The Hamiltonian, `Σ_lm B_lm O_lm` plus a Zeeman term proportional to `J·B`, is
+linear in the parameters `B_lm` and the field B, and `np.linalg.eigh`
+diagonalises stacks, so a whole grid is one `einsum` and one call. Measured on Ho³⁺ with 8 parameters, 100 × 100 points: 15× faster than a
 loop over `CEFion`. T and Q don't enter H; they act after the diagonalisation.
 
 ## Options
@@ -24,7 +24,7 @@ Broadcasting is the principle of v2, with rule (b), as in a numpy gufunc: core
 dimensions trail, loop dimensions broadcast.
 
 - A vector has its component on the last axis: field and Q `(..., 3)`.
-- Parameters: `S_p + (K,)`, K the parameters.
+- Parameters: `S_p + (K,)`, K the number of parameters `B_lm`.
 - A Hamiltonian has the loop shape `S = broadcast(S_p, S_f)`: matrices
   `S + (n, n)`, energies `S + (n,)`, n = 2J + 1, one ion per Hamiltonian.
 - T and Q in an observable broadcast against `S`.

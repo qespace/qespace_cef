@@ -1,7 +1,7 @@
 ---
 id: ADR-xxxx
 title: Short name
-status: proposed         # proposed | accepted | superseded
+status: draft            # draft | accepted | superseded
 date: YYYY-MM-DD
 supersedes:
 ---

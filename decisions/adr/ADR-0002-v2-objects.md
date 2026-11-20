@@ -31,8 +31,8 @@ Option 3, used as `import qespace_cef as cef`:
   holds the energies, the eigenvectors and J in the eigenbasis, so observables
   don't rotate operators themselves.
 
-Not decided here: when a `Hamiltonian` is solved and whether it is immutable;
-observables as functions or methods.
+`OPEN:` when a `Hamiltonian` is solved and whether it is immutable.
+`OPEN:` observables as functions or methods.
 
 ## Consequences
 
