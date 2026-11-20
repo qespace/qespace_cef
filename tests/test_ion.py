@@ -55,7 +55,6 @@ def test_unknown_ion_raises():
         qc.Ion("Eu")
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P8: %d prints a half-integer J as an integer")
 @pytest.mark.parametrize(("name", "J"), [("Ce", "5/2"), ("Dy", "15/2")])
 def test_str_shows_half_integer_J(name, J):
     assert f"J = {J}" in str(qc.Ion(name))

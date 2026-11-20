@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -43,7 +45,6 @@ class Ion:
       Ce entry in the ILL table; the other ions use 3+ values.
     - P14: the values in the table (J, gJ, Stevens factors, form-factor
       coefficients) have no source next to them.
-    - P8: ``str()`` prints J with ``%d``, so J = 5/2 shows as 2.
 
     Examples
     --------
@@ -185,15 +186,9 @@ class Ion:
         self.mffCoefficients = elementData["js"]
 
     def __str__(self):
-        """Name, J and gJ, e.g. ``'Ho: J = 8, gJ = 1.25'``.
-
-        Warnings
-        --------
-        P8 (AUDIT.md), not fixed yet: J is printed with ``%d``, so J = 5/2
-        shows as 2.
-        """
-        # AUDIT P8: %d truncates a half-integer J.
-        return "%s: J = %d, gJ = %.2f" % (self.name.title(), self.J, self.gJ)
+        """Name, J as a fraction and gJ, e.g. ``'Ce: J = 5/2, gJ = 0.86'``."""
+        J = Fraction(float(self.J)).limit_denominator(2)  # J is an integer or a half-integer
+        return "%s: J = %s, gJ = %.2f" % (self.name.title(), J, self.gJ)
 
     def mff(self, Q: ArrayLike) -> float | np.ndarray:
         r"""Magnetic form factor in the dipole approximation.
