@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- `magnetization_exchange` stops after `max_iterations` steps (new keyword,
+  default 1000) and raises `RuntimeError` if the mean field has not
+  converged; it could loop forever. A zero moment converges at once
+  instead of giving 0/0 (AUDIT P11).
 - `str(Ion)` shows a half-integer J as a fraction, `'Ce: J = 5/2, gJ =
   0.86'`; it printed 2 (AUDIT P8).
 - `CEFion.diagonalize(sortWithE=False)` works; it raised `IndexError`

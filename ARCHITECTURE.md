@@ -86,13 +86,15 @@ tests/
                         xfail where PyCrystalField's sign differs
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
                         Zeeman, sorting, orthonormality, H = U E U^dagger;
-                        strict xfail for P5-P7
+                        repeated diagonalisation, sortWithE=False; strict
+                        xfail for P7
   test_cefpars.py       unit conversion, point-group tables, the parameter
                         labels of CONV-0001
-  test_ion.py           J and gJ from Hund's rules, form factor; xfail P8
+  test_ion.py           J and gJ from Hund's rules, form factor, str()
   test_observables.py   susceptibility tensor against the exact formula and
                         CONV-0009, thermodynamic identities, sum rules, g
-                        values; strict xfail for P3, P9, P11, P17
+                        values, the mean-field iteration; strict xfail for
+                        P3, P9, P17
   test_performance.py   timing stubs, marker `perf`, deselected by default
 ```
 

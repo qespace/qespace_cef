@@ -339,7 +339,6 @@ class _Runaway(Exception):
     """Raised by the stand-in below when the iteration has not stopped."""
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P11: no iteration limit")
 def test_magnetization_exchange_stops_without_convergence(monkeypatch):
     """A mean field that never converges ends in an error, not in an endless loop.
 
@@ -356,12 +355,11 @@ def test_magnetization_exchange_stops_without_convergence(monkeypatch):
         return (0.0, 0.0, 1.0 if len(calls) % 2 else -1.0)
 
     monkeypatch.setattr(qc.observables, "magnetization", alternating)
-    with pytest.raises(Exception) as error:
+    with pytest.raises(RuntimeError) as error:
         qc.magnetization_exchange(_ce(), 5.0, [0, 0, 1.0], lam=1.0)
     assert not isinstance(error.value, _Runaway)
 
 
-@pytest.mark.xfail(strict=True, raises=RuntimeWarning, reason="AUDIT P11: 0/0 when M = 0")
 def test_magnetization_exchange_zero_field():
     """In zero field the moment is zero, without a division 0/0 on the way."""
     with warnings.catch_warnings():

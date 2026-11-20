@@ -202,6 +202,7 @@ def magnetization_exchange(
     Hfield: ArrayLike,
     lam: float,
     precision: float = 1e-5,
+    max_iterations: int = 1000,
 ) -> tuple[float, float, float]:
     r"""Magnetisation with a molecular (mean) field, solved self-consistently.
 
@@ -210,7 +211,9 @@ def magnetization_exchange(
     .. math:: \vec{H}_\mathrm{eff} = \vec{H} + \lambda \vec{M}
 
     and repeats with the new :math:`\vec{M}` until
-    :math:`|\vec{M}_{k+1} - \vec{M}_k| / |\vec{M}_{k+1}| \le` ``precision``.
+    :math:`|\vec{M}_{k+1} - \vec{M}_k| \le` ``precision`` :math:`\cdot
+    \max(|\vec{M}_{k+1}|, |\vec{M}_k|)`. A zero moment, as in zero field,
+    converges at once.
 
     Parameters
     ----------
@@ -225,32 +228,34 @@ def magnetization_exchange(
     precision : float, optional
         Relative change of :math:`|\vec{M}|` at which the iteration stops.
         Default 1e-5.
+    max_iterations : int, optional
+        Number of mean-field steps after which the iteration gives up.
+        Default 1000.
 
     Returns
     -------
     tuple of 3 float
         :math:`(M_x, M_y, M_z)` in :math:`\mu_B` per ion.
 
-    Warnings
-    --------
-    P11 (AUDIT.md), not fixed yet: there is no iteration limit, so the loop
-    can run forever when the mean field does not converge. M = 0 gives NaN
-    and ends the loop without an error.
+    Raises
+    ------
+    RuntimeError
+        If the moment has not converged after ``max_iterations`` steps.
     """
 
-    # Solve the Hamiltonian of a copy of the given ion
-    M = [magnetization(cefion, temperature, Hfield)]
-    residual = 42
+    Hfield = np.asarray(Hfield, dtype=float)
+    M = magnetization(cefion, temperature, Hfield)
+    for _ in range(max_iterations):
+        M_next = magnetization(cefion, temperature, Hfield + lam * np.asarray(M))
+        change = np.linalg.norm(np.subtract(M_next, M))
+        if change <= precision * max(np.linalg.norm(M_next), np.linalg.norm(M)):
+            return M_next
+        M = M_next
 
-    # AUDIT P11: no iteration limit; M = 0 gives NaN and ends the loop.
-    while residual > precision:
-        Hexchange = lam * np.array(M[-1])
-        M_next = magnetization(cefion, temperature, Hfield + Hexchange)
-        M.append(M_next)
-        dM = [m1 - m2 for m1, m2 in zip(M[-1], M[-2])]
-        residual = np.linalg.norm(dM) / np.linalg.norm(M[-1])
-
-    return M[-1]
+    raise RuntimeError(
+        f"The mean field did not converge in {max_iterations} steps "
+        f"(last change of |M|: {float(change):.3g} muB)."
+    )
 
 
 def susceptibility(
