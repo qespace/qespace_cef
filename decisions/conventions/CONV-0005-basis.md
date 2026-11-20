@@ -3,18 +3,15 @@ id: CONV-0005
 title: Basis: the ground J multiplet and the order of states
 status: draft
 owner: qespace_cef
-enforced_by:
-since:
-supersedes:
 ---
 
 ## Statement
 
-`OPEN:` ground J multiplet only, or intermediate coupling.
+The basis is the ground J multiplet of the free ion (LS coupling, Hund's
+rules), 2J + 1 states, with the Landé `gJ`; there is no intermediate coupling.
 
-As implemented: the ground J multiplet of the free ion (LS coupling, Hund's
-rules), 2J + 1 states, with the Landé `gJ`. The states are ordered
-`|J>, |J−1>, ..., |−J>`: the first vector component is m = +J.
+As implemented: the states are ordered `|J>, |J−1>, ..., |−J>`: the first
+vector component is m = +J.
 
 `OPEN:` whether this order is the convention or only an implementation detail.
 
@@ -29,6 +26,6 @@ eigenvector component by index.
 ## Consequences
 
 - Intermediate coupling would need the full fⁿ basis and Wybourne parameters
-  on spherical tensors; it is out of scope while this holds.
+  on spherical tensors. It may come later; a new CONV then supersedes this one.
 - Eigenvectors in the API are in this order; a test checks `<J|J_z|J> = J` for
   the first state.

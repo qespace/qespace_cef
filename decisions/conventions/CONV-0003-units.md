@@ -3,9 +3,6 @@ id: CONV-0003
 title: Units of energies, temperature, field, momentum and the observables
 status: draft
 owner: qespace_cef
-enforced_by:
-since:
-supersedes:
 ---
 
 ## Statement
@@ -26,8 +23,9 @@ whether level energies are always shifted to the ground state.
 meV, K, T and Å⁻¹ are the units of neutron spectroscopy and magnetometry, where
 the results are compared. One unit per quantity avoids the factor errors of
 mixed units: a heat capacity computed from energies in meV and temperatures
-in K is off by about 11.6², the square of the meV-to-K conversion. Units other qespace packages rely on may come
-from the suite.
+in K is off by about 11.6², the square of the meV-to-K conversion. McPhase
+gives its CEF parameters in meV. Units other qespace packages rely on may
+come from the suite.
 
 ## Consequences
 

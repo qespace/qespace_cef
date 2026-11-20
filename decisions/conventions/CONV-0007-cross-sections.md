@@ -3,9 +3,6 @@ id: CONV-0007
 title: Neutron cross section: normalisation, form factor and units
 status: draft
 owner: qespace_cef
-enforced_by:
-since:
-supersedes:
 ---
 
 ## Statement

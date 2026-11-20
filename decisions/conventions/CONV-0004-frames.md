@@ -3,9 +3,6 @@ id: CONV-0004
 title: Quantisation axis, local frame and crystal frame
 status: draft
 owner: qespace_cef
-enforced_by:
-since:
-supersedes:
 ---
 
 ## Statement
@@ -21,6 +18,8 @@ Options:
    setting of the point-group tables); the user gives field and Q in it.
 2. As 1, plus a rotation from the crystal frame to the local frame; field and
    Q are given in the crystal frame and rotated at the boundary.
+3. McPhase's CEF axes (manual node130): x ∥ a, y ∥ b, z ∥ c for orthogonal
+   lattices; otherwise y ∥ b, z ∥ a × b, x perpendicular to y and z.
 
 `OPEN:` the setting of x for each point group, and whether parameters are
 rotated between frames.

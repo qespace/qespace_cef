@@ -3,9 +3,6 @@ id: CONV-0006
 title: Zeeman term and magnetic moment
 status: draft
 owner: qespace_cef
-enforced_by:
-since:
-supersedes:
 ---
 
 ## Statement

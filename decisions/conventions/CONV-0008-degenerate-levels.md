@@ -3,9 +3,6 @@ id: CONV-0008
 title: Degenerate levels
 status: draft
 owner: qespace_cef
-enforced_by:
-since:
-supersedes:
 ---
 
 ## Statement
@@ -24,8 +21,8 @@ If |a> and |b> have the same energy, so does every combination
 chosen by rounding, so it can change between numpy versions or platforms.
 Anything computed from one vector of the pair, e.g. `<a|J_z|a>` in a Kramers
 doublet, can then take any value between −j and +j, where ±j are the
-eigenvalues of J_z within the doublet. What is
-fixed is the level as a whole: the projector `P = |a><a| + |b><b|`, and sums
+eigenvalues of J_z within the doublet. What is fixed is the level as a
+whole: the projector `P = |a><a| + |b><b|`, and sums
 such as `Σ_{i,j ∈ level} |<i|J_α|j>|²`. The g-tensor is an example: g depends
 on the basis inside the doublet, `G = g gᵀ` does not. In a small field the
 degeneracy lifts and the eigenvectors become well defined, but they jump as
