@@ -103,3 +103,34 @@ def test_getitem_and_method_agree(J):
     """``StevensBase(J)['42']`` and ``StevensBase(J).O42()`` give the same matrix."""
     ops = StevensBase(J)
     assert all(np.array_equal(ops[n[1:]], getattr(ops, n)()) for n in ALL_OPERATORS)
+
+
+def _name(k, q):
+    return f"{k}{q}" if q >= 0 else f"{k}m{-q}"
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+@pytest.mark.parametrize("sign", [1, -1])
+def test_observations_1_and_2(J, sign):
+    """O(n, +-(n-1)) = 1/2 {O(n-1, +-(n-1)), Jz} for n = 2 ... 6 (StevensBase notes)."""
+    ops = StevensBase(J)
+    Jz = ops.Jz
+    mismatches = []
+    for n in range(2, 7):
+        lower = ops[_name(n - 1, sign * (n - 1))]
+        if not _close(0.5 * (lower @ Jz + Jz @ lower), ops[_name(n, sign * (n - 1))]):
+            mismatches.append(n)
+    assert mismatches == []
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_observation_4_negative_q(J):
+    """Every non-zero O_k^q with q < 0 is purely imaginary and not symmetric (StevensBase notes)."""
+    ops = StevensBase(J)
+    wrong = []
+    for k in range(1, 7):
+        for q in range(-k, 0):
+            op = ops[_name(k, q)]
+            if np.abs(op).max() > 0 and (not np.allclose(op.real, 0) or np.allclose(op, op.T)):
+                wrong.append(_name(k, q))
+    assert wrong == []

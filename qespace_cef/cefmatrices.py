@@ -79,10 +79,10 @@ class StevensBase:
 
     Notes
     -----
-    Observations:
+    Observations (1, 2 and 4 are checked in ``tests/test_cefmatrices.py``):
 
-    1. O(n, n-1) = 0.5 (O(n,n) Jz + Jz O(n,n)).
-    2. O(n, -(n-1)) = 0.5 (O(n,-n) Jz + Jz O(n,-n)).
+    1. O(n, n-1) = 0.5 (O(n-1,n-1) Jz + Jz O(n-1,n-1)).
+    2. O(n, -(n-1)) = 0.5 (O(n-1,-(n-1)) Jz + Jz O(n-1,-(n-1))).
     3. Generally, O(n,k) is 0.5 (Okk Y + Y Okk), where Y is a polynomial in
        Jz of order n-k.
     4. All Stevens matrices are Hermitian; the ones with q < 0 are not
