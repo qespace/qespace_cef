@@ -6,6 +6,9 @@ ID: it turns into a failure (XPASS) when the problem is fixed, so the marker
 must then be removed.
 """
 
+import copy
+import warnings
+
 import numpy as np
 import pytest
 
@@ -137,3 +140,133 @@ def test_heat_capacity_is_T_dS_dT(temperature):
     """Cv = T dS/dT."""
     Cv = _thermo([temperature])[4][0]
     assert Cv == pytest.approx(temperature * _derivative(3, temperature), rel=1e-4)
+
+
+# --- spectral weight ------------------------------------------------------
+
+LOW_SYMMETRY = dict(B20=0.3, B22=-0.1, B40=0.01, B4m3=0.02, B44=0.03)
+TEMPERATURE = 10.0  # K
+
+
+def _weights_without_kfki(cef, Q, scheme):
+    """Sqw / (kf/ki), with kf/ki = sqrt(1 - (E_j - E_i)/Ei) for the default Ei."""
+    jumps, Sqw = qc.spectral_weight(cef, TEMPERATURE, Q, scheme)
+    return Sqw / np.sqrt(1 - jumps / 1e6)
+
+
+def _populations(cef):
+    p = np.exp(-(cef.energies - cef.energies.min()) / (KB * TEMPERATURE))
+    return p / p.sum()
+
+
+def test_powder_sum_rule():
+    """sum_f |<i|J_perp|f>|^2 = 2/3 J(J+1) for every initial state i (powder)."""
+    cef = _ce(LOW_SYMMETRY)
+    Q = [1.0, 0, 0]
+    rows = _weights_without_kfki(cef, Q, "powder").sum(axis=1)
+    norm = cef.ion.mff(1.0) ** 2 * _populations(cef)
+    J = cef.ion.J
+    assert np.allclose(rows / norm, 2 / 3 * J * (J + 1), rtol=1e-5)
+
+
+def test_single_crystal_trace_sum_rule():
+    """sum_if |<i|J_perp|f>|^2 = 2/3 J(J+1)(2J+1), the trace over i (single crystal)."""
+    cef = _ce(LOW_SYMMETRY)
+    Q = np.array([0.3, 0.5, 0.7])
+    W = _weights_without_kfki(cef, Q, "single-crystal")
+    norm = cef.ion.mff(np.linalg.norm(Q)) ** 2 * _populations(cef)
+    J = cef.ion.J
+    assert np.sum(W / norm[:, None]) == pytest.approx(2 / 3 * J * (J + 1) * (2 * J + 1), rel=1e-5)
+
+
+@pytest.mark.xfail(strict=True, reason="AUDIT P9: the cross terms of the projector are missing")
+@pytest.mark.parametrize("Q", [[1.0, 1.0, 0.0], [0.3, 0.5, 0.7]])
+def test_single_crystal_weights_full_projector(Q):
+    """Sqw_if = f^2 p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (kf/ki divided out)."""
+    cef = _ce(LOW_SYMMETRY)
+    q = np.asarray(Q) / np.linalg.norm(Q)
+    projector = np.eye(3) - np.outer(q, q)
+    M = np.einsum("ab,aif,bfi->if", projector, cef.J, cef.J).real
+    expected = cef.ion.mff(np.linalg.norm(Q)) ** 2 * _populations(cef)[:, None] * M
+    W = _weights_without_kfki(cef, Q, "single-crystal")
+    assert np.allclose(W, expected, rtol=1e-5, atol=1e-8 * expected.max())
+
+
+# --- g-tensor -------------------------------------------------------------
+
+
+def _principal_g(cef):
+    g = qc.gtensor(cef)
+    return np.sort(np.sqrt(np.linalg.eigvalsh(g @ g.T)))
+
+
+def _rotate_ground_doublet(cef, axis, angle):
+    """A copy of ``cef`` whose ground-doublet basis is rotated by exp(-i angle n.sigma/2)."""
+    n = np.asarray(axis, float) / np.linalg.norm(axis)
+    sigma = [np.array([[0, 1], [1, 0]]), np.array([[0, -1j], [1j, 0]]), np.diag([1, -1])]
+    u = np.cos(angle / 2) * np.eye(2) - 1j * np.sin(angle / 2) * sum(
+        c * s for c, s in zip(n, sigma)
+    )
+    V = np.eye(len(cef.energies), dtype=complex)
+    V[:2, :2] = u
+    rotated = copy.copy(cef)
+    rotated.J = np.einsum("ij,ajk,kl->ail", V.conj().T, cef.J, V)
+    return rotated
+
+
+AXIAL_CE = dict(B20=1.0)  # ground doublet |+-1/2>: g_par = gJ, g_perp = 3 gJ
+
+
+def test_gtensor_principal_values_axial():
+    """Ce3+ with B20 > 0: principal g values gJ, 3 gJ, 3 gJ in the basis eigh picks."""
+    cef = _ce(AXIAL_CE)
+    gJ = cef.ion.gJ
+    assert np.allclose(_principal_g(cef), [gJ, 3 * gJ, 3 * gJ], rtol=1e-10)
+
+
+@pytest.mark.xfail(strict=True, reason="AUDIT P17: abs() makes g g^T depend on the doublet basis")
+@pytest.mark.parametrize(("axis", "angle"), [([1, 0, 0], 1.0), ([1, 1, 1], 2.0)])
+def test_gtensor_principal_values_any_doublet_basis(axis, angle):
+    """The principal g values do not depend on the basis inside the ground doublet."""
+    cef = _ce(AXIAL_CE)
+    gJ = cef.ion.gJ
+    rotated = _rotate_ground_doublet(cef, axis, angle)
+    assert np.allclose(_principal_g(rotated), [gJ, 3 * gJ, 3 * gJ], rtol=1e-10)
+
+
+# --- magnetization with a molecular field ---------------------------------
+
+
+class _Runaway(Exception):
+    """Raised by the stand-in below when the iteration has not stopped."""
+
+
+@pytest.mark.xfail(strict=True, reason="AUDIT P11: no iteration limit")
+def test_magnetization_exchange_stops_without_convergence(monkeypatch):
+    """A mean field that never converges ends in an error, not in an endless loop.
+
+    ``magnetization`` is replaced by a stand-in that alternates between two
+    moments, so the iteration cannot converge; it raises ``_Runaway`` after
+    10000 calls, which is what happens while there is no iteration limit.
+    """
+    calls = []
+
+    def alternating(cefion, temperature, Hfield):
+        calls.append(1)
+        if len(calls) > 10_000:
+            raise _Runaway
+        return (0.0, 0.0, 1.0 if len(calls) % 2 else -1.0)
+
+    monkeypatch.setattr(qc.observables, "magnetization", alternating)
+    with pytest.raises(Exception) as error:
+        qc.magnetization_exchange(_ce(), 5.0, [0, 0, 1.0], lam=1.0)
+    assert not isinstance(error.value, _Runaway)
+
+
+@pytest.mark.xfail(strict=True, raises=RuntimeWarning, reason="AUDIT P11: 0/0 when M = 0")
+def test_magnetization_exchange_zero_field():
+    """In zero field the moment is zero, without a division 0/0 on the way."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        M = qc.magnetization_exchange(_ce(), 5.0, [0.0, 0.0, 0.0], lam=1.0)
+    assert M == (0.0, 0.0, 0.0)
