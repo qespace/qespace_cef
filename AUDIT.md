@@ -82,7 +82,7 @@ names its ID (CLAUDE.md 6.6).
 |---|---|---|---|
 | CONV-0001 parameters and operators | accepted | Q12, Q33 | P16 |
 | CONV-0003 units | accepted | its Statement still says `OPEN:` the units of the API (Q42) | P3 |
-| CONV-0004 frames | draft | the local frame and its relation to the crystal frame | A7 |
+| CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |

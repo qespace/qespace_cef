@@ -85,7 +85,8 @@ rejected bare-array objects).
 
 - Take a `Crystal` from `qespace_crystallography`: the lattice, the site of
   the magnetic ion and its neighbours. It gives the site symmetry (above),
-  the local frame and its rotation from the crystal frame (CONV-0004), and
+  the local frame and its rotation from the crystal frame (methods in the
+  CONV-0004 draft at `d19e90e`), and
   fields and Q given in crystal coordinates. Whether `qespace_cef` may depend
   on `qespace_crystallography` is a question for the suite's layer rules.
 - Point-charge model: the parameters from the charges of the neighbours,

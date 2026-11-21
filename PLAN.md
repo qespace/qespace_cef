@@ -61,7 +61,7 @@ review measures it. `gtensor` keeps its other problems (P4, P17, A10).
 
 ## In parallel: decisions only you can take
 
-- The `OPEN:` parts of the drafts CONV-0004, CONV-0006 and CONV-0007 (AUDIT
+- The `OPEN:` parts of the drafts CONV-0006 and CONV-0007 (AUDIT
   section 6.2, Q11), and a draft for the g-tensor (C7).
 - Q29 and Q31 (ADR-0002), which block `refactor/api-v2`.
 
