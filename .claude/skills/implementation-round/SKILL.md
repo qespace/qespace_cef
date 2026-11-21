@@ -28,7 +28,9 @@ telling the maintainer what is missing:
 
 ## 2. Start the implementer
 
-Before the call, write a bold title line and one sentence on what it will do.
+If the maintainer names an existing idle worker, send it the brief with
+SendMessage instead, telling it to cut the plan's branch from `main` in its
+worktree; skip step 3 if its split is already open. Otherwise, before the call, write a bold title line and one sentence on what it will do.
 Then call `start_session` with:
 
 - `initiation`: `"user_asked"`; `context`: `"fresh"` (a `"fork"` only when the
