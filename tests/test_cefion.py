@@ -152,7 +152,8 @@ def test_summary_before_diagonalisation():
 # --- CONV-0010: the zero of energy ----------------------------------------
 # Expected values from formulas in the tests (CONV-0010, Consequences).
 
-MUB_CODATA = 0.057883818060  # meV/T, CODATA 2018 (mu_B = 5.7883818060e-5 eV/T)
+# meV/T, CODATA 2022 (NIST): mu_B = 9.2740100657(29)e-24 J/T, e = 1.602176634e-19 C exact.
+MUB_CODATA = 1e3 * 9.2740100657e-24 / 1.602176634e-19
 
 
 @pytest.mark.parametrize("name", ["Ce", "Ho"])

@@ -1,37 +1,27 @@
-# AUDIT P15, not fixed yet: no source or CODATA year; mixed vintages (h, e from 1986;
-# muB, kB, NA from 2010); meV2K and K2meV are separate numbers, not reciprocals;
-# pi is hard-coded; R0, _gamn, C1-C3, NA, kB_SI are unused.
-pi = 3.14159265359
-numerical_zero = 1e-12  # python3.9.15 precision for floats seems to be around 1e-15, so let's say everything below
+"""Physical constants and the unit conversions derived from them.
 
-_h = 6.626075540e-34  # Jsec     Planck constant h
-_e = 1.6021773349e-19  # Coulomb  electron charge
-_c = 2.99792458e8  # m/sec      Speed of light
-_m = 9.109389754e-31  # Kg       Mass of electron m
-_gn = -3.82608545  # g-factor of the neutron
+All values are CODATA 2022 (CONV-0003): P. J. Mohr, D. B. Newell,
+B. N. Taylor, and E. Tiesinga, "CODATA recommended values of the fundamental
+physical constants: 2022", Rev. Mod. Phys. 97, 025002 (2025),
+doi:10.1103/RevModPhys.97.025002; companion article J. Phys. Chem. Ref.
+Data 54, 033105 (2025). Values at
+https://physics.nist.gov/cuu/Constants/index.html, read on 2026-11-21.
 
-_hq = _h / 2 / pi  #                h bar
-_gamn = _gn / 2 / _hq  # gyromagnetic ratio of the neutron
-_r0 = _e * _e / _m * 1e-7  # classical radius of electron
-R0 = _r0 * _gn / 2  # strength of the dipolar neutron electron interaction
+The conversions are computed from these values, not typed separately.
+"""
 
-uB_SI = 9.27400968 * 1e-24  # J/T
-kB_SI = 1.38064880 * 1e-23  # J/K
-NA = 6.02214129 * 1e23  # 1 / mol
-meV2K = 11.60452
-uB = 1e3 * uB_SI / _e  # uB in meV/T
+# CODATA 2022, SI units.
+_e = 1.602176634e-19  # C, elementary charge, exact (SI 2019)
+_h = 6.62607015e-34  # J s, Planck constant, exact (SI 2019)
+_c = 299792458.0  # m/s, speed of light in vacuum, exact (SI 2019)
+_k = 1.380649e-23  # J/K, Boltzmann constant, exact (SI 2019)
+uB_SI = 9.2740100657e-24  # J/T, Bohr magneton, standard uncertainty 0.0000000029e-24
 
-invcm2meV = 100 * 1000 * _h * _c / _e
-K2meV = 0.086173
+# Conversions used by the package.
+K2meV = 1e3 * _k / _e  # meV/K, k_B
+meV2K = 1 / K2meV  # K/meV, 1 / k_B
+uB = 1e3 * uB_SI / _e  # meV/T, Bohr magneton
+invcm2meV = 1e3 * 100 * _h * _c / _e  # meV per cm^-1, h c
 
-# conversion from [mol/m3] to internal [T/uB]
-
-C1 = NA * uB_SI * 4 * pi * 1e-7  # 1/chi [T/uB] = C1 * 1/chi [mol/m3] C1 = 7.0182e-06
-
-# conversion from [mol/m3] to [mol/emu]
-
-C2 = 4 * pi / 1e6  # 1/chi [mol/emu] = C2 * 1/chi [mol/m3] C2 = 1.2566e-05
-
-# conversion from [T/uB] to [mol/emu]
-
-C3 = 10 / NA / uB_SI  # = 1/C1*C2 %              1/chi [mol/emu] = C3 * 1/chi [mol/m3] C3 = 1.7905
+# Absolute degeneracy rule of the susceptibility (CONV-0009), meV.
+numerical_zero = 1e-12

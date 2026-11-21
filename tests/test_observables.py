@@ -14,9 +14,10 @@ import pytest
 
 import qespace_cef as qc
 
-# CODATA 2018: k_B = 8.617333262e-5 eV/K, mu_B = 5.7883818060e-5 eV/T.
-KB = 0.08617333262  # meV/K
-MUB = 0.057883818060  # meV/T
+# CODATA 2022 (NIST, physics.nist.gov/cuu/Constants): e = 1.602176634e-19 C and
+# k = 1.380649e-23 J/K exact, mu_B = 9.2740100657(29)e-24 J/T.
+KB = 1e3 * 1.380649e-23 / 1.602176634e-19  # meV/K
+MUB = 1e3 * 9.2740100657e-24 / 1.602176634e-19  # meV/T
 
 TETRAGONAL = dict(B20=0.5, B40=0.01, B44=0.1)  # Ce3+, as in AUDIT P1, P2, P10
 T = np.array([5.0, 20.0, 100.0])  # K

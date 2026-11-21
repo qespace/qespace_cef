@@ -6,10 +6,11 @@ from reference import mcphase
 
 import qespace_cef as qc
 
-# k_B / e = 8.617333262e-5 eV/K and h c / e = 1.239841984e-4 eV cm (CODATA 2018),
-# so 1 K = 0.08617333 meV and 1 cm^-1 = 0.1239842 meV.
-K_IN_MEV = 0.08617333262
-INVCM_IN_MEV = 0.1239841984
+# CODATA 2022 (NIST, physics.nist.gov/cuu/Constants), all exact: e = 1.602176634e-19 C,
+# k = 1.380649e-23 J/K, h = 6.62607015e-34 J s, c = 299792458 m/s.
+# 1 K = 1e3 k / e = 0.08617333 meV and 1 cm^-1 = 1e3 * 100 h c / e = 0.1239842 meV.
+K_IN_MEV = 1e3 * 1.380649e-23 / 1.602176634e-19
+INVCM_IN_MEV = 1e3 * 100 * 6.62607015e-34 * 299792458.0 / 1.602176634e-19
 
 
 @pytest.mark.parametrize(
