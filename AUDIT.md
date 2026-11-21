@@ -100,16 +100,18 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`feat/degenerate-levels`**: CONV-0008 and CONV-0011 in the code: the
+1. **`fix/constants`**: P15, CODATA 2022 (Q43 answered), derived conversions
+   (`PLAN.md`).
+2. **`feat/degenerate-levels`**: CONV-0008 and CONV-0011 in the code: the
    config for `rtol` and `E_floor`, one grouping of levels for
    `susceptibility`, `get_degeneracies` (P7) and `summary`, the canonical
    basis. After a CONV that supersedes CONV-0009's degeneracy rule.
-2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
+3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
-3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
+4. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
    A11 with P7, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
-4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
+5. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
 
