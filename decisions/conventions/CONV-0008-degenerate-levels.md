@@ -1,7 +1,7 @@
 ---
 id: CONV-0008
 title: Degenerate levels
-status: draft
+status: accepted
 owner: qespace_cef
 ---
 
@@ -12,8 +12,9 @@ Two energies belong to the same level when
     |E_m − E_n| ≤ rtol · max(max_k |E_k|, E_floor)
 
 with `E_k` the energies of CONV-0010, and `rtol` and `E_floor` read at call
-time from the package's one config place. Levels are formed from the sorted
-energies, split wherever two consecutive energies differ by more than that.
+time from the package's one config place, with the defaults `rtol = 1e-10`
+and `E_floor = 1` meV. Levels are formed from the sorted energies, split
+wherever two consecutive energies differ by more than that.
 
 Results do not depend on the basis inside a level: they use projectors onto
 the level, traces and sums over it, never single eigenvectors. A result with
@@ -24,9 +25,6 @@ reporting: degeneracies, level lists, per-level intensities, the ground
 doublet of the g-tensor.
 
 How a basis inside a level is shown is CONV-0011.
-
-`OPEN:` the defaults, proposed `rtol = 1e-10` and `E_floor = 1` meV (AUDIT
-Q47).
 
 ## Rationale
 

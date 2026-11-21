@@ -91,8 +91,8 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0005 basis | draft | whether the order of states is a convention | – |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
-| CONV-0008 degenerate levels | draft | Q47 (the defaults). Decided: the tolerance `rtol · max(max\|E\|, E_floor)` from the config (Q40); CONV-0009 then needs superseding | P4, P7, P20, A11 |
-| CONV-0011 canonical basis | draft | –. Decided: J_z diagonalised inside the level, Kramers partners by time reversal (Q41), J_x then J_y where J_z is degenerate in the level (Q45), integer-J levels unpaired until the irreps replace this CONV (Q46) | the eigenvectors `summary` prints |
+| CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config); CONV-0009 now needs superseding | P4, P7, P20, A11 |
+| CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0009 susceptibility | accepted | – | – |
 | CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
@@ -155,5 +155,3 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
 - **Q44 (P3).** The units of the thermodynamic quantities, which no CONV
   states: U and F in meV per ion from the zero of CONV-0010, S and C_v in
   k_B per ion? With that, P3 can be fixed.
-- **Q47 (CONV-0008).** The defaults `rtol = 1e-10` and `E_floor = 1` meV;
-  the measured rounding is 13 ε `max|E|` ≈ 3·10⁻¹⁵ `max|E|`.
