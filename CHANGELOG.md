@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- The J matrices are built in one place, `J_x`, `J_y`, `J_z`, `J_plus`
+  and `J_minus`, and `StevensBase` takes its `Jx`, `Jy`, `Jz`, `Jp`, `Jm`
+  from them instead of its own copy of the formulas (AUDIT A5). They
+  follow CONV-0005 (order `|J>, ..., |−J>`, Condon–Shortley phases) and
+  are tested against it. No change to the results: every operator matrix
+  is bit-identical.
 - **Breaking:** `CEFion.__str__` is removed (CONV-0010); `str(cefion)`
   gives Python's default text. `CEFion.summary(evecs, precision)` prints
   the level scheme instead: the levels above the ground state with their

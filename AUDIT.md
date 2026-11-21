@@ -49,7 +49,7 @@ None open.
 | A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This made a second `diagonalize()` rotate J twice (P5, fixed) and makes every observable depend on the call order | ADR-0002 (`Hamiltonian`). Open there: when it is solved and whether it is immutable (Q29), observables as functions or methods (Q31) |
 | A3 | suggestion | Observables in a field rebuild a whole `CEFion` from `ion` and `cfp` and ignore `cefion.Hfield`, so the field lives in two places | Pass the field to the solver only; the observables take a solved state |
 | A4 | rule | `from .observables import *` exports `np`, `C`, `ArrayLike`, `CEFion` again, and the submodules. With no `__all__`, the public API is undefined (CLAUDE.md 6.2 "public entry point") | `__all__` in `__init__` and in every module |
-| A5 | rule (CONV-0005) | The J matrices are built twice: the module functions `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus` and again, formula by formula, in `StevensBase.__init__`. They agree bit for bit (J = 1/2 … 8, checked on `ea26fff`), so no result is wrong, but a change to one would not reach the other. `symbolic/cefmatrices.py` is a third, sympy, copy | `StevensBase` uses the module functions (`PLAN.md`, `refactor/j-matrices`); the sympy copy waits with A9 |
+| A5 | rule (CONV-0005) | `symbolic/cefmatrices.py` is a second, sympy, construction of the J matrices besides the module functions `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`. It is experimental, not imported and not tested. (`StevensBase` takes its J matrices from the module functions since `refactor/j-matrices`, with all its matrices bit-identical.) | Waits with A9 |
 | A6 | suggestion | `StevensBase` has 49 hand-written methods. It works and is tested, but adding l = 7… or checking the normalisation means editing 49 formulas | Keep it as the reference for now; later, generate `O_lm` from one closed formula (e.g. via the Racah tensor operators) and keep the hand-written table only as a test fixture |
 | A7 | suggestion | `CEFpars` stores the point group but doesn't use it; `allowed_Bpars` is a lookup table without the relations between parameters (cubic B44 = 5 B40) | Decide what point-group support should be (CONV-0004, `ROADMAP.md`), then build it on the one table, with tests |
 | A8 | suggestion | The ion data sit in a dictionary literal in `Ion.__init__`, rebuilt on every `Ion()`; `data_containers.py` holds only the point groups | Put the data tables (ions, point groups, allowed parameters) in one data module with their sources; move `atoms-form-factors.txt` out of the package (e.g. `tools/`) |
@@ -73,9 +73,7 @@ None open. The runtime needs only `numpy>=1.26`.
 
 ### 6.1 Comments that ask for something
 
-| Where | Text (shortened) | Goes to |
-|---|---|---|
-| `cefmatrices` module docstring | the matrices and conventions "need to be cross-checked against some reliable book" | Done: CONV-0001 and its tests; the comment can go |
+None open.
 
 ### 6.2 Conventions the findings wait for
 

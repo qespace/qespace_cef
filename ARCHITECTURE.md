@@ -33,7 +33,7 @@ per field axis.
 |---|---|---|
 | `__init__.py` | Public API: `Ion`, `CEFpars`, `CEFion` and `from .observables import *`; `__version__` read from the package metadata | all below |
 | `constants.py` | Physical constants and unit conversions (meV, K, T, cm⁻¹, emu) | – |
-| `cefmatrices.py` | Angular-momentum matrices `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`; class `StevensBase(J)`, which gives the Stevens operators `O_lm` for l = 0 to 6, every m, as methods `O20()`, `O4m3()` and as `StevensBase(J)['20']` | numpy |
+| `cefmatrices.py` | Angular-momentum matrices `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`, the one construction of J (CONV-0005); class `StevensBase(J)`, which takes its `Jx`, `Jy`, `Jz`, `Jp`, `Jm` from these functions and gives the Stevens operators `O_lm` for l = 0 to 6, every m, as methods `O20()`, `O4m3()` and as `StevensBase(J)['20']` | numpy |
 | `ion.py` | `Ion(name)`: rare-earth ions Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm, Yb (3+). J, `gJ`, Stevens factors α, β, γ, `<j0>` and `<j2>` coefficients, and `mff(Q)`, the dipole magnetic form factor | numpy |
 | `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_lm` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
 | `data_containers.py` | `point_group_synonyms` (Hermann–Mauguin, Schoenflies, lattice) | numpy |
@@ -57,7 +57,7 @@ in `decisions/conventions/`; no row here sets one.
 | Energy | meV internally; `CEFpars` accepts `meV`, `K`, `invcm`. `energies` are the eigenvalues of H, not shifted: with `B00 = 0` they average to zero, the centre of gravity of the J multiplet. `excitation_energies` are measured from the ground state (CONV-0010, tested) | `cefpars`, `cefion.diagonalize` |
 | Temperature, field | K; T (a 3-vector in the frame of the J operators) | `observables`, `CEFion` |
 | Momentum transfer | \|Q\| in Å⁻¹ (assumed: the code computes s = Q/4π, as in the ILL tables) | `Ion.mff` |
-| Basis | Ground J multiplet, `\|J>, \|J-1>, ..., \|-J>` (the first vector component is m = +J) | `cefmatrices` |
+| Basis | Ground J multiplet, `\|J>, \|J-1>, ..., \|-J>` (the first vector component is m = +J), Condon–Shortley phases; the J matrices are built once, by the module functions, and every other matrix from them (CONV-0005, tested) | `cefmatrices` |
 | Operators | Stevens `O_lm`; m < 0 written `m`, e.g. `O4m3`, the sine-type operators. As in McPhase (CONV-0001), tested against its table; PyCrystalField has the opposite sign for l + m odd | `cefmatrices`, `tests/test_cefmatrices.py` |
 | Parameters | `B_lm` in the Stevens convention, `H = Σ B_lm O_lm`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
 | Zeeman term | `H_Z = -μB gJ J·H`; the moment is `+gJ <J>` | `cefion` |
@@ -81,9 +81,11 @@ tests/
                         CONV-0001 (even l), with its own J matrices
     old_stevens.py      first implementation of the Stevens operators
     pycrystalfield.py   PyCrystalField's StevensOp, with attribution
-  test_cefmatrices.py   Stevens matrices vs the three references (CONV-0001
-                        for even l, signs included), Hermiticity, the
-                        StevensBase observations; J = 1/2 ... 8; strict
+  test_cefmatrices.py   the J matrices (CONV-0005: J_z, the Condon–Shortley
+                        J+, the commutator, J², the matrices StevensBase
+                        uses); Stevens matrices vs the three references
+                        (CONV-0001 for even l, signs included), Hermiticity,
+                        the StevensBase observations; J = 1/2 ... 8; strict
                         xfail where PyCrystalField's sign differs
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
                         Zeeman, ascending energies, orthonormality, H = U E

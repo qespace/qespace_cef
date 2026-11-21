@@ -2,11 +2,14 @@ r"""Angular-momentum matrices and Stevens operators of a J multiplet.
 
 All matrices are in the basis :math:`|J\rangle, |J-1\rangle, \dots, |-J\rangle`
 (the first component belongs to the highest m; for J = 3/2,
-:math:`|3/2\rangle = [1, 0, 0, 0]`), in units of :math:`\hbar = 1`. The
-operators are Stevens operators :math:`\hat{O}_k^q`.
+:math:`|3/2\rangle = [1, 0, 0, 0]`), in units of :math:`\hbar = 1`, with the
+Condon–Shortley phases (CONV-0005). The matrices of :math:`\hat{J}_x`,
+:math:`\hat{J}_y`, :math:`\hat{J}_z`, :math:`\hat{J}_\pm` built by the
+functions below are the root of every matrix in the package;
+:class:`StevensBase` takes them from these functions. The operators are the Stevens operators
+:math:`\hat{O}_k^q` as tabulated by McPhase (CONV-0001).
 
-Additions by Michal Stekiel. The matrices and conventions need to be
-cross-checked against some reliable book.
+Additions by Michal Stekiel.
 """
 
 import numpy as np
@@ -70,7 +73,9 @@ class StevensBase:
     J2p1 : int
         Dimension 2J+1.
     Jx, Jy, Jz, Jp, Jm : ndarray, shape (2J+1, 2J+1)
-        Angular-momentum matrices; ``Jy`` is complex, the others real.
+        Angular-momentum matrices from :func:`J_x`, :func:`J_y`,
+        :func:`J_z`, :func:`J_plus`, :func:`J_minus` (CONV-0005); ``Jy`` is
+        complex, the others real.
 
     Examples
     --------
