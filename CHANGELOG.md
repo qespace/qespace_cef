@@ -4,6 +4,17 @@
 
 ## Unreleased
 
+- **Breaking:** `qespace_cef.constants` takes its values from CODATA 2022
+  (e, h, c, k exact; μB = 9.2740100657(29)·10⁻²⁴ J/T), cited in the module,
+  and derives the conversions from them: `K2meV = 1e3 k/e`,
+  `meV2K = 1/K2meV`, `uB = 1e3 μB/e`, `invcm2meV = 1e3 · 100 h c/e`
+  (AUDIT P15). Before, they mixed CODATA 1986 and 2010 and were typed
+  separately, so `K2meV` and `meV2K` were not reciprocal. Results move:
+  energies from parameters in K by up to 3.9·10⁻⁶ relative (`K2meV` had
+  5 digits), in cm⁻¹ by 3.8·10⁻⁷; magnetization by 2.8·10⁻⁷; χ by
+  4.0·10⁻⁷; energies from parameters in meV in zero field not at all. The
+  unused names `pi`, `R0`, `kB_SI`, `NA`, `C1`, `C2`, `C3` and the private
+  `_m`, `_gn`, `_hq`, `_gamn`, `_r0` are removed.
 - `susceptibility(method='perturbation')` evaluates the van Vleck weight
   `(p_n − p_m)/(E_m − E_n)` as `p_n (−expm1(−(E_m − E_n)/k_B T))/(E_m −
   E_n)` on the pairs `E_m > E_n`, mirrored to the others, instead of a

@@ -32,7 +32,7 @@ per field axis.
 | Module | Contents | Depends on |
 |---|---|---|
 | `__init__.py` | Public API: `Ion`, `CEFpars`, `CEFion` and `from .observables import *`; `__version__` read from the package metadata | all below |
-| `constants.py` | Physical constants and unit conversions (meV, K, T, cm⁻¹, emu) | – |
+| `constants.py` | Physical constants from CODATA 2022 (e, h, c, k exact; μB), cited in the module docstring, and the unit conversions derived from them: `K2meV` and `meV2K = 1 / K2meV` (meV/K, K/meV), `uB` (meV/T), `invcm2meV` (meV per cm⁻¹); `numerical_zero`, the degeneracy rule of CONV-0009 | – |
 | `cefmatrices.py` | Angular-momentum matrices `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`, the one construction of J (CONV-0005); class `StevensBase(J)`, which takes its `Jx`, `Jy`, `Jz`, `Jp`, `Jm` from these functions and gives the Stevens operators `O_lm` for l = 0 to 6, every m, as methods `O20()`, `O4m3()` and as `StevensBase(J)['20']` | numpy |
 | `ion.py` | `Ion(name)`: rare-earth ions Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm, Yb (3+). J, `gJ`, Stevens factors α, β, γ, `<j0>` and `<j2>` coefficients, and `mff(Q)`, the dipole magnetic form factor | numpy |
 | `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_lm` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
@@ -95,6 +95,9 @@ tests/
                         xfail for P7
   test_cefpars.py       unit conversion, point-group tables, the parameter
                         labels of CONV-0001
+  test_constants.py     the conversions against CODATA 2022 (values written
+                        in the test), K2meV and meV2K reciprocal, uB
+                        against NIST's value in eV/T
   test_ion.py           J and gJ from Hund's rules, form factor, str()
   test_observables.py   susceptibility tensor against the exact formula and
                         CONV-0009, thermodynamic identities, sum rules, g
