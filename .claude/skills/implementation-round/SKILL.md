@@ -85,6 +85,5 @@ poll. Do not run uv installs of your own while the implementer runs
 
 ## 5. When it reports
 
-A report saying it is still waiting is not the end: say so in a
-line and wait for the next note. When it reports done, follow the
-`review-round` skill.
+Say in one line that it reported, then go back to the discussion. Follow the
+`review-round` skill only when the maintainer says to review.
