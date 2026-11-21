@@ -322,8 +322,9 @@ def susceptibility(
     """
 
     temperatures = np.asarray(temperatures, dtype=float)
-    chi = np.empty(temperatures.shape + (3, 3))
-    chi_flat = chi.reshape(-1, 3, 3)
+    # One row per temperature, in the order of temperatures.ravel(); reshaped
+    # to S + (3, 3) only on return, so no array is filled through a view.
+    chi = np.empty((temperatures.size, 3, 3))
 
     if method == "magnetization":
         eps = 1e-5  # T
@@ -331,7 +332,7 @@ def susceptibility(
             for beta in range(3):
                 Hfield = np.zeros(3)
                 Hfield[beta] = eps
-                chi_flat[it, :, beta] = np.array(magnetization(cefion, temperature, Hfield)) / eps
+                chi[it, :, beta] = np.array(magnetization(cefion, temperature, Hfield)) / eps
     elif method == "perturbation":
         J = np.asarray(cefion.J)  # (3, n, n), in the eigenbasis
         # jumps[n, m] = E_m - E_n; degenerate pairs as in CONV-0009.
@@ -356,12 +357,12 @@ def susceptibility(
             W[up_n, up_m] = w_up
             W[up_m, up_n] = w_up
             # <n|J_a|m><m|J_b|n> = J_a[n, m] conj(J_b[n, m]) for Hermitian J_b
-            chi_flat[it] = np.einsum("nm,anm,bnm->ab", W, J, J.conj()).real
+            chi[it] = np.einsum("nm,anm,bnm->ab", W, J, J.conj()).real
         chi *= cefion.ion.gJ**2 * C.uB
     else:
         raise ValueError(f"Unknown method {method!r}; use 'perturbation' or 'magnetization'.")
 
-    return chi
+    return chi.reshape(temperatures.shape + (3, 3))
 
 
 def gtensor(cefion: CEFion) -> np.ndarray:
