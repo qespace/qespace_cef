@@ -23,8 +23,9 @@ Decided in ADR-0002 (the objects) and ADR-0003 (broadcasting); still to build.
 - Memory: J in the eigenbasis is `S + (3, n, n)`, 139 MB per 10⁴ points at
   J = 8; compute only what an observable needs, or work in chunks.
 - The print of the level scheme (`summary`, in v1 today): its grouping of
-  levels follows CONV-0008 once accepted, and a basis inside a degenerate
-  level may be fixed by a named operator (AUDIT Q41).
+  levels follows CONV-0008 once accepted, and so does the basis it prints
+  inside a degenerate level: J_z diagonalised inside the level, Kramers
+  partners by time reversal.
 
 ## Fitting
 

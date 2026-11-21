@@ -91,7 +91,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0005 basis | draft | whether the order of states is a convention | – |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
-| CONV-0008 degenerate levels | draft | Q41 (a basis inside a level). Decided (Q40): the tolerance `rtol · max(max\|E\|, E_floor)` from the config; CONV-0009 then needs superseding | P4, P7, P20, A11 |
+| CONV-0008 degenerate levels | draft | Q45–Q47. Decided: the tolerance `rtol · max(max\|E\|, E_floor)` from the config (Q40); a shown basis is the canonical one, J_z diagonalised inside the level, Kramers partners by time reversal (Q41); CONV-0009 then needs superseding | P4, P7, P20, A11 |
 | CONV-0009 susceptibility | accepted | – | – |
 | CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
@@ -143,11 +143,6 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   test; CONV-0001 has none, and an accepted CONV is never edited. Leave it,
   with the tests naming the CONV (`test_conv_0001_*`), or supersede CONV-0001
   with a copy that adds the line?
-- **Q41 (CONV-0008).** Is a basis inside a degenerate level ever shown
-  (eigenvectors, a print of the level scheme)? If so, it is fixed by
-  diagonalising a named operator inside the level (e.g. J_z, then J_x if
-  J_z is degenerate there) and a phase rule; the numbers returned stay
-  basis invariant either way.
 - **Q42 (CONV-0003).** The accepted CONV-0003 still says "`OPEN:` the
   units of the API" and lists the units "As implemented" (meV, K, T, Å⁻¹,
   μB per ion, χ in μB/T per ion). Is that list the decision? An accepted
@@ -159,3 +154,14 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
 - **Q44 (P3).** The units of the thermodynamic quantities, which no CONV
   states: U and F in meV per ion from the zero of CONV-0010, S and C_v in
   k_B per ion? With that, P3 can be fixed.
+- **Q45 (CONV-0008).** The operator when J_z is degenerate inside a level,
+  e.g. an XY doublet with `<J_z> = 0` for both states. I recommend J_x,
+  then J_y, in that fixed order; n̂·J along the largest principal g axis is
+  more physical but depends on the g-tensor (C7).
+- **Q46 (CONV-0008).** The phase of a state with `<J_z> = 0` in a level of
+  an integer-J ion: I recommend `Θ|s> = |s>`. And should the time-reversal
+  pairing apply to every level in zero field, Kramers or not (Θ maps
+  `<J_z> = μ` to `−μ` in both cases), leaving the per-state phase only for
+  a field?
+- **Q47 (CONV-0008).** The defaults `rtol = 1e-10` and `E_floor = 1` meV;
+  the measured rounding is 13 ε `max|E|` ≈ 3·10⁻¹⁵ `max|E|`.
