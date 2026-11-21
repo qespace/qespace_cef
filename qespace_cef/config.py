@@ -7,7 +7,8 @@ they are imported, so an assignment changes every later call, e.g.
 
 rtol = 1e-10
 """Relative tolerance of CONV-0008, dimensionless: two energies are one level
-when they differ by at most ``rtol * max(max|E|, E_floor)``."""
+when they differ by at most ``rtol * max(max|E|, E_floor)``. The J_z
+degeneracy of CONV-0011 inside a level uses ``rtol * J``."""
 
 E_floor = 1.0
 """Energy scale of CONV-0008 in meV: the tolerance never falls below

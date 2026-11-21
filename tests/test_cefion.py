@@ -5,6 +5,8 @@ into a failure (XPASS) when the problem is fixed, so the marker must then be
 removed.
 """
 
+import re
+
 import numpy as np
 import pytest
 
@@ -128,11 +130,12 @@ def test_summary_options():
 
 
 def test_summary_groups_levels_for_printing():
-    """States within 1e-10 meV print as one level; a larger splitting does not.
+    """States in one level of CONV-0008 print as one level; a larger splitting does not.
 
     Cubic Pr3+: eigh returns the 28.584 meV doublet as two values that differ
-    by rounding noise (AUDIT P7); the print groups them. Ce3+ in 1e-6 T splits
-    each doublet by about 5e-8 meV, which the print keeps apart.
+    by rounding noise; the print groups them. Ce3+ in 1e-6 T splits each
+    doublet by about 5e-8 meV, above the tolerance of 1e-9 meV, which the
+    print keeps apart.
     """
     pr = _cefion("Pr", CUBIC_PR).summary(evecs=False)
     assert [line.split("\t")[-1] for line in pr.splitlines() if line.startswith("E(")] == [
@@ -325,3 +328,102 @@ def test_conv_0008_tolerance_read_from_config_at_call_time(monkeypatch):
 def test_degenerate_levels_rejects_unsorted_or_not_1d(energies):
     with pytest.raises(ValueError):
         degenerate_levels(energies)
+
+
+# --- CONV-0011: the canonical basis printed by summary --------------------
+# The basis is read back from the text summary prints, its public output.
+
+CANONICAL_CASES = [  # (ion, parameters in meV, field in T), test values
+    ("Ce", dict(B20=0.5, B40=0.01, B44=0.1), (0, 0, 0)),  # Kramers doublets
+    ("Ce", LOW_SYMMETRY, (0, 0, 0)),
+    ("Nd", CUBIC_PR, (0, 0, 0)),  # cubic: Kramers doublets and quartets
+    ("Pr", dict(B20=0.3, B40=0.01, B44=0.05), (0, 0, 0)),  # integer J: two doublets
+    ("Pr", CUBIC_PR, (0, 0, 0)),  # integer J: triplets
+    ("Er", LOW_SYMMETRY, (0.1, 0.2, 0.3)),  # field: no degeneracy
+]
+
+
+def _printed_basis(cef, precision=12):
+    """The eigenvectors summary prints, one array per level, rows in the free-ion basis."""
+    levels = []
+    for block in cef.summary(precision=precision).strip().split("\n\n")[1:]:
+        rows = []
+        for line in block.splitlines()[1:]:
+            v = np.zeros(len(cef.freeionkets), complex)
+            for coefficient, ket in re.findall(r"\(([^()]*)\)(\|[^>]*>)", line):
+                v[cef.freeionkets.index(ket)] = complex(coefficient)
+            rows.append(v)
+        levels.append(np.array(rows))
+    return levels
+
+
+def _jz(J):
+    """J_z in the basis |J>, ..., |-J> (CONV-0005)."""
+    return np.diag(np.arange(J, -J - 1, -1))
+
+
+def _time_reversal(v, J):
+    """Theta|m> = (-1)^(J-m) |-m>, then complex conjugation; v in the basis |J>, ..., |-J>."""
+    m = np.arange(J, -J - 1, -1)
+    out = np.zeros_like(v)
+    for i, mi in enumerate(m):
+        out[list(m).index(-mi)] = (-1) ** round(J - mi) * np.conj(v[i])
+    return out
+
+
+GAMMA3_UNFIXED = pytest.mark.xfail(
+    strict=True,
+    reason="CONV-0011 rule 1: cubic Pr3+ has a non-magnetic Gamma3 doublet in which J_x, J_y "
+    "and J_z all vanish (|<i|J|j>| ~ 2e-15), so no J component fixes its basis",
+)
+
+
+@pytest.mark.parametrize(
+    ("name", "pars", "field"),
+    [
+        pytest.param(*case, marks=GAMMA3_UNFIXED)
+        if case[1] is CUBIC_PR and case[0] == "Pr"
+        else case
+        for case in CANONICAL_CASES
+    ],
+)
+def test_conv_0011_basis_unchanged_by_rotation_inside_levels(name, pars, field):
+    """A random unitary rotation inside each level does not change the printed basis."""
+    cef = _cefion(name, pars, field)
+    before = _printed_basis(cef)
+    rng = np.random.default_rng(11)
+    for level in degenerate_levels(cef.energies):
+        d = level.stop - level.start
+        Q, _ = np.linalg.qr(rng.normal(size=(d, d)) + 1j * rng.normal(size=(d, d)))
+        cef.eigenvectors[level] = Q @ cef.eigenvectors[level]
+    for a, b in zip(before, _printed_basis(cef)):
+        assert np.allclose(a, b, rtol=0, atol=1e-9)
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), CANONICAL_CASES)
+def test_conv_0011_jz_ascending_and_phases(name, pars, field):
+    """<J_z> ascends inside each level; the states that get their own phase have their
+    largest component real and positive (CONV-0011, rules 1-3)."""
+    cef = _cefion(name, pars, field)
+    J = cef.ion.J
+    kramers = J % 1 == 0.5 and not np.any(field)
+    for states in _printed_basis(cef):
+        jz = np.einsum("ik,kl,il->i", states.conj(), _jz(J), states).real
+        assert np.all(np.diff(jz) >= -1e-9)
+        own_phase = states[jz < 0] if kramers else states
+        for v in own_phase:
+            largest = v[np.argmax(np.abs(v))]
+            assert abs(largest.imag) <= 1e-9 and largest.real > 0
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), CANONICAL_CASES[:3])
+def test_conv_0011_kramers_partners_by_time_reversal(name, pars, field):
+    """Kramers ion in zero field: the partner of each state with <J_z> < 0 is Theta of it."""
+    cef = _cefion(name, pars, field)
+    J = cef.ion.J
+    for states in _printed_basis(cef):
+        d = len(states)
+        assert d % 2 == 0
+        for i in range(d // 2):
+            assert np.real(states[i].conj() @ _jz(J) @ states[i]) < 0
+            assert np.allclose(_time_reversal(states[i], J), states[d - 1 - i], rtol=0, atol=1e-9)

@@ -19,6 +19,14 @@
   `precision` argument, which was ignored, is removed. It truncated the
   energies to 5 decimals, so a doublet split by rounding noise could come
   out as two levels (AUDIT P7).
+- `CEFion.summary` groups the levels by CONV-0008 (its own 10⁻¹⁰ meV
+  threshold is gone) and prints the states of each level in the canonical
+  basis of CONV-0011: J_z diagonalised inside the level, `<J_z>`
+  ascending, then J_x, J_y where J_z is degenerate there; Kramers
+  partners by time reversal for half-integer J in zero field, one phase
+  per state otherwise. `eigenvectors` are unchanged. A level in which no
+  J component splits the states (the cubic Γ3 doublet of Pr³⁺) still
+  prints an arbitrary basis.
 - **Breaking:** `qespace_cef.constants` takes its values from CODATA 2022
   (e, h, c, k exact; μB = 9.2740100657(29)·10⁻²⁴ J/T), cited in the module,
   and derives the conversions from them: `K2meV = 1e3 k/e`,
