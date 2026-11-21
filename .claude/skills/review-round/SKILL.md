@@ -47,9 +47,7 @@ Then, in that folder, one after another:
    and `ruff format --check . --exclude examples`
 4. the step-specific checks of PLAN.md against your own data, e.g. the
    snapshot implementation-round saved from `main` (bit-identity of a
-   refactor), not the implementer's;
-5. `uv run --no-project --isolated --with "nox>=2026.10.20" nox` with
-   `QESPACE_NOX_ENVDIR` set to a short temp path.
+   refactor), not the implementer's.
 
 Compare the numbers with `main` (passed, xfailed): every change must be
 explained by the plan, e.g. new tests, an xfail that turns green.
@@ -60,7 +58,7 @@ To the maintainer, in this order:
 
 - one sentence: clean, or what is wrong;
 - a table: commits, scope, the step-specific checks, pytest, doctests, ruff,
-  nox, each with its numbers;
+  each with its numbers;
 - what the branch changes, in a few bullets;
 - findings, each with the rule it breaks; observations that break no rule
   labelled as such;

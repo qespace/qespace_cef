@@ -164,8 +164,8 @@ holds for subagents and worktrees.
 7. Regression reference data are regenerated only after a deliberate change of
    results, and the summary and commit body say so, with the size of the change.
 8. Before finishing: `uv run pytest`, `uv run ruff check .` and
-   `uv run ruff format --check .`, and the numpy × Python matrix with
-   `uv run nox` (commands in `DEV.md`).
+   `uv run ruff format --check .` (commands in `DEV.md`); `uv run nox`
+   before a release.
 
 ## 7. Documentation
 
@@ -218,7 +218,7 @@ The maintainer may work with two kinds of session. A session that is neither
    `OPEN:` item and no convention. If something outside the plan seems
    needed, it stops and reports. It reports as in 1.3.5 and stops.
 4. The advisor reviews the branch on its own: the scope against the plan's
-   files, pytest, ruff and nox run by itself, the step's own checks against
+   files, pytest and ruff run by itself, the step's own checks against
    its own data, the CONV tests and the commit messages. Corrections go back
    to the same implementer. The maintainer merges, or tells the advisor to;
    the advisor then replaces the plan's *Now*.

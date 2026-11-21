@@ -34,7 +34,7 @@ uv run pytest -m perf -s          # the performance stubs, with timings
 uv run pytest --doctest-modules qespace_cef --ignore=qespace_cef/symbolic
 uv run ruff check .
 uv run ruff format --check .      # `uv run ruff format .` to apply
-uv run nox                        # numpy x Python matrix, see below
+uv run nox                        # before a release: numpy x Python matrix
 ```
 
 `uv run pytest` reports the known problems from `AUDIT.md` as `xfailed`.

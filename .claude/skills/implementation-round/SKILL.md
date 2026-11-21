@@ -59,13 +59,12 @@ The brief:
 >
 > Environment (CLAUDE.md 4): `uv` only. Don't create or change a shared
 > `.venv`: use `uv run --no-project --isolated --with-editable . --with
-> pytest pytest -q`, the same with `ruff`, and `uv run --no-project
-> --isolated --with "nox>=2026.10.20" nox` with `QESPACE_NOX_ENVDIR` set to a
-> short temp path. Run uv installs one after another. Give `uv run python` a
+> pytest pytest -q` and the same with `ruff`. Run uv installs one after
+> another. Give `uv run python` a
 > script file or `-c`, never an empty `python -` on stdin.
 >
 > When done, stop and report (CLAUDE.md 1.3.5): `git log --oneline main..HEAD`,
-> the branch name, pytest / ruff / nox numbers, the results of the
+> the branch name, pytest / ruff numbers, the results of the
 > step-specific checks, what was not checked, and the command for the diff.
 > Then end your turn; the advisor reviews the branch.
 
@@ -79,11 +78,11 @@ Open in → Split view).
 ## 4. While it runs
 
 End your turn with one line saying you will review when it reports. Do not
-poll. Do not run uv installs of your own while the implementer may be
-running nox (CLAUDE.md 4.4).
+poll. Do not run uv installs of your own while the implementer runs
+(CLAUDE.md 4.4).
 
 ## 5. When it reports
 
-A report saying it is still waiting (e.g. on nox) is not the end: say so in a
+A report saying it is still waiting is not the end: say so in a
 line and wait for the next note. When it reports done, follow the
 `review-round` skill.
