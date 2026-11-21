@@ -13,9 +13,9 @@ The **scattering function** of one ion, with eigenstates |i>, |f>, energies
 
     S^{αβ}(ħω) = Σ_{i,f} p_i <i|J_α|f><f|J_β|i> δ(ħω − (E_f − E_i))
 
-returned as transitions: the energies `E_f − E_i` in meV, positive for
-neutron energy loss, and a 3×3 weight per transition. It holds no neutron
-factor.
+It holds no neutron factor and is returned as excitations with spectral
+weights (CONV-0012), elastic ones included; `E_f − E_i` > 0 is neutron
+energy loss.
 
 The **cross section** per ion is built from it:
 
@@ -24,11 +24,10 @@ The **cross section** per ion is built from it:
 
 with the dipole form factor `F(Q)`, `k_f/k_i = √(1 − ħω/E_i)` and the
 mean-square displacement `⟨u²⟩` in Å² (`u2`). A powder averages the
-projector to `(2/3) δ_αβ`. Q is in the local frame of CONV-0004.
-
-`OPEN:` intensities in arbitrary units (`(γr₀)² = 1`) or absolute
-(barn sr⁻¹ meV⁻¹ per ion). `OPEN:` whether the transitions with
-`E_f = E_i` (elastic, `ħω = 0`) are returned.
+projector to `(2/3) δ_αβ`. Q is in the local frame of CONV-0004. It is
+returned as excitations with intensities (CONV-0012), in barn sr⁻¹ per ion
+(the cross section itself is in barn sr⁻¹ meV⁻¹ per ion). γ and r₀ come from CODATA 2022
+in `constants.py`.
 
 ## Rationale
 
@@ -39,7 +38,7 @@ factors. Against the code before this CONV:
 
 | Factor | References | Code | Comment |
 |---|---|---|---|
-| prefactor | `(γr₀)²` | 1 | arbitrary units |
+| prefactor | `(γr₀)²` | 1 | arbitrary units; now absolute |
 | ion factor | `[½ g F(Q)]²`; Raymond `f²(Q)` (spin only, g = 2) | `F(Q)²` | `(g_J/2)²` was missing |
 | geometry | `Σ (δ_αβ − Q̂_αQ̂_β) S^{αβ}` | diagonal only (single crystal) | cross terms missing (AUDIT P9); powder `2/3 Σ_α` right |
 | `k_f/k_i` | `k′/k` | `√(1 − ΔE/E_i)` | same |
@@ -47,9 +46,7 @@ factors. Against the code before this CONV:
 | Debye–Waller | `e^{−2W}`, `W ≈ κ²⟨u²⟩/6` | `exp(−B_iso Q²/3)` | same if `B_iso` is `⟨u²⟩`; renamed `u2` |
 
 The transition sum gives the total scattering function, static and
-dynamic parts of Jensen and Mackintosh (4.2.3a–c) together. Weights of
-single transitions inside a degenerate level depend on the basis; sums over
-a level do not (CONV-0008).
+dynamic parts of Jensen and Mackintosh (4.2.3a–c) together.
 
 ## Consequences
 
