@@ -56,7 +56,7 @@ holds for subagents and worktrees.
    what was not checked, and the command for the diff
    (`git diff main...<branch>`).
 6. Corrections after review are new commits on the branch. The maintainer
-   merges, or tells you to merge a branch they have reviewed. Never merge into
+   merges (`git merge --no-ff`), or tells you to merge a branch they have reviewed. Never merge into
    `main` or commit on `main` yourself otherwise.
 
 ### 1.4 Always

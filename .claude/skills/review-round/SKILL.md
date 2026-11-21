@@ -63,10 +63,9 @@ To the maintainer, in this order:
 - findings, each with the rule it breaks; observations that break no rule
   labelled as such;
 - what was not checked;
-- whether `main` can fast-forward (`git merge-base --is-ancestor main
-  <branch>`) and the command to merge:
+- the command to merge, with a merge commit and its message, so no editor opens:
 
-      git merge --ff-only <branch>
+      git merge --no-ff <branch> -m "Merge branch '<branch>': <one line on what it does>"
 
 The maintainer merges, or tells you to. After the merge, replace PLAN.md's
 *Now* with the next step (or say there is none) and remove what the branch
