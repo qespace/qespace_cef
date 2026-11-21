@@ -285,36 +285,24 @@ class CEFion:
         mu = self.ion.gJ * np.einsum("ijj->ji", self.J)
         return np.real(mu + mu.conj()) / 2
 
-    def get_degeneracies(self, precision: int = 5):
-        """Energy levels and their degeneracies.
+    def get_degeneracies(self) -> list[list]:
+        """Energy levels and their degeneracies, grouped by CONV-0008.
 
-        Eigenenergies are grouped by their value truncated to 5 decimals
-        (in meV).
-
-        Parameters
-        ----------
-        precision : int, optional
-            Meant as the number of decimals; currently ignored, 5 is used.
+        The ``energies`` are grouped into levels by
+        :func:`degenerate_levels`, with the tolerance from
+        :mod:`qespace_cef.config` at call time.
 
         Returns
         -------
         list of [float, int]
-            ``[energy, degeneracy]`` for each level, ascending in energy;
-            energy in meV.
-
-        Warnings
-        --------
-        P7 (AUDIT.md), not fixed yet: ``precision`` is overwritten with 5,
-        and the energies are truncated, not rounded. Two degenerate states
-        whose energies differ by rounding noise can fall on both sides of a
-        1e-5 meV step and come out as two levels, e.g. the 28.584 meV doublet
-        of Pr3+ with ``B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4``.
+            ``[energy, degeneracy]`` for each level, ascending in energy:
+            the mean of the level's ``energies`` in meV (CONV-0010) and the
+            number of states in it.
         """
-        # AUDIT P7: overwrites the argument; astype(int) truncates instead of rounding.
-        precision = 5
-        energies = (self.energies * 10**precision).astype(int)  # Convert to int for unique
-        unique_energies, counts = np.unique(energies, return_counts=True)
-        return [[float(e), int(c)] for e, c in zip(unique_energies / 10**precision, counts)]
+        return [
+            [float(np.mean(self.energies[level])), level.stop - level.start]
+            for level in degenerate_levels(self.energies)
+        ]
 
     def summary(self, evecs: bool = True, precision: int = 3) -> str:
         """The level scheme as text: levels, degeneracies and eigenvectors.

@@ -236,13 +236,24 @@ def test_eigenvectors_belong_to_energies(name):
 CUBIC_PR = dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4)  # B44 = 5 B40, B64 = -21 B60
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P7: energies truncated, a doublet split in two")
 def test_degeneracies_of_cubic_pr():
     """Pr3+ in a cubic field: levels grouped within 1e-9 of the largest energy."""
     e = _cefion("Pr", CUBIC_PR).energies
     new_level = np.diff(e) > 1e-9 * e.max()
     expected = np.diff(np.flatnonzero(np.r_[True, new_level, True])).tolist()
     assert [d for _, d in _cefion("Pr", CUBIC_PR).get_degeneracies()] == expected
+
+
+@pytest.mark.parametrize(("name", "pars"), [("Pr", CUBIC_PR), ("Er", LOW_SYMMETRY)])
+def test_degeneracies_report_mean_energy(name, pars):
+    """Each level is reported with the mean of its energies (meV, CONV-0010), not truncated."""
+    e = _cefion(name, pars).energies
+    new_level = np.diff(e) > 1e-9 * np.abs(e).max()
+    groups = np.split(e, np.flatnonzero(new_level) + 1)
+    levels = _cefion(name, pars).get_degeneracies()
+    assert [d for _, d in levels] == [len(g) for g in groups]
+    for (energy, _), group in zip(levels, groups):
+        assert energy == pytest.approx(group.mean(), rel=1e-12, abs=1e-12 * np.abs(e).max())
 
 
 # --- CONV-0008: degenerate levels -----------------------------------------

@@ -14,6 +14,11 @@
   pairs split between 10⁻¹² meV and the new tolerance, by rounding
   (≤ 2·10⁻¹⁶ relative in the cases checked). `gtensor` now accepts a
   ground doublet split below the tolerance.
+- **Breaking:** `CEFion.get_degeneracies()` groups the energies by
+  CONV-0008 and reports each level with the mean of its energies; the
+  `precision` argument, which was ignored, is removed. It truncated the
+  energies to 5 decimals, so a doublet split by rounding noise could come
+  out as two levels (AUDIT P7).
 - **Breaking:** `qespace_cef.constants` takes its values from CODATA 2022
   (e, h, c, k exact; μB = 9.2740100657(29)·10⁻²⁴ J/T), cited in the module,
   and derives the conversions from them: `K2meV = 1e3 k/e`,
