@@ -1,4 +1,6 @@
-"""Tests of the Stevens operator matrices in ``qespace_cef.cefmatrices``."""
+"""Tests of the J matrices and the Stevens operator matrices in ``qespace_cef.cefmatrices``."""
+
+import math
 
 import numpy as np
 import pytest
@@ -6,7 +8,7 @@ from reference import mcphase
 from reference import old_stevens as old
 from reference.pycrystalfield import StevensOpPCF
 
-from qespace_cef.cefmatrices import J_x, J_y, J_z, StevensBase
+from qespace_cef.cefmatrices import J_minus, J_plus, J_x, J_y, J_z, StevensBase
 
 # Total angular momenta J = 1/2 ... 8, covering the rare-earth ions.
 J_VALUES = [float(J) for J in np.arange(1, 17) / 2]
@@ -60,6 +62,68 @@ REFERENCES = {
 def _close(a, b):
     """True if ``a`` equals ``b`` to 1e-10 of the largest element of ``a``."""
     return np.allclose(a, b, atol=np.max(np.abs(a)) * 1e-10)
+
+
+def _m_values(J):
+    """The m of the basis states, in the order of CONV-0005: J, J-1, ..., -J."""
+    return [J - i for i in range(int(2 * J + 1))]
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_conv_0005_jz_diagonal(J):
+    """CONV-0005: J_z = diag(J, J-1, ..., -J), so <J|J_z|J> = J for the first state."""
+    Jz = J_z(J)
+    assert Jz.shape == (int(2 * J + 1),) * 2
+    assert Jz[0, 0] == J
+    assert _close(Jz, np.diag(_m_values(J)))
+    assert np.count_nonzero(Jz - np.diag(np.diag(Jz))) == 0
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_conv_0005_jplus_condon_shortley(J):
+    """CONV-0005: <m+1|J+|m> = sqrt(J(J+1) - m(m+1)), real and non-negative, alone on the first superdiagonal.
+
+    Row i is the state m_i = J - i, so <m+1|J+|m> sits in row i, column i+1,
+    with m = m_{i+1}.
+    """
+    ms = _m_values(J)
+    n = len(ms)
+    expected = np.zeros((n, n))
+    for i in range(n - 1):
+        m = ms[i + 1]
+        expected[i, i + 1] = math.sqrt(J * (J + 1) - m * (m + 1))
+    Jp = J_plus(J)
+    assert np.isrealobj(Jp)
+    assert np.all(np.diag(Jp, 1) >= 0)
+    assert _close(Jp, expected)
+    off_superdiagonal = ~np.eye(n, k=1, dtype=bool)
+    assert np.count_nonzero(Jp[off_superdiagonal]) == 0
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_conv_0005_jminus_jx_jy(J):
+    """CONV-0005: J- = J+^dagger, J_x = (J+ + J-)/2, J_y = (J+ - J-)/2i."""
+    Jp = J_plus(J)
+    assert _close(J_minus(J), Jp.conj().T)
+    assert _close(J_x(J), (Jp + Jp.conj().T) / 2)
+    assert _close(J_y(J), (Jp - Jp.conj().T) / 2j)
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_conv_0005_commutator_and_j_squared(J):
+    """CONV-0005: [J_x, J_y] = i J_z and J_x^2 + J_y^2 + J_z^2 = J(J+1)."""
+    Jx, Jy, Jz = J_x(J), J_y(J), J_z(J)
+    assert _close(Jx @ Jy - Jy @ Jx, 1j * Jz)
+    assert _close(Jx @ Jx + Jy @ Jy + Jz @ Jz, J * (J + 1) * np.eye(int(2 * J + 1)))
+
+
+@pytest.mark.parametrize("J", J_VALUES)
+def test_conv_0005_stevens_base_uses_these(J):
+    """CONV-0005: the J matrices StevensBase uses are the module's J_x, J_y, J_z, J_plus, J_minus."""
+    ops = StevensBase(J)
+    pairs = {"Jx": J_x, "Jy": J_y, "Jz": J_z, "Jp": J_plus, "Jm": J_minus}
+    different = [a for a, f in pairs.items() if not np.array_equal(getattr(ops, a), f(J))]
+    assert different == []
 
 
 def test_implemented_operators():
