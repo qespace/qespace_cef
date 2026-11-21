@@ -49,7 +49,7 @@ None open.
 | A2 | suggestion | `CEFion` is a stateful object: the constructor builds H, `diagonalize()` mutates `Jx/Jy/Jz` and changes their meaning (free-ion basis before, eigenbasis after; a list before, an array after), and `energies` is `[]` until diagonalised. This made a second `diagonalize()` rotate J twice (P5, fixed) and makes every observable depend on the call order | ADR-0002 (`Hamiltonian`). Open there: when it is solved and whether it is immutable (Q29), observables as functions or methods (Q31) |
 | A3 | suggestion | Observables in a field rebuild a whole `CEFion` from `ion` and `cfp` and ignore `cefion.Hfield`, so the field lives in two places | Pass the field to the solver only; the observables take a solved state |
 | A4 | rule | `from .observables import *` exports `np`, `C`, `ArrayLike`, `CEFion` again, and the submodules. With no `__all__`, the public API is undefined (CLAUDE.md 6.2 "public entry point") | `__all__` in `__init__` and in every module |
-| A5 | suggestion | The J matrices are built twice (`J_x`… functions and `StevensBase.__init__`); `symbolic/cefmatrices.py` is a third, sympy, copy | `StevensBase` uses the module functions |
+| A5 | rule (CONV-0005) | The J matrices are built twice: the module functions `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus` and again, formula by formula, in `StevensBase.__init__`. They agree bit for bit (J = 1/2 … 8, checked on `ea26fff`), so no result is wrong, but a change to one would not reach the other. `symbolic/cefmatrices.py` is a third, sympy, copy | `StevensBase` uses the module functions (`PLAN.md`, `refactor/j-matrices`); the sympy copy waits with A9 |
 | A6 | suggestion | `StevensBase` has 49 hand-written methods. It works and is tested, but adding l = 7… or checking the normalisation means editing 49 formulas | Keep it as the reference for now; later, generate `O_lm` from one closed formula (e.g. via the Racah tensor operators) and keep the hand-written table only as a test fixture |
 | A7 | suggestion | `CEFpars` stores the point group but doesn't use it; `allowed_Bpars` is a lookup table without the relations between parameters (cubic B44 = 5 B40) | Decide what point-group support should be (CONV-0004, `ROADMAP.md`), then build it on the one table, with tests |
 | A8 | suggestion | The ion data sit in a dictionary literal in `Ion.__init__`, rebuilt on every `Ion()`; `data_containers.py` holds only the point groups | Put the data tables (ions, point groups, allowed parameters) in one data module with their sources; move `atoms-form-factors.txt` out of the package (e.g. `tools/`) |
@@ -88,7 +88,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0001 parameters and operators | accepted | Q12, Q33 | P16 |
 | CONV-0003 units | accepted | its Statement still says `OPEN:` the units of the API (Q42) | P3, P15 |
 | CONV-0004 frames | draft | the local frame and its relation to the crystal frame | A7 |
-| CONV-0005 basis | draft | whether the order of states is a convention | – |
+| CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
 | CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config); CONV-0009 now needs superseding | P4, P7, P20, A11 |
@@ -103,13 +103,15 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`fix/van-vleck`**: P20, needs no new decision; one commit with its test.
-2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
+1. **`refactor/j-matrices`**: A5, one construction of the J matrices
+   (CONV-0005, `PLAN.md`).
+2. **`fix/van-vleck`**: P20, needs no new decision; one commit with its test.
+3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
-3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A5, A10,
+4. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
    A11 with P7, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
-4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
+5. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
 

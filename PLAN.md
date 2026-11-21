@@ -6,86 +6,62 @@ The step being worked on now, in the form of CLAUDE.md 2.3. It borrows from
 tracking, not a rule (ADR-0001). Ideas for later are in
 [`ROADMAP.md`](ROADMAP.md).
 
-## Now: `feat/energy-zero`, CONV-0010
+## Now: `refactor/j-matrices`, one construction of J (A5, CONV-0005)
 
-**Goal.** `CEFion` follows CONV-0010 (accepted):
+**Goal.** J_x, J_y, J_z, J₊ and J₋ are built in one place, the module
+functions at the top of `cefmatrices.py`, and every other matrix comes from
+them (CONV-0005). Today `StevensBase.__init__` repeats their formulas line
+for line (AUDIT A5). The two agree bit for bit, so no result is wrong, but a
+change to one would not reach the other. No computed result changes.
 
-- `energies` are the eigenvalues of `hamiltonian`, not shifted. With
-  `B00 = 0` their zero is the centre of gravity of the J multiplet.
-- `excitation_energies = energies − energies[0]` sits next to them and starts
-  at 0.
-- `diagonalize` loses `shiftToZero`.
-- `CEFion.__str__` goes. The `summary` stub stays as the placeholder for a
-  print of the level scheme (AUDIT Q7, `ROADMAP.md`).
+**Steps.** Branch `refactor/j-matrices`, 3 commits.
 
-**Steps.** Branch `feat/energy-zero`, 4 commits.
-
-1. `feat(cefion)!: keep the energies unshifted, add excitation_energies
-   (CONV-0010)`.
-   - `diagonalize` stores the eigenvalues as `energies`, and `energies −
-     energies[0]` as `excitation_energies` (`[]` before diagonalisation,
-     like `energies`). `shiftToZero` goes.
-   - The class docstring, its doctest and the README line describe both.
-   - Tests that encoded the shift move to the new convention, with the same
-     assertions:
-     - `test_axial_levels` checks `energies` against its own docstring
-       formula, `B20 (3m² − J(J+1))` = −8, −2, 10 meV, and
-       `excitation_energies` against 0, 6, 18;
-     - `test_energies_sorted_from_zero` becomes ascending `energies` plus
-       `excitation_energies[0] == 0`;
-     - `test_eigenvectors_belong_to_energies` loses its `E0` correction;
-     - `test_degeneracies_are_plain_python_numbers` expects −8, −2, 10.
-   - Results change: `energies`, `get_degeneracies`, and U and F of
-     `thermodynamics` (P3, still open) shift by `E_0`. Everything else is
-     shift invariant: populations, χ, M, the spectra, S and C_v.
-2. `test(cefion): check the zero of energy against CONV-0010`.
-   - `test_conv_0010_*`, from its Consequences:
-     - `energies` equal `eigvalsh(hamiltonian)` and average to 0, with and
-       without a field;
-     - free Ho³⁺ at 2 T along z gives `E_0 = −gJ μB J B`;
-     - `excitation_energies` is `energies − energies[0]`;
-     - Hellmann–Feynman, `∂E_n/∂B40 = <n|O_40|n>`, against a finite
-       difference on low-symmetry Ce³⁺ in a field.
-3. `refactor(cefion)!: remove CEFion.__str__`.
-   - `__str__` goes, with `test_str_prints_energies_with_decimals`, which
-     tests only the removed method.
-   - The `summary` stub stays, and its message points to the planned print
-     of the level scheme instead of `__str__`.
-4. `docs: describe the energies of CONV-0010`.
-   - `ARCHITECTURE.md`: the data flow, the Energy row of the conventions
-     and the test tree.
-   - `AUDIT.md`: Q7 and section 6.2 (CONV-0010 accepted).
-   - `ROADMAP.md`: the print of the level scheme.
+1. `refactor(cefmatrices): build StevensBase from the module's J matrices
+   (A5)`.
+   - `StevensBase.__init__` takes `Jz`, `Jp`, `Jm`, `Jx`, `Jy` from `J_z`,
+     `J_plus`, `J_minus`, `J_x`, `J_y` instead of its own formulas. The
+     attribute names stay.
+   - `J_plus` is written with the m of the lower state,
+     `√(J(J+1) − m(m+1))` for m = J−1, ..., −J, as CONV-0005 states it. It
+     currently writes the same values through the symmetry m → −m−1.
+   - Check: all 784 operator matrices (49 operators, J = 1/2 … 8) are
+     bit-identical to a snapshot taken from `ea26fff`, and the existing
+     tests pass, including the 432 CONV-0001 matrices.
+2. `test(cefmatrices): check the J matrices against CONV-0005` (accepted;
+   CLAUDE.md 6.6).
+   - `test_conv_0005_*`, from its Consequences:
+     - `J_z = diag(J, …, −J)`;
+     - the Condon–Shortley elements of `J₊`, alone on its first
+       superdiagonal;
+     - `[J_x, J_y] = i J_z` and `J² = J(J+1)`;
+     - `StevensBase(J)` holds these matrices;
+   - for J = 1/2 … 8.
+3. `docs: make the J matrices the root of the basis convention`.
+   - The `cefmatrices` module docstring cites CONV-0005 and CONV-0001,
+     instead of "need to be cross-checked against some reliable book" (AUDIT
+     6.1).
+   - `ARCHITECTURE.md`: the module map and the test tree.
+   - `AUDIT.md`: A5 narrows to the sympy copy in `symbolic/`, and the 6.1
+     row goes.
    - `CHANGELOG.md`.
 
-**Files.** `qespace_cef/cefion.py`, `tests/test_cefion.py`, `README.md`,
-`ARCHITECTURE.md`, `AUDIT.md`, `ROADMAP.md`, `CHANGELOG.md`.
-
-**Checked in advance** (scratch run on `c94cb46`, with a pytest plugin that
-forces `shiftToZero=False`, the package unchanged):
-- 9 tests and the `CEFion` doctest fail, and each of them encodes the shift:
-  - `test_axial_levels`;
-  - `test_energies_sorted_from_zero` (3 ions);
-  - `test_eigenvectors_belong_to_energies` (3 ions);
-  - `test_degeneracies_are_plain_python_numbers`;
-  - `test_str_prints_energies_with_decimals`.
-- All other 347 tests pass. The 30 strict xfails stay xfails, P3 and P7
-  among them.
-- The four checks of step 2 hold: mean 0 to 10⁻¹²; E_0 = −1.15768 meV
-  exactly; Hellmann–Feynman to 1.4·10⁻⁷ on a largest value of 60.5.
+**Files.** `qespace_cef/cefmatrices.py`, `tests/test_cefmatrices.py`,
+`ARCHITECTURE.md`, `AUDIT.md`, `CHANGELOG.md`.
 
 **Risks.**
-- **`get_degeneracies` (P7)** truncates `energies` to 5 decimals. With
-  negative energies, truncation goes towards zero, so a level at −7.9999999…
-  and one at −8.0000000… can land in different groups. The P7 xfail stays.
-  The fix of P7 waits for A11 and CONV-0008.
-- **`thermodynamics`:** U and F change by `E_0` while P3 is still open. The
-  P3 xfails don't depend on the zero and stay xfails.
-- **`str(cefion)`** prints Python's default representation after step 3. Any
-  script that printed a `CEFion` changes.
+- **None in the results:** the matrices are bit-identical by the check in
+  step 1. If the rewritten `J_plus` differs in the last bit for some J, that
+  is reported, not hidden: a difference of one rounding step would change
+  no test, but it would change the snapshot comparison.
+- **Not in this step:**
+  - `symbolic/cefmatrices.py`, a third, sympy copy, stays; it is
+    experimental, not imported and not tested (A5, A9);
+  - generating the Stevens operators from one formula (A6) is later;
+  - the McPhase test reference (`tests/reference/mcphase.py`) keeps its own
+    J matrices on purpose, as an independent check.
 
-**Tests.** `uv run pytest`: the rewritten tests and the `test_conv_0010_*`
-tests pass, and the xfails stay at 30. Then `ruff check`,
+**Tests.** `uv run pytest`: the existing tests pass unchanged, and after
+step 2 the `test_conv_0005_*` tests pass too. Then `ruff check`,
 `ruff format --check` and `uv run nox`.
 
 ## In parallel: decisions only you can take
