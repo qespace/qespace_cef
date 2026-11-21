@@ -3,6 +3,7 @@ id: CONV-0008
 title: Degenerate levels
 status: accepted
 owner: qespace_cef
+supersedes:
 ---
 
 ## Statement

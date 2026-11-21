@@ -3,6 +3,7 @@ id: CONV-0005
 title: Basis: the ground J multiplet and the angular-momentum matrices
 status: accepted
 owner: qespace_cef
+supersedes:
 ---
 
 ## Statement

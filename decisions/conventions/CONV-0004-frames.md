@@ -3,6 +3,7 @@ id: CONV-0004
 title: Quantisation axis, local frame and crystal frame
 status: draft
 owner: qespace_cef
+supersedes:
 ---
 
 ## Statement

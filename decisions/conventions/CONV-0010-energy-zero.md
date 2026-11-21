@@ -3,6 +3,7 @@ id: CONV-0010
 title: Zero of energy and excitation energies
 status: accepted
 owner: qespace_cef
+supersedes:
 ---
 
 ## Statement

@@ -3,6 +3,7 @@ id: CONV-xxxx
 title: Short name
 status: draft            # draft | accepted | superseded
 owner: qespace_cef
+supersedes:
 ---
 
 ## Statement

@@ -3,6 +3,7 @@ id: CONV-0001
 title: CEF parameters and Stevens operators as in McPhase
 status: accepted
 owner: qespace_cef
+supersedes:
 ---
 
 ## Statement
