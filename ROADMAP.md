@@ -23,9 +23,9 @@ Decided in ADR-0002 (the objects) and ADR-0003 (broadcasting); still to build.
 - Memory: J in the eigenbasis is `S + (3, n, n)`, 139 MB per 10⁴ points at
   J = 8; compute only what an observable needs, or work in chunks.
 - The print of the level scheme (`summary`, in v1 today): its grouping of
-  levels follows CONV-0008 once accepted, and so does the basis it prints
-  inside a degenerate level: J_z diagonalised inside the level, Kramers
-  partners by time reversal.
+  levels follows CONV-0008 once accepted, and the basis it prints inside a
+  degenerate level follows CONV-0011: J_z diagonalised inside the level,
+  Kramers partners by time reversal.
 
 ## Fitting
 
@@ -65,9 +65,21 @@ rejected bare-array objects).
 - Exact degeneracies by construction. A q-fold axis along z couples only m
   and m ± q, so H splits into blocks that are diagonalised separately. For a
   Kramers ion, the partner of |a⟩ is Θ|a⟩, built by time reversal, so the
-  doublets are exactly paired, not paired up to rounding (CONV-0008).
+  doublets are exactly paired, not paired up to rounding (CONV-0008,
+  CONV-0011).
 - Levels labelled by the irreducible representations of the site group
-  (Γ6, Γ7, Γ8, ...), which also gives a canonical basis inside each level.
+  (Γ6, Γ7, Γ8, ...), computed with the rotations `exp(−iθ n̂·J)` of the
+  group's operations on the multiplet; half-integer J needs the double
+  group, and time reversal gives the Kramers pairing.
+  - A level is degenerate because its irrep is, not because two energies
+    agree within a tolerance; only accidental degeneracies still need
+    CONV-0008.
+  - The partner functions of each irrep, with a standard phase
+    convention, give the basis inside a level for Kramers and non-Kramers
+    ions alike. This replaces CONV-0011, which leaves the degenerate
+    levels of integer-J ions unpaired until then (AUDIT Q46).
+  - Selection rules: transitions that vanish by symmetry come out exactly
+    zero, not numerically small.
 
 ## Crystal structure and point charges
 

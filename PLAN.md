@@ -90,9 +90,8 @@ tests pass, and the xfails stay at 30. Then `ruff check`,
 
 ## In parallel: decisions only you can take
 
-- The `OPEN:` parts of the drafts CONV-0003 to CONV-0008 (AUDIT section
-  6.2, Q11), and a draft for the g-tensor (C7). CONV-0003 now states χ in
-  μB/T per ion, as CONV-0009 does.
+- The `OPEN:` parts of the drafts CONV-0004 to CONV-0008 and CONV-0011
+  (AUDIT section 6.2, Q11), and a draft for the g-tensor (C7).
 - Q29 and Q31 (ADR-0002), which block `refactor/api-v2`.
 
 ## Next

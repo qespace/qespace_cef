@@ -30,7 +30,7 @@ The allowed parameters of a point group, and the cubic relations such as
 B44 = 5 B40, hold only in the setting that defines them. A field "along c" is
 a statement in the crystal frame, so a fit to magnetisation or to a single
 crystal needs the relation between the two frames. The canonical basis of
-CONV-0008 diagonalises J_z, so it depends on this frame too.
+CONV-0011 diagonalises J_z, so it depends on this frame too.
 
 Ways to find a local frame, for the discussion (not decided):
 
