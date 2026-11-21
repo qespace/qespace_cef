@@ -6,80 +6,78 @@ The step being worked on now, in the form of CLAUDE.md 2.3. It borrows from
 tracking, not a rule (ADR-0001). Ideas for later are in
 [`ROADMAP.md`](ROADMAP.md).
 
-## Now: `refactor/j-matrices`, one construction of J (A5, CONV-0005)
+## Now: `fix/van-vleck`, the van Vleck weight without cancellation (P20)
 
-**Goal.** J_x, J_y, J_z, J₊ and J₋ are built in one place, the module
-functions at the top of `cefmatrices.py`, and every other matrix comes from
-them (CONV-0005). Today `StevensBase.__init__` repeats their formulas line
-for line (AUDIT A5). The two agree bit for bit, so no result is wrong, but a
-change to one would not reach the other. No computed result changes.
+**Goal.** `susceptibility(method='perturbation')` evaluates the van Vleck
+weight of CONV-0009 without cancellation, as CONV-0008 (accepted) asks of
+every formula that is continuous through a degeneracy. Today it computes
+`(p_n − p_m)/(E_m − E_n)` as a plain difference, which loses digits for a
+pair just above the degeneracy tolerance (AUDIT P20). No result changes
+beyond rounding, except for such pairs, which become accurate.
 
-**Steps.** Branch `refactor/j-matrices`, 3 commits.
+**Steps.** Branch `fix/van-vleck`, 1 commit:
 
-1. `refactor(cefmatrices): build StevensBase from the module's J matrices
-   (A5)`.
-   - `StevensBase.__init__` takes `Jz`, `Jp`, `Jm`, `Jx`, `Jy` from `J_z`,
-     `J_plus`, `J_minus`, `J_x`, `J_y` instead of its own formulas. The
-     attribute names stay.
-   - `J_plus` is written with the m of the lower state,
-     `√(J(J+1) − m(m+1))` for m = J−1, ..., −J, as CONV-0005 states it. It
-     currently writes the same values through the symmetry m → −m−1.
-   - Check: all 784 operator matrices (49 operators, J = 1/2 … 8) are
-     bit-identical to a snapshot taken from `ea26fff`, and the existing
-     tests pass, including the 432 CONV-0001 matrices.
-2. `test(cefmatrices): check the J matrices against CONV-0005` (accepted;
-   CLAUDE.md 6.6).
-   - `test_conv_0005_*`, from its Consequences:
-     - `J_z = diag(J, …, −J)`;
-     - the Condon–Shortley elements of `J₊`, alone on its first
-       superdiagonal;
-     - `[J_x, J_y] = i J_z` and `J² = J(J+1)`;
-     - `StevensBase(J)` holds these matrices;
-   - for J = 1/2 … 8.
-3. `docs: make the J matrices the root of the basis convention`.
-   - The `cefmatrices` module docstring cites CONV-0005 and CONV-0001,
-     instead of "need to be cross-checked against some reliable book" (AUDIT
-     6.1).
-   - `ARCHITECTURE.md`: the module map and the test tree.
-   - `AUDIT.md`: A5 narrows to the sympy copy in `symbolic/`, and the 6.1
-     row goes.
-   - `CHANGELOG.md`.
+1. `fix(observables): evaluate the van Vleck weight without cancellation
+   (P20)`.
+   - In the perturbation branch of `susceptibility`, the weight of a pair
+     with `E_m > E_n` (not degenerate) becomes
+     `p_n · (−expm1(−(E_m − E_n)/k_B T)) / (E_m − E_n)`. `expm1` is
+     evaluated only on those entries, where its argument is never positive,
+     so nothing overflows. The pairs `E_m < E_n` take the same value
+     mirrored, `W_mn = W_nm`, since W is symmetric. Degenerate pairs keep
+     the Curie weight `p_n / k_B T`.
+   - The degeneracy rule stays `constants.numerical_zero`, as CONV-0009
+     fixes it; moving to the CONV-0008 tolerance is a later step.
+   - New tests in `tests/test_observables.py`:
+     - `test_susceptibility_continuous_through_degeneracy`: Ce³⁺
+       (`B20=0.5, B40=0.01, B44=0.1` meV) at 5 K, `chi_zz` with a field of
+       10⁻⁹, 10⁻⁸ and 10⁻⁷ T along x, which splits the ground doublet just
+       above the tolerance, against `chi_zz` in zero field, to 10⁻¹²
+       relative. It fails without the fix: 6.9·10⁻⁷ at 10⁻⁹ T, measured on
+       `2446607`.
+     - `test_susceptibility_low_temperature_finite`: the same ion at
+       0.05 K with numpy warnings turned into errors gives a finite χ.
+   - `AUDIT.md` (P20 goes) and `CHANGELOG.md` in the same commit.
 
-**Files.** `qespace_cef/cefmatrices.py`, `tests/test_cefmatrices.py`,
-`ARCHITECTURE.md`, `AUDIT.md`, `CHANGELOG.md`.
+**Files.** `qespace_cef/observables.py`, `tests/test_observables.py`,
+`AUDIT.md`, `CHANGELOG.md`.
+
+**Checked in advance** (scratch run on `2446607`, not a test): the mirrored
+`expm1` form gives `chi_zz` rel. changes of 1.8·10⁻¹⁵, 4.4·10⁻¹⁶ and
+1.9·10⁻¹⁵ at 10⁻⁹, 10⁻⁸ and 10⁻⁷ T, against 6.9·10⁻⁷, 1.3·10⁻⁸ and
+1.4·10⁻⁹ for the plain difference, and stays finite at 0.05 K.
 
 **Risks.**
-- **None in the results:** the matrices are bit-identical by the check in
-  step 1. If the rewritten `J_plus` differs in the last bit for some J, that
-  is reported, not hidden: a difference of one rounding step would change
-  no test, but it would change the snapshot comparison.
-- **Not in this step:**
-  - `symbolic/cefmatrices.py`, a third, sympy copy, stays; it is
-    experimental, not imported and not tested (A5, A9);
-  - generating the Stevens operators from one formula (A6) is later;
-  - the McPhase test reference (`tests/reference/mcphase.py`) keeps its own
-    J matrices on purpose, as an independent check.
+- The existing susceptibility and CONV-0009 tests must pass unchanged: the
+  new form equals the old one up to rounding for every pair that is not
+  nearly degenerate.
+- Evaluating `expm1` on the whole matrix and masking afterwards would
+  overflow for the reversed pairs and warn; the second new test catches it.
 
-**Tests.** `uv run pytest`: the existing tests pass unchanged, and after
-step 2 the `test_conv_0005_*` tests pass too. Then `ruff check`,
-`ruff format --check` and `uv run nox`.
+**Tests.** `uv run pytest`: two new tests pass, all others unchanged
+(447 passed, 30 xfailed on `d1ee227` before the change). Then
+`ruff check`, `ruff format --check` and `uv run nox`.
 
 ## In parallel: decisions only you can take
 
-- The `OPEN:` parts of the drafts CONV-0004 to CONV-0008 and CONV-0011
-  (AUDIT section 6.2, Q11), and a draft for the g-tensor (C7).
+- The `OPEN:` parts of the drafts CONV-0004, CONV-0006 and CONV-0007 (AUDIT
+  section 6.2, Q11), and a draft for the g-tensor (C7).
 - Q29 and Q31 (ADR-0002), which block `refactor/api-v2`.
 
 ## Next
 
-Most remaining fixes wait for a convention (AUDIT section 6.2, Q11):
-- P3 for CONV-0003 (its zero of U and F is CONV-0010, accepted);
-- P4 and P17 for C7 and CONV-0008;
-- P9 and P13 for CONV-0007;
-- P7 for A11 and CONV-0008.
+1. **A CONV that supersedes CONV-0009's degeneracy rule** with the tolerance
+   of CONV-0008 (accepted). A short decision for you to accept, then:
+2. **`feat/degenerate-levels`**, built on CONV-0008 and CONV-0011:
+   - one config place for `rtol` and `E_floor` (part of A11);
+   - one function that groups the energies into levels;
+   - `susceptibility`, `get_degeneracies` (P7) and `summary` use it;
+   - `summary` prints the canonical basis of CONV-0011;
+   - the `test_conv_0008_*` and `test_conv_0011_*` tests.
+3. **The g-tensor (C7):** a draft CONV, once 2 exists. It identifies the
+   ground doublet by CONV-0008 and returns G, or the principal values and
+   axes. Then P4 and P17.
 
-The others need no CONV:
-- P14 and P15 need sources: the ion table and one CODATA set;
-- P16 needs your answer to Q12.
-
-`refactor/api-v2` waits for Q29 and Q31.
+Other fixes wait for a convention or a source: P3 (CONV-0003 units of the
+thermodynamics, Q44), P9 and P13 (CONV-0007), P14 and P15 (sources), P16
+(Q12). `refactor/api-v2` waits for Q29 and Q31.
