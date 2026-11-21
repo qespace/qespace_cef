@@ -27,13 +27,14 @@ def _ce(pars=TETRAGONAL):
     return qc.CEFion(qc.Ion("Ce"), qc.CEFpars(pars))
 
 
-def _chi_exact(cef, temperature, direction):
+def _chi_exact(cef, temperature, direction, tolerance=None):
     """Zero-field susceptibility along ``direction``, in muB^2/meV per ion.
 
     chi = gJ^2 [ sum_{E_m = E_n} p_n |<n|J_n|m>|^2 / k_B T
                + sum_{E_m != E_n} (p_n - p_m) / (E_m - E_n) |<n|J_n|m>|^2 ],
     with J_n the component of J along the unit vector of ``direction``, from
-    the energies and the J matrices in the eigenbasis.
+    the energies and the J matrices in the eigenbasis. E_m = E_n when they
+    differ by at most ``tolerance`` (meV), by default 1e-9 max(max|E|, 1 meV).
     """
     n = np.asarray(direction, float) / np.linalg.norm(direction)
     Jn = np.einsum("a,aij->ij", n, cef.J)
@@ -41,7 +42,9 @@ def _chi_exact(cef, temperature, direction):
     p = np.exp(-(E - E.min()) / (KB * temperature))
     p /= p.sum()
     dE = E[None, :] - E[:, None]  # E_m - E_n, n rows
-    degenerate = np.abs(dE) <= 1e-9 * max(np.abs(E).max(), 1.0)
+    if tolerance is None:
+        tolerance = 1e-9 * max(np.abs(E).max(), 1.0)
+    degenerate = np.abs(dE) <= tolerance
     weight = np.where(
         degenerate,
         p[:, None] / (KB * temperature),
@@ -116,27 +119,53 @@ def test_susceptibility_prints_nothing(capsys):
     assert capsys.readouterr().out == ""
 
 
-DEGENERACY_RULE = 1e-12  # meV, the absolute rule of CONV-0009 (constants.numerical_zero)
+def _level_tolerance(energies):
+    """The tolerance of CONV-0008 with its defaults rtol = 1e-10, E_floor = 1 meV, in meV."""
+    return 1e-10 * max(np.abs(energies).max(), 1.0)
 
 
-@pytest.mark.parametrize("field", [1e-9, 1e-8, 1e-7])  # T
-def test_susceptibility_continuous_through_degeneracy(field):
-    """chi is continuous as a splitting shrinks towards the degeneracy rule (CONV-0008, P20).
+# The field along x splits the ground doublet by about 6e-12, 6e-11, 6e-9 and
+# 6e-8 meV; the tolerance is 6.4e-10 meV.
+@pytest.mark.parametrize(
+    ("field", "below"), [(1e-10, True), (1e-9, True), (1e-7, False), (1e-6, False)]
+)  # T
+def test_susceptibility_continuous_through_degeneracy(field, below):
+    """chi is continuous as a splitting shrinks through the tolerance (CONV-0008, P20).
 
     A field along x splits the ground Kramers doublet of the tetragonal Ce3+
-    ion just above the rule, so that pair takes the van Vleck weight
-    (p_n - p_m) / (E_m - E_n) instead of the Curie weight p_n / k_B T. Its
-    limit is the Curie weight, and the change of chi_zz with the field is of
-    second order, about (muB B / k_B T)^2 < 1e-15 here, so chi_zz must equal
-    its zero-field value. A plain difference p_n - p_m loses about 7e-7
-    relative at 1e-9 T.
+    ion. Below the tolerance of CONV-0008 the pair is one level and takes the
+    Curie weight p_n / k_B T; above it, the van Vleck weight
+    (p_n - p_m) / (E_m - E_n), whose limit is the Curie weight. The change of
+    chi_zz with the field is of second order, about (muB B / k_B T)^2 < 1e-13
+    here, so on both sides chi_zz must equal its zero-field value.
     """
     temperature = 5.0  # K
     cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(TETRAGONAL), Hfield=[field, 0.0, 0.0])
     split = cef.energies[1] - cef.energies[0]
-    assert DEGENERACY_RULE < split < 1e-6 * KB * temperature  # the case the test is about
+    assert (split <= _level_tolerance(cef.energies)) == below  # the side the case is about
+    assert split < 1e-6 * KB * temperature
     chi_zz = qc.susceptibility(cef, temperature)[2, 2]
     assert chi_zz == pytest.approx(qc.susceptibility(_ce(), temperature)[2, 2], rel=1e-12)
+
+
+def test_conv_0008_susceptibility_levels_from_config(monkeypatch):
+    """The Curie and van Vleck pairs follow the levels of CONV-0008, read at call time.
+
+    With rtol = 0.5 the tolerance, 0.5 max|E| = 3.2 meV, merges the two lower
+    doublets of the tetragonal Ce3+ ion (0.78 meV apart) into one level, so
+    their pairs take the Curie weight. J_x couples the two doublets (J_z does
+    not), so chi_xx sees it.
+    """
+    temperature = 5.0  # K
+    cef = _ce()
+    tolerance = 0.5 * np.abs(cef.energies).max()  # meV
+    assert np.diff(cef.energies)[1] < tolerance < np.diff(cef.energies)[3]
+    monkeypatch.setattr(qc.config, "rtol", 0.5)
+    default = _chi_exact(cef, temperature, [1, 0, 0]) * MUB
+    expected = _chi_exact(cef, temperature, [1, 0, 0], tolerance=tolerance) * MUB
+    assert abs(expected / default - 1) > 1e-2  # the merge changes chi_xx
+    chi = qc.susceptibility(cef, temperature)
+    assert chi[0, 0] == pytest.approx(expected, rel=1e-6)
 
 
 def test_susceptibility_low_temperature_finite():
@@ -360,6 +389,25 @@ def test_gtensor_principal_values_axial():
     cef = _ce(AXIAL_CE)
     gJ = cef.ion.gJ
     assert np.allclose(_principal_g(cef), [gJ, 3 * gJ, 3 * gJ], rtol=1e-10)
+
+
+@pytest.mark.parametrize(("field", "doublet"), [(1e-10, True), (1e-6, False)])  # T
+def test_conv_0008_gtensor_ground_doublet(field, doublet):
+    """The ground doublet is a level of CONV-0008: a split below the tolerance still counts.
+
+    A field along x splits the ground doublet of the tetragonal Ce3+ ion by
+    6e-12 meV at 1e-10 T (below the tolerance, 6.4e-10 meV) and by 6e-8 meV at
+    1e-6 T (above it).
+    """
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(TETRAGONAL), Hfield=[field, 0.0, 0.0])
+    split = cef.energies[1] - cef.energies[0]
+    assert (split <= _level_tolerance(cef.energies)) == doublet
+    if doublet:
+        g = qc.gtensor(cef)
+        assert g.shape == (3, 3) and np.all(np.isfinite(g)) and np.abs(g).max() > 0
+    else:
+        with pytest.raises(AssertionError):
+            qc.gtensor(cef)
 
 
 @pytest.mark.xfail(strict=True, reason="AUDIT P17: abs() makes g g^T depend on the doublet basis")

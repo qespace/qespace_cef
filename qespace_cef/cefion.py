@@ -1,15 +1,135 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
+from . import config
 from . import constants as C
 from .cefmatrices import J_x, J_y, J_z, StevensBase
 from .cefpars import CEFpars
 from .ion import Ion
 
-# Levels closer than this (meV) are printed as one level by CEFion.summary.
-# Temporary and for printing only, by the maintainer's decision, until the
-# degeneracy convention (CONV-0008) is accepted; no computation uses it.
-_PRINT_DEGENERACY_ATOL = 1e-10
+
+def degenerate_levels(energies: ArrayLike) -> list[slice]:
+    r"""The levels of CONV-0008, as slices of the ascending energies.
+
+    Two consecutive energies belong to the same level when
+
+    .. math:: E_{i+1} - E_i \le r_\mathrm{tol} \, \max(\max_k |E_k|, E_\mathrm{floor}),
+
+    with ``rtol`` and ``E_floor`` read from :mod:`qespace_cef.config` at
+    call time (defaults 10⁻¹⁰ and 1 meV). A level ends wherever two
+    consecutive energies differ by more than that.
+
+    Parameters
+    ----------
+    energies : array_like of float, shape (n,)
+        Energies in meV, ascending, with the zero of CONV-0010, e.g.
+        ``CEFion.energies``.
+
+    Returns
+    -------
+    list of slice
+        One slice per level, in ascending energy: ``energies[s]`` are the
+        energies of a level, and ``s.stop - s.start`` is its degeneracy.
+        Empty for no energies.
+
+    Raises
+    ------
+    ValueError
+        If ``energies`` is not one-dimensional or not ascending.
+
+    Examples
+    --------
+    Ce3+ with ``B20`` alone has three Kramers doublets:
+
+    >>> import qespace_cef as qc
+    >>> from qespace_cef.cefion import degenerate_levels
+    >>> cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)))
+    >>> [s.stop - s.start for s in degenerate_levels(cef.energies)]
+    [2, 2, 2]
+    """
+    E = np.asarray(energies, dtype=float)
+    if E.ndim != 1:
+        raise ValueError(f"energies must be one-dimensional, got shape {E.shape}.")
+    if E.size == 0:
+        return []
+    gaps = np.diff(E)
+    if np.any(gaps < 0):
+        raise ValueError("energies must be ascending.")
+    tolerance = config.rtol * max(float(np.abs(E).max()), config.E_floor)
+    bounds = [0, *(np.flatnonzero(gaps > tolerance) + 1).tolist(), E.size]
+    return [slice(start, stop) for start, stop in zip(bounds[:-1], bounds[1:])]
+
+
+def _time_reversal(v: np.ndarray) -> np.ndarray:
+    """Θ|m> = (-1)^(J-m) |-m>, then complex conjugation (CONV-0011).
+
+    ``v`` is a state in the basis |J>, ..., |-J>; component ``i`` has
+    ``J - m = i``, and ``|-m>`` is component ``2J - i``.
+    """
+    return ((-1.0) ** np.arange(len(v)) * v.conj())[::-1]
+
+
+def _fix_phase(v: np.ndarray) -> np.ndarray:
+    """The state times the phase that makes its largest component real and positive.
+
+    Components equal to the largest within ``config.rtol`` count as largest,
+    and the first of them in basis order is used, so rounding cannot switch
+    between two of the same size.
+    """
+    size = np.abs(v)
+    k = int(np.flatnonzero(size >= size.max() * (1 - config.rtol))[0])
+    return v * (size[k] / v[k])
+
+
+def _diagonalise_inside(states: np.ndarray, operators: list, tolerance: float) -> np.ndarray:
+    """Diagonalise ``operators[0]`` in the span of the rows of ``states``, ascending.
+
+    Where its eigenvalues agree within ``tolerance``, the next operator is
+    diagonalised inside that subspace (CONV-0011, rule 1). Returns the new
+    orthonormal rows.
+    """
+    if len(states) == 1 or not operators:
+        return states
+    values, U = np.linalg.eigh(states.conj() @ operators[0] @ states.T)
+    states = U.T @ states  # row mu = sum_k U[k, mu] states[k]
+    bounds = [0, *(np.flatnonzero(np.diff(values) > tolerance) + 1).tolist(), len(values)]
+    return np.vstack(
+        [
+            _diagonalise_inside(states[start:stop], operators[1:], tolerance)
+            for start, stop in zip(bounds[:-1], bounds[1:])
+        ]
+    )
+
+
+def _canonical_basis(states: np.ndarray, J: float, kramers: bool) -> np.ndarray:
+    """The basis of CONV-0011 for one level, from any orthonormal basis of it.
+
+    Parameters
+    ----------
+    states : ndarray of complex, shape (d, 2J+1)
+        Orthonormal rows spanning the level, in the basis |J>, ..., |-J>.
+    J : float
+        Total angular momentum quantum number.
+    kramers : bool
+        True for a half-integer J in zero field: the states are then paired
+        by time reversal (rule 2); otherwise each gets its own phase (rule 3).
+
+    Returns
+    -------
+    ndarray of complex, shape (d, 2J+1)
+        The canonical states, ordered by <J_z> ascending (then <J_x>, <J_y>
+        where J_z is degenerate within ``config.rtol * J``).
+    """
+    states = _diagonalise_inside(states, [J_z(J), J_x(J), J_y(J)], config.rtol * J)
+    if not kramers:
+        return np.array([_fix_phase(v) for v in states])
+    # The order is antisymmetric under time reversal, which flips J: the
+    # partner of state i (<J_z> < 0) is state d - 1 - i.
+    d = len(states)
+    for i in range(d // 2):
+        states[i] = _fix_phase(states[i])
+        states[d - 1 - i] = _time_reversal(states[i])
+    return states
 
 
 class CEFion:
@@ -232,47 +352,47 @@ class CEFion:
         mu = self.ion.gJ * np.einsum("ijj->ji", self.J)
         return np.real(mu + mu.conj()) / 2
 
-    def get_degeneracies(self, precision: int = 5):
-        """Energy levels and their degeneracies.
+    def get_degeneracies(self) -> list[list]:
+        """Energy levels and their degeneracies, grouped by CONV-0008.
 
-        Eigenenergies are grouped by their value truncated to 5 decimals
-        (in meV).
-
-        Parameters
-        ----------
-        precision : int, optional
-            Meant as the number of decimals; currently ignored, 5 is used.
+        The ``energies`` are grouped into levels by
+        :func:`degenerate_levels`, with the tolerance from
+        :mod:`qespace_cef.config` at call time.
 
         Returns
         -------
         list of [float, int]
-            ``[energy, degeneracy]`` for each level, ascending in energy;
-            energy in meV.
-
-        Warnings
-        --------
-        P7 (AUDIT.md), not fixed yet: ``precision`` is overwritten with 5,
-        and the energies are truncated, not rounded. Two degenerate states
-        whose energies differ by rounding noise can fall on both sides of a
-        1e-5 meV step and come out as two levels, e.g. the 28.584 meV doublet
-        of Pr3+ with ``B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4``.
+            ``[energy, degeneracy]`` for each level, ascending in energy:
+            the mean of the level's ``energies`` in meV (CONV-0010) and the
+            number of states in it.
         """
-        # AUDIT P7: overwrites the argument; astype(int) truncates instead of rounding.
-        precision = 5
-        energies = (self.energies * 10**precision).astype(int)  # Convert to int for unique
-        unique_energies, counts = np.unique(energies, return_counts=True)
-        return [[float(e), int(c)] for e, c in zip(unique_energies / 10**precision, counts)]
+        return [
+            [float(np.mean(self.energies[level])), level.stop - level.start]
+            for level in degenerate_levels(self.energies)
+        ]
 
     def summary(self, evecs: bool = True, precision: int = 3) -> str:
         """The level scheme as text: levels, degeneracies and eigenvectors.
 
         The levels are the ``excitation_energies``, measured from the ground
         state, whose energy ``energies[0]`` is given in the first line
-        (CONV-0010). States whose energies differ by less than
-        ``_PRINT_DEGENERACY_ATOL`` (10⁻¹⁰ meV) are printed as one level; this
-        grouping is for printing only, until the degeneracy convention is
-        decided (CONV-0008). Each eigenvector is written in the free-ion
-        kets, leaving out coefficients smaller than ``10**-precision``.
+        (CONV-0010). The states are grouped into levels by
+        :func:`degenerate_levels` (CONV-0008). Under each level its states
+        are printed in the canonical basis of CONV-0011, written in the
+        free-ion kets, leaving out coefficients smaller than
+        ``10**-precision``:
+
+        1. J_z is diagonalised inside the level, states ordered by <J_z>
+           ascending; where J_z is degenerate there (within
+           ``config.rtol * J``), J_x and then J_y are diagonalised inside
+           that subspace.
+        2. Half-integer J in zero field: each state with <J_z> < 0 gets the
+           phase that makes its largest component real and positive, and its
+           partner is its time reverse, Θ|m> = (-1)^(J-m) |-m> followed by
+           complex conjugation.
+        3. Otherwise each state gets that phase on its own.
+
+        ``eigenvectors`` are not changed.
 
         Parameters
         ----------
@@ -291,29 +411,27 @@ class CEFion:
 
         Warnings
         --------
-        Inside a degenerate level the printed eigenvectors are one arbitrary
-        orthonormal basis of the level (AUDIT Q41); only the level as a whole
-        is defined.
+        Where J_z, J_x and J_y are all degenerate inside a level (no J matrix
+        element splits it, e.g. a non-magnetic doublet), rule 1 does not fix
+        the basis, and the printed states there remain an arbitrary basis of
+        the level.
         """
         if not len(self.energies):
             return "Undiagonalized Hamiltonian"
 
-        # Group neighbouring states into levels: printing only (see above).
-        breaks = np.flatnonzero(np.diff(self.energies) >= _PRINT_DEGENERACY_ATOL) + 1
-        starts = np.concatenate(([0], breaks))
-        ends = np.concatenate((breaks, [len(self.energies)]))
+        kramers = self.Jval % 1 == 0.5 and not np.any(self.Hfield)
 
         lines = [
             f"Energy levels{' and eigenvectors' if evecs else ''}, energies above the "
             f"ground state (E_0 = {self.energies[0]:.{precision}f} meV):"
         ]
-        for level, (start, end) in enumerate(zip(starts, ends)):
-            energy = self.excitation_energies[start]
-            block = [
-                f"E({level:d}) =\t{energy:.{precision}f} meV\t{end - start:2d}-fold degenerate"
-            ]
+        for level, states in enumerate(degenerate_levels(self.energies)):
+            energy = self.excitation_energies[states.start]
+            degeneracy = states.stop - states.start
+            block = [f"E({level:d}) =\t{energy:.{precision}f} meV\t{degeneracy:2d}-fold degenerate"]
             if evecs:
-                for ev in self.eigenvectors[start:end]:
+                canonical = _canonical_basis(self.eigenvectors[states], self.Jval, kramers)
+                for ev in canonical:
                     components = [
                         f"({c:.{precision}f}){ket}"
                         for c, ket in zip(ev, self.freeionkets)

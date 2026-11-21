@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from . import constants as C
-from .cefion import CEFion
+from .cefion import CEFion, degenerate_levels
 
 
 def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
@@ -283,8 +283,9 @@ def susceptibility(
         \end{cases}
 
     with :math:`p_n` the Boltzmann populations, both sums over all states,
-    energies in meV, :math:`\mu_B` in meV/T, and two levels equal when they
-    differ by less than ``constants.numerical_zero`` (meV). The van Vleck
+    energies in meV, :math:`\mu_B` in meV/T, and :math:`E_m = E_n` when the
+    two states belong to one level of CONV-0008
+    (:func:`qespace_cef.cefion.degenerate_levels`). The van Vleck
     weight is evaluated as
     :math:`p_n (1 - e^{-(E_m - E_n)/k_B T}) / (E_m - E_n)` on the pairs
     :math:`E_m > E_n`, with ``expm1``, and mirrored, :math:`W_{mn} = W_{nm}`,
@@ -335,9 +336,13 @@ def susceptibility(
                 chi[it, :, beta] = np.array(magnetization(cefion, temperature, Hfield)) / eps
     elif method == "perturbation":
         J = np.asarray(cefion.J)  # (3, n, n), in the eigenbasis
-        # jumps[n, m] = E_m - E_n; degenerate pairs as in CONV-0009.
+        # jumps[n, m] = E_m - E_n; degenerate pairs are the pairs of states in
+        # one level of CONV-0008 (CONV-0009 defers to it).
         jumps = cefion.energies[np.newaxis, :] - cefion.energies[:, np.newaxis]
-        degenerate = np.abs(jumps) < C.numerical_zero
+        level = np.empty(len(cefion.energies), dtype=np.int64)
+        for k, states in enumerate(degenerate_levels(cefion.energies)):
+            level[states] = k
+        degenerate = level[:, np.newaxis] == level[np.newaxis, :]
         # The pairs (n, m) with E_m > E_n that are not degenerate; their
         # mirror images (m, n) are all the other pairs that are not.
         up_n, up_m = np.nonzero((jumps > 0) & ~degenerate)
@@ -390,8 +395,8 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     Raises
     ------
     AssertionError
-        If the two lowest energies differ by ``constants.numerical_zero``
-        (meV) or more.
+        If the two lowest energies are not one level of CONV-0008
+        (:func:`qespace_cef.cefion.degenerate_levels`).
 
     Warnings
     --------
@@ -409,7 +414,8 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     How g should be defined is open (AUDIT C7).
     """
 
-    assert np.abs(cefion.energies[0] - cefion.energies[1]) < C.numerical_zero, (
+    ground = degenerate_levels(cefion.energies)[0]  # CONV-0008
+    assert ground.stop - ground.start >= 2, (
         "Ground state is not a doublet, g-tensor is not defined."
     )
     Jeff = cefion.J  # J operator projected to the ground state doublet

@@ -4,6 +4,9 @@ Library for crystal field calculations.
 
 from importlib.metadata import version as _version
 
+# The tolerances, read at call time: qespace_cef.config.rtol, .E_floor
+from . import config
+
 # Import main classes
 from .cefion import CEFion
 from .cefpars import CEFpars

@@ -22,6 +22,3 @@ K2meV = 1e3 * _k / _e  # meV/K, k_B
 meV2K = 1 / K2meV  # K/meV, 1 / k_B
 uB = 1e3 * uB_SI / _e  # meV/T, Bohr magneton
 invcm2meV = 1e3 * 100 * _h * _c / _e  # meV per cm^-1, h c
-
-# Absolute degeneracy rule of the susceptibility (CONV-0009), meV.
-numerical_zero = 1e-12
