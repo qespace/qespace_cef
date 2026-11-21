@@ -87,7 +87,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
-| CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config); CONV-0009 now needs superseding | P4, P7, A11 |
+| CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config) | P4, P7, A11, `susceptibility` (CONV-0009 defers to it) |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0009 susceptibility | accepted | – | – |
 | CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
@@ -102,11 +102,11 @@ its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 1. **`feat/degenerate-levels`**: CONV-0008 and CONV-0011 in the code: the
    config for `rtol` and `E_floor`, one grouping of levels for
    `susceptibility`, `get_degeneracies` (P7) and `summary`, the canonical
-   basis. After a CONV that supersedes CONV-0009's degeneracy rule.
+   basis (`PLAN.md`).
 2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13, P14, P16, P17. Probably two branches.
 3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
-   A11 with P7, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
+   A11, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
 4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
