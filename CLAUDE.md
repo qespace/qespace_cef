@@ -198,3 +198,29 @@ one; supersede it.
    not, the proposed commit message, or the branch report (1.3.5) when a
    branch was used. Nothing on `main` until the maintainer has reviewed it
    (section 1).
+
+## 10. Advisor and implementer sessions
+
+The maintainer may work with two kinds of session. A session that is neither
+(e.g. a single change on request, 1.2) follows sections 1–9 as before.
+
+1. The **advisor** discusses with the maintainer, writes the decisions the
+   maintainer takes (CONVs, ADRs) and the tracking files (`PLAN.md`,
+   `AUDIT.md`, `ROADMAP.md`), and reviews implementers' branches. It never
+   changes package code or tests.
+2. An **implementer** carries out `PLAN.md`, section *Now*, and nothing else.
+   It starts only on the maintainer's word, with that plan committed on
+   `main`, and works in its own git worktree on its own branch; a branch name
+   the tooling gives (e.g. `claude/<slug>-<suffix>`) stands in for the
+   `<type>/<topic>` of 1.3.2. The plan is the maintainer's OK to the branch
+   (1.3.1).
+3. The implementer touches only the files the plan lists and decides no
+   `OPEN:` item and no convention. If something outside the plan seems
+   needed, it stops and reports. It reports as in 1.3.5 and stops.
+4. The advisor reviews the branch on its own: the scope against the plan's
+   files, pytest, ruff and nox run by itself, the step's own checks against
+   its own data, the CONV tests and the commit messages. Corrections go back
+   to the same implementer. The maintainer merges, or tells the advisor to;
+   the advisor then replaces the plan's *Now*.
+5. Worktrees live under `.claude/worktrees/` inside this repository, so they
+   are within the qespace folder (2.6.3); git ignores them.

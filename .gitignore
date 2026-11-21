@@ -29,6 +29,11 @@ docs/build/
 # Jupyter
 .ipynb_checkpoints/
 
+# Claude Code: implementer worktrees and local settings (the skills in
+# .claude/skills/ are tracked)
+.claude/worktrees/
+.claude/settings.local.json
+
 # Editors and OS
 .vscode/
 .idea/
