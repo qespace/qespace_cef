@@ -10,6 +10,7 @@ import pytest
 
 import qespace_cef as qc
 from qespace_cef import constants as C
+from qespace_cef.cefion import degenerate_levels
 from qespace_cef.cefmatrices import StevensBase
 
 KRAMERS_IONS = ["Ce", "Nd", "Sm", "Dy", "Er", "Yb"]  # odd number of 4f electrons
@@ -242,3 +243,74 @@ def test_degeneracies_of_cubic_pr():
     new_level = np.diff(e) > 1e-9 * e.max()
     expected = np.diff(np.flatnonzero(np.r_[True, new_level, True])).tolist()
     assert [d for _, d in _cefion("Pr", CUBIC_PR).get_degeneracies()] == expected
+
+
+# --- CONV-0008: degenerate levels -----------------------------------------
+# Expected values from the physics (Kramers' theorem, the free ion), not from
+# the code under test.
+
+CUBIC_HO = dict(B40=1e-3, B44=5e-3, B60=1e-5, B64=-21e-5)  # meV, test values, cubic
+CEF_SCALE = {2: 0.5, 4: 0.01, 6: 1e-4}  # meV, typical size of B_lm per rank l, test values
+
+
+def _random_low_symmetry(rng):
+    """Every B_lm of rank 2, 4, 6, random: no symmetry left but time reversal."""
+    pars = {}
+    for rank in (2, 4, 6):
+        for m in range(-rank, rank + 1):
+            label = f"B{rank}{m}" if m >= 0 else f"B{rank}m{-m}"
+            pars[label] = CEF_SCALE[rank] * rng.normal()
+    return pars
+
+
+def _degeneracies(energies):
+    return [s.stop - s.start for s in degenerate_levels(energies)]
+
+
+def test_conv_0008_kramers_doublets_are_one_level():
+    """In 200 low-symmetry Hamiltonians of Kramers ions every level is one exact doublet."""
+    rng = np.random.default_rng(8)
+    for k in range(200):
+        cef = _cefion(KRAMERS_IONS[k % len(KRAMERS_IONS)], _random_low_symmetry(rng))
+        assert _degeneracies(cef.energies) == [2] * (len(cef.energies) // 2)
+
+
+@pytest.mark.parametrize("name", ALL_IONS)
+def test_conv_0008_free_ion_is_one_level(name):
+    """H = 0: all 2J+1 states form one level (the tolerance is rtol E_floor)."""
+    cef = _cefion(name, {})
+    assert _degeneracies(cef.energies) == [int(2 * cef.ion.J + 1)]
+
+
+@pytest.mark.parametrize(
+    ("name", "pars"),
+    [("Ce", LOW_SYMMETRY), ("Er", LOW_SYMMETRY), ("Pr", CUBIC_PR), ("Ho", CUBIC_HO)],
+)
+def test_conv_0008_grouping_stable_under_perturbation(name, pars):
+    """A random Hermitian perturbation of size eps max|E| leaves the levels unchanged."""
+    H = _cefion(name, pars).hamiltonian
+    levels = degenerate_levels(np.linalg.eigvalsh(H))
+    scale = np.finfo(float).eps * np.abs(np.linalg.eigvalsh(H)).max()
+    rng = np.random.default_rng(80)
+    for _ in range(20):
+        A = rng.normal(size=H.shape) + 1j * rng.normal(size=H.shape)
+        dH = (A + A.conj().T) / 2
+        dH *= scale / np.abs(np.linalg.eigvalsh(dH)).max()  # spectral norm eps max|E|
+        assert degenerate_levels(np.linalg.eigvalsh(H + dH)) == levels
+
+
+def test_conv_0008_tolerance_read_from_config_at_call_time(monkeypatch):
+    """rtol and E_floor come from qespace_cef.config when the function is called."""
+    E = np.array([-1e-3, -1e-3 + 5e-11, 1e-3])  # meV; split 5e-11 meV
+    assert _degeneracies(E) == [2, 1]  # tolerance 1e-10 * max(1e-3, 1) meV
+    monkeypatch.setattr(qc.config, "rtol", 1e-11)
+    assert _degeneracies(E) == [1, 1, 1]  # 1e-11 meV
+    monkeypatch.setattr(qc.config, "rtol", 1e-10)
+    monkeypatch.setattr(qc.config, "E_floor", 1e-6)
+    assert _degeneracies(E) == [1, 1, 1]  # 1e-10 * 1e-3 meV
+
+
+@pytest.mark.parametrize("energies", [[1.0, 0.0], [[0.0, 1.0]]])
+def test_degenerate_levels_rejects_unsorted_or_not_1d(energies):
+    with pytest.raises(ValueError):
+        degenerate_levels(energies)

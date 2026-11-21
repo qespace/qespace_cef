@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
+from . import config
 from . import constants as C
 from .cefmatrices import J_x, J_y, J_z, StevensBase
 from .cefpars import CEFpars
@@ -10,6 +11,58 @@ from .ion import Ion
 # Temporary and for printing only, by the maintainer's decision, until the
 # degeneracy convention (CONV-0008) is accepted; no computation uses it.
 _PRINT_DEGENERACY_ATOL = 1e-10
+
+
+def degenerate_levels(energies: ArrayLike) -> list[slice]:
+    r"""The levels of CONV-0008, as slices of the ascending energies.
+
+    Two consecutive energies belong to the same level when
+
+    .. math:: E_{i+1} - E_i \le r_\mathrm{tol} \, \max(\max_k |E_k|, E_\mathrm{floor}),
+
+    with ``rtol`` and ``E_floor`` read from :mod:`qespace_cef.config` at
+    call time (defaults 10⁻¹⁰ and 1 meV). A level ends wherever two
+    consecutive energies differ by more than that.
+
+    Parameters
+    ----------
+    energies : array_like of float, shape (n,)
+        Energies in meV, ascending, with the zero of CONV-0010, e.g.
+        ``CEFion.energies``.
+
+    Returns
+    -------
+    list of slice
+        One slice per level, in ascending energy: ``energies[s]`` are the
+        energies of a level, and ``s.stop - s.start`` is its degeneracy.
+        Empty for no energies.
+
+    Raises
+    ------
+    ValueError
+        If ``energies`` is not one-dimensional or not ascending.
+
+    Examples
+    --------
+    Ce3+ with ``B20`` alone has three Kramers doublets:
+
+    >>> import qespace_cef as qc
+    >>> from qespace_cef.cefion import degenerate_levels
+    >>> cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)))
+    >>> [s.stop - s.start for s in degenerate_levels(cef.energies)]
+    [2, 2, 2]
+    """
+    E = np.asarray(energies, dtype=float)
+    if E.ndim != 1:
+        raise ValueError(f"energies must be one-dimensional, got shape {E.shape}.")
+    if E.size == 0:
+        return []
+    gaps = np.diff(E)
+    if np.any(gaps < 0):
+        raise ValueError("energies must be ascending.")
+    tolerance = config.rtol * max(float(np.abs(E).max()), config.E_floor)
+    bounds = [0, *(np.flatnonzero(gaps > tolerance) + 1).tolist(), E.size]
+    return [slice(start, stop) for start, stop in zip(bounds[:-1], bounds[1:])]
 
 
 class CEFion:
