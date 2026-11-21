@@ -1,7 +1,7 @@
 ---
 id: CONV-0011
 title: Canonical basis inside a degenerate level
-status: draft
+status: accepted
 owner: qespace_cef
 ---
 
