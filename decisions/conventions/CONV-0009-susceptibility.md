@@ -26,8 +26,7 @@ Both sums run over all 2J + 1 states, so each pair (n, m) appears in both
 orders. The susceptibility along a unit vector n̂ is
 `χ_n̂ = n̂·χ·n̂ = gJ² μB² Σ_nm W_nm |<n|n̂·J|m>|²`.
 
-Two levels count as degenerate (`E_m = E_n`) when
-`|E_m − E_n| < constants.numerical_zero`, an absolute 10⁻¹² meV.
+Two levels count as degenerate according to the rules of CONV-0008.
 
 The API returns the tensor `χ_αβ` in μB/T per ion: α is the component of the
 moment, β that of the field. With energies in meV and μB in meV/T, this is
