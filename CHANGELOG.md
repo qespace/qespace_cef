@@ -9,10 +9,11 @@
   and derives the conversions from them: `K2meV = 1e3 k/e`,
   `meV2K = 1/K2meV`, `uB = 1e3 μB/e`, `invcm2meV = 1e3 · 100 h c/e`
   (AUDIT P15). Before, they mixed CODATA 1986 and 2010 and were typed
-  separately, so `K2meV` and `meV2K` were not reciprocal. Results move:
-  energies from parameters in K by up to 3.9·10⁻⁶ relative (`K2meV` had
-  5 digits), in cm⁻¹ by 3.8·10⁻⁷; magnetization by 2.8·10⁻⁷; χ by
-  4.0·10⁻⁷; energies from parameters in meV in zero field not at all. The
+  separately, so `K2meV` and `meV2K` were not reciprocal. Results move,
+  relative, largest in the cases checked, by the unit of the parameters:
+  meV: energies 0 (zero field), M 2.4·10⁻⁷, χ 3.2·10⁻⁷; cm⁻¹: energies
+  3.8·10⁻⁷, M 1.9·10⁻⁷, χ 5.8·10⁻⁷; K (`K2meV` had 5 digits): energies
+  3.9·10⁻⁶, M 8.8·10⁻⁷, χ 1.5·10⁻⁶. The
   unused names `pi`, `R0`, `kB_SI`, `NA`, `C1`, `C2`, `C3` and the private
   `_m`, `_gn`, `_hq`, `_gamn`, `_r0` are removed.
 - `susceptibility(method='perturbation')` evaluates the van Vleck weight
