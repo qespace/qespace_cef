@@ -32,10 +32,14 @@ def J_x(J: float) -> NDArray[np.float64]:
 
 
 def J_plus(J: float) -> NDArray[np.float64]:
-    r"""Matrix of the raising operator :math:`\hat{J}_+`, shape (2J+1, 2J+1), real."""
-    p1 = linspace(-J, J - 1, int(2 * J))
-    p1 = sqrt(J * (J + 1) - p1 * (p1 + 1))
-    return diag(p1, 1)
+    r"""Matrix of the raising operator :math:`\hat{J}_+`, shape (2J+1, 2J+1), real.
+
+    The only non-zero elements are on the first superdiagonal,
+    :math:`\langle m+1|\hat{J}_+|m\rangle = \sqrt{J(J+1) - m(m+1)}` for
+    m = J-1, ..., -J, the m of the lower state (CONV-0005).
+    """
+    m = linspace(J - 1, -J, int(2 * J))
+    return diag(sqrt(J * (J + 1) - m * (m + 1)), 1)
 
 
 def J_minus(J: float) -> NDArray[np.float64]:
@@ -114,15 +118,11 @@ class StevensBase:
         self.JJ = J * (J + 1.0)
         self.J2p1 = int(2 * J + 1)
 
-        self.Jz = diag(linspace(J, -J, int(2 * J + 1)))
-
-        p1 = linspace(-J, J - 1, int(2 * J))
-        p1 = sqrt(J * (J + 1) - p1 * (p1 + 1))
-        self.Jp = diag(p1, 1)
-        self.Jm = self.Jp.conj().transpose()
-
-        self.Jx = 0.5 * (self.Jp + self.Jm)
-        self.Jy = -0.5j * (self.Jp - self.Jm)
+        self.Jz = J_z(J)
+        self.Jp = J_plus(J)
+        self.Jm = J_minus(J)
+        self.Jx = J_x(J)
+        self.Jy = J_y(J)
 
     @classmethod
     def implementedOps(cls):
