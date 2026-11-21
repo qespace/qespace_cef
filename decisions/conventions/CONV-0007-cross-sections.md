@@ -1,7 +1,7 @@
 ---
 id: CONV-0007
 title: Neutron scattering function and cross section
-status: draft
+status: accepted
 owner: qespace_cef
 supersedes:
 ---
@@ -13,7 +13,7 @@ The **scattering function** of one ion, with eigenstates |i>, |f>, energies
 
     S^{αβ}(ħω) = Σ_{i,f} p_i <i|J_α|f><f|J_β|i> δ(ħω − (E_f − E_i))
 
-It holds no neutron factor and is returned as excitations with spectral
+It holds no neutron factor and is returned as excitations with scattering
 weights (CONV-0012), elastic ones included; `E_f − E_i` > 0 is neutron
 energy loss.
 
@@ -25,7 +25,7 @@ The **cross section** per ion is built from it:
 with the dipole form factor `F(Q)`, `k_f/k_i = √(1 − ħω/E_i)` and the
 mean-square displacement `⟨u²⟩` in Å² (`u2`). A powder averages the
 projector to `(2/3) δ_αβ`. Q is in the local frame of CONV-0004. It is
-returned as excitations with intensities (CONV-0012), in barn sr⁻¹ per ion
+returned as excitations with cross-section weights (CONV-0012), in barn sr⁻¹ per ion
 (the cross section itself is in barn sr⁻¹ meV⁻¹ per ion). γ and r₀ come from CODATA 2022
 in `constants.py`.
 

@@ -85,7 +85,8 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
-| CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
+| CONV-0007 cross sections | accepted | – | P9, P13 |
+| CONV-0012 spectral weights | accepted | – | `spectral_weight` (replaced by `scattering_function`, `cross_section`) |
 | CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config) | P4 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0009 susceptibility | accepted | – | – |
@@ -111,7 +112,7 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
 `PLAN.md`. The IDs continue after those of the review sessions.
 
 - **Q11 (section 6.2).** Which draft do you want to decide next? P4 and P17
-  wait for C7 (no draft yet) and CONV-0008, P9 for CONV-0007, P3 for the
+  wait for C7 (no draft yet) and CONV-0008, P3 for the
   units of the thermodynamic quantities (Q44).
 - **Q12 (P16, CONV-0001).** Should `CEFpars` accept odd-rank parameters
   (l = 1, 3, 5)? CONV-0001 tabulates only even l.

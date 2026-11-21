@@ -61,7 +61,7 @@ review measures it. `gtensor` keeps its other problems (P4, P17, A10).
 
 ## In parallel: decisions only you can take
 
-- The `OPEN:` parts of the drafts CONV-0006 and CONV-0007 (AUDIT
+- The `OPEN:` parts of the draft CONV-0006 (AUDIT
   section 6.2, Q11), and a draft for the g-tensor (C7).
 - Q29 and Q31 (ADR-0002), which block `refactor/api-v2`.
 
@@ -72,5 +72,5 @@ review measures it. `gtensor` keeps its other problems (P4, P17, A10).
    and P17.
 
 Other fixes wait for a convention or a source: P3 (CONV-0003 units of the
-thermodynamics, Q44), P9 and P13 (CONV-0007), P14 (sources of the ion
+thermodynamics, Q44), P14 (sources of the ion
 table), P16 (Q12). `refactor/api-v2` waits for Q29 and Q31.
