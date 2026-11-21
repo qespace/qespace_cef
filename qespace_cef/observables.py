@@ -284,7 +284,11 @@ def susceptibility(
 
     with :math:`p_n` the Boltzmann populations, both sums over all states,
     energies in meV, :math:`\mu_B` in meV/T, and two levels equal when they
-    differ by less than ``constants.numerical_zero`` (meV).
+    differ by less than ``constants.numerical_zero`` (meV). The van Vleck
+    weight is evaluated as
+    :math:`p_n (1 - e^{-(E_m - E_n)/k_B T}) / (E_m - E_n)` on the pairs
+    :math:`E_m > E_n`, with ``expm1``, and mirrored, :math:`W_{mn} = W_{nm}`,
+    so it stays accurate as two levels approach each other (CONV-0008).
 
     ``'magnetization'`` takes the finite difference
     :math:`\chi_{\alpha\beta} = M_\alpha(\epsilon \hat{e}_\beta) / \epsilon`
@@ -333,16 +337,24 @@ def susceptibility(
         # jumps[n, m] = E_m - E_n; degenerate pairs as in CONV-0009.
         jumps = cefion.energies[np.newaxis, :] - cefion.energies[:, np.newaxis]
         degenerate = np.abs(jumps) < C.numerical_zero
+        # The pairs (n, m) with E_m > E_n that are not degenerate; their
+        # mirror images (m, n) are all the other pairs that are not.
+        up_n, up_m = np.nonzero((jumps > 0) & ~degenerate)
+        up_jumps = jumps[up_n, up_m]
 
         for it, temperature in enumerate(temperatures.ravel()):
             # W[n, m]: Curie p_n / k_B T for degenerate pairs, van Vleck
             # (p_n - p_m) / (E_m - E_n) for every other pair, in both orders.
+            # The van Vleck weight is p_n (1 - exp(-(E_m - E_n) / k_B T)) /
+            # (E_m - E_n), with expm1 on the pairs E_m > E_n only: it does
+            # not cancel for a pair near the degeneracy rule (CONV-0008),
+            # and its argument is never positive, so it cannot overflow.
+            # W is symmetric, so the pairs E_m < E_n take W[m, n] = W[n, m].
             p = boltzman_population(cefion.energies, temperature)
-            W = np.where(
-                degenerate,
-                p[:, np.newaxis] * C.meV2K / temperature,
-                (p[:, np.newaxis] - p[np.newaxis, :]) / np.where(degenerate, 1.0, jumps),
-            )
+            W = np.where(degenerate, p[:, np.newaxis] * C.meV2K / temperature, 0.0)
+            w_up = p[up_n] * -np.expm1(-up_jumps * C.meV2K / temperature) / up_jumps
+            W[up_n, up_m] = w_up
+            W[up_m, up_n] = w_up
             # <n|J_a|m><m|J_b|n> = J_a[n, m] conj(J_b[n, m]) for Hermitian J_b
             chi_flat[it] = np.einsum("nm,anm,bnm->ab", W, J, J.conj()).real
         chi *= cefion.ion.gJ**2 * C.uB

@@ -36,7 +36,6 @@ from `747c871` and does not depend on what changed since.
 | P15 | rule | `constants.py` | No source or CODATA year. The values mix vintages (h, e from CODATA 1986; μB, k_B, N_A from 2010), `pi` is hard-coded to 11 digits, and `meV2K = 11.60452` and `K2meV = 0.086173` are separate numbers, not reciprocals. `R0`, `_gamn`, `C1`–`C3`, `NA`, `kB_SI` are unused | read | One CODATA set (2022), derived conversions, `np.pi`; drop what's unused (CLAUDE.md 3.2.1) |
 | P16 | physics question | `cefmatrices`, `CEFpars` | Odd-rank operators (l = 1, 3, 5) are implemented and accepted as CEF parameters. Inside one J multiplet, parity removes odd l from the CEF Hamiltonian | `CEFpars(dict(B52=0.1, B3m1=0.2))` is accepted. Rerun on `610c884` | Keep them as building blocks, but decide whether `CEFpars` accepts them (Q12) |
 | P17 | bug | `observables.gtensor` | The z column uses `\|<0\|J_α\|0>\|`. The `abs()` makes even `G = g gᵀ` depend on the basis inside the doublet, so the principal g values are wrong in a general basis. (From the maintainer's notes: "I feel implementation of `gtensor` is wrong") | Ce, 5 random bases of the ground doublet: the spread of g gᵀ is 2.93 (`B20=1`) and 2.15 (low symmetry) with the code's formula, 4e-15 with `g_αβ = gJ Tr(P J_α σ_β)`. For `B20=1` the principal values of the latter are 0.857, 2.571, 2.571 (correct). Run on `610c884` | `g_αβ = gJ Tr(P J_α σ_β)` over the doublet, reported as G or principal values (P4); the convention with C7; non-Kramers doublets need their own treatment |
-| P20 | bug | `observables.susceptibility`, `method='perturbation'` | The van Vleck weight is computed as the plain difference `(p_n − p_m)/(E_m − E_n)`, which cancels for pairs just above the degeneracy tolerance (introduced with the fix of P1, which dropped `expm1` because `exp(+ΔE/k_BT)` of the reversed pairs overflows) | Run on `2446607`: Ce³⁺ (`B20=0.5, B40=0.01, B44=0.1`), 5 K, a field along x splits the ground doublet: χ_zz off by 6.9·10⁻⁷ relative at 10⁻⁹ T (split 6·10⁻¹¹ meV), 1.3·10⁻⁸ at 10⁻⁸ T. With `expm1` on the pairs `E_m > E_n`, mirrored (W is symmetric): ≤ 1.9·10⁻¹⁵, and finite at 0.05 K | `W_nm = p_n (−expm1(−ΔE/k_BT))/ΔE` for `E_m > E_n` only, `W_mn = W_nm` (CONV-0008: continuous formulas evaluated without cancellation); a test with a splitting shrinking through the tolerance |
 
 ## 2. Documentation against behaviour
 
@@ -89,7 +88,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
 | CONV-0007 cross sections | draft | the normalisation, the single-crystal factor, the energy-transfer sign | P9, P13 |
-| CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config); CONV-0009 now needs superseding | P4, P7, P20, A11 |
+| CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config); CONV-0009 now needs superseding | P4, P7, A11 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0009 susceptibility | accepted | – | – |
 | CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
@@ -101,18 +100,16 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`fix/van-vleck`**: P20, needs no new decision; one commit with its test
-   (`PLAN.md`).
-2. **`feat/degenerate-levels`**: CONV-0008 and CONV-0011 in the code: the
+1. **`feat/degenerate-levels`**: CONV-0008 and CONV-0011 in the code: the
    config for `rtol` and `E_floor`, one grouping of levels for
    `susceptibility`, `get_degeneracies` (P7) and `summary`, the canonical
    basis. After a CONV that supersedes CONV-0009's degeneracy rule.
-3. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
+2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P9, P13–P17. Probably two branches.
-4. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
+3. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
    A11 with P7, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.
-5. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
+4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
 

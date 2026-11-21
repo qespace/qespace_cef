@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- `susceptibility(method='perturbation')` evaluates the van Vleck weight
+  `(p_n − p_m)/(E_m − E_n)` as `p_n (−expm1(−(E_m − E_n)/k_B T))/(E_m −
+  E_n)` on the pairs `E_m > E_n`, mirrored to the others, instead of a
+  plain difference that cancelled for two levels just above the degeneracy
+  rule (AUDIT P20, CONV-0008). Ce³⁺ at 5 K with the ground doublet split by
+  6·10⁻¹¹ meV: χ_zz was off by 6.9·10⁻⁷ relative, now by 2·10⁻¹⁵. Other
+  results change only by rounding.
 - The J matrices are built in one place, `J_x`, `J_y`, `J_z`, `J_plus`
   and `J_minus`, and `StevensBase` takes its `Jx`, `Jy`, `Jz`, `Jp`, `Jm`
   from them instead of its own copy of the formulas (AUDIT A5). They

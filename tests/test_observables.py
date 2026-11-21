@@ -115,6 +115,45 @@ def test_susceptibility_prints_nothing(capsys):
     assert capsys.readouterr().out == ""
 
 
+DEGENERACY_RULE = 1e-12  # meV, the absolute rule of CONV-0009 (constants.numerical_zero)
+
+
+@pytest.mark.parametrize("field", [1e-9, 1e-8, 1e-7])  # T
+def test_susceptibility_continuous_through_degeneracy(field):
+    """chi is continuous as a splitting shrinks towards the degeneracy rule (CONV-0008, P20).
+
+    A field along x splits the ground Kramers doublet of the tetragonal Ce3+
+    ion just above the rule, so that pair takes the van Vleck weight
+    (p_n - p_m) / (E_m - E_n) instead of the Curie weight p_n / k_B T. Its
+    limit is the Curie weight, and the change of chi_zz with the field is of
+    second order, about (muB B / k_B T)^2 < 1e-15 here, so chi_zz must equal
+    its zero-field value. A plain difference p_n - p_m loses about 7e-7
+    relative at 1e-9 T.
+    """
+    temperature = 5.0  # K
+    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(TETRAGONAL), Hfield=[field, 0.0, 0.0])
+    split = cef.energies[1] - cef.energies[0]
+    assert DEGENERACY_RULE < split < 1e-6 * KB * temperature  # the case the test is about
+    chi_zz = qc.susceptibility(cef, temperature)[2, 2]
+    assert chi_zz == pytest.approx(qc.susceptibility(_ce(), temperature)[2, 2], rel=1e-12)
+
+
+def test_susceptibility_low_temperature_finite():
+    """At 0.05 K, where (E_m - E_n) / k_B T reaches 10^4, chi is finite and warns of nothing.
+
+    Pairs with E_m < E_n would overflow in exp((E_n - E_m) / k_B T), so the
+    formula must never evaluate it (P20).
+    """
+    temperature = 0.05  # K
+    cef = _ce()
+    assert (cef.energies[-1] - cef.energies[0]) / (KB * temperature) > 1e3  # exp(+x) overflows
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        chi = qc.susceptibility(cef, temperature)
+    assert np.all(np.isfinite(chi))
+    assert chi[2, 2] == pytest.approx(_chi_exact(cef, temperature, [0, 0, 1]) * MUB, rel=1e-6)
+
+
 # --- CONV-0009: the susceptibility tensor ---------------------------------
 # Expected values from formulas in the tests (CONV-0009, Consequences).
 
