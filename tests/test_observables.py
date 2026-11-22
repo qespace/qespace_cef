@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 import qespace_cef as qc
+from qespace_cef.cefion import degenerate_levels
 
 # CODATA 2022 (NIST, physics.nist.gov/cuu/Constants): e = 1.602176634e-19 C and
 # k = 1.380649e-23 J/K exact, mu_B = 9.2740100657(29)e-24 J/T.
@@ -307,6 +308,96 @@ def test_heat_capacity_is_T_dS_dT(temperature):
     """Cv = T dS/dT."""
     Cv = _thermo([temperature])[4][0]
     assert Cv == pytest.approx(temperature * _derivative(3, temperature), rel=1e-4)
+
+
+# --- CONV-0012: the scattering function as excitations --------------------
+# Tests compare sums over the entries at one energy, never single entries.
+
+SPECTRUM_CASES = [  # (ion, parameters in meV, field in T), test values
+    ("Ce", dict(B20=0.3, B22=-0.1, B40=0.01, B4m3=0.02, B44=0.03), (0, 0, 0)),
+    ("Pr", dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4), (0, 0, 0)),  # cubic, degenerate
+    ("Er", dict(B20=-0.02, B22=0.01, B40=1e-4, B43=3e-4), (0.1, 0.2, 0.3)),
+]
+
+
+def _cef(name, pars, field):
+    return qc.CEFion(qc.Ion(name), qc.CEFpars(pars), Hfield=list(field))
+
+
+def _distinct(energies, tolerance):
+    """The distinct values of ``energies``, merged within ``tolerance``."""
+    values = np.sort(energies)
+    keep = np.r_[True, np.diff(values) > tolerance]
+    return values[keep]
+
+
+def _summed_at(energies, weights, energy, tolerance):
+    """The sum of the weights of the entries within ``tolerance`` of ``energy``."""
+    return weights[np.abs(energies - energy) <= tolerance].sum(axis=0)
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+@pytest.mark.parametrize("temperature", [1.0, 30.0, 300.0])
+def test_conv_0012_sum_rule(name, pars, field, temperature):
+    """sum_k Tr W_k = sum_i p_i <i|J^2|i> = J(J+1)."""
+    cef = _cef(name, pars, field)
+    energies, W = qc.scattering_function(cef, temperature)
+    n = len(cef.energies)
+    assert energies.shape == (n * n,) and W.shape == (n * n, 3, 3)
+    J = cef.ion.J
+    assert np.trace(W, axis1=1, axis2=2).sum().real == pytest.approx(J * (J + 1), rel=1e-12)
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+def test_conv_0012_detailed_balance(name, pars, field):
+    """Summed over each energy: S^ab(-e) = exp(-e / k_B T) S^ba(e)."""
+    temperature = 20.0  # K
+    cef = _cef(name, pars, field)
+    energies, W = qc.scattering_function(cef, temperature)
+    tolerance = 1e-9 * np.abs(cef.energies).max()
+    scale = np.abs(W).max()
+    for e in _distinct(energies, tolerance):
+        if e <= tolerance:
+            continue
+        gain = _summed_at(energies, W, -e, tolerance)
+        loss = _summed_at(energies, W, e, tolerance)
+        assert np.allclose(
+            gain, np.exp(-e / (KB * temperature)) * loss.T, rtol=1e-9, atol=1e-13 * scale
+        )
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+def test_conv_0012_summed_weights_invariant_inside_levels(name, pars, field):
+    """A unitary rotation inside each level leaves the summed weights at every energy unchanged."""
+    temperature = 20.0  # K
+    cef = _cef(name, pars, field)
+    energies, W = qc.scattering_function(cef, temperature)
+    rng = np.random.default_rng(12)
+    n = len(cef.energies)
+    U = np.zeros((n, n), complex)
+    for level in degenerate_levels(cef.energies):
+        d = level.stop - level.start
+        U[level, level], _ = np.linalg.qr(rng.normal(size=(d, d)) + 1j * rng.normal(size=(d, d)))
+    cef.J = np.einsum("ki,akl,lj->aij", U.conj(), np.asarray(cef.J), U)
+    energies_r, W_r = qc.scattering_function(cef, temperature)
+    tolerance = 1e-9 * np.abs(cef.energies).max()
+    scale = np.abs(W).max()
+    for e in _distinct(energies, tolerance):
+        assert np.allclose(
+            _summed_at(energies_r, W_r, e, tolerance),
+            _summed_at(energies, W, e, tolerance),
+            rtol=0,
+            atol=1e-12 * scale,
+        )
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+def test_conv_0012_weights_hermitian_positive_semidefinite(name, pars, field):
+    """Each W_k is a Hermitian, positive semidefinite 3x3 matrix."""
+    _, W = qc.scattering_function(_cef(name, pars, field), 20.0)
+    scale = np.abs(W).max()
+    assert np.allclose(W, np.conj(np.swapaxes(W, 1, 2)), rtol=0, atol=1e-14 * scale)
+    assert np.linalg.eigvalsh(W).min() >= -1e-14 * scale
 
 
 # --- spectral weight ------------------------------------------------------

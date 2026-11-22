@@ -38,6 +38,53 @@ def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
     return p / Z
 
 
+def scattering_function(cefion: CEFion, temperature: float) -> tuple[np.ndarray, np.ndarray]:
+    r"""The magnetic scattering function of one ion as excitations (CONV-0007, CONV-0012).
+
+    .. math::
+
+        S^{\alpha\beta}(\hbar\omega) = \sum_k W_k^{\alpha\beta}\,
+            \delta(\hbar\omega - \varepsilon_k), \qquad
+        \varepsilon_{if} = E_f - E_i, \quad
+        W_{if}^{\alpha\beta} = p_i \langle i|\hat{J}_\alpha|f\rangle
+            \langle f|\hat{J}_\beta|i\rangle,
+
+    one entry per pair of eigenstates (i, f), elastic ones included, with
+    :math:`p_i` the Boltzmann populations. Positive :math:`\varepsilon` is
+    neutron energy loss. No neutron factor (form factor, :math:`k_f/k_i`,
+    :math:`(\gamma r_0)^2`) is applied; see :func:`cross_section_crystal`
+    and :func:`cross_section_powder`.
+
+    The entries form an unordered set (CONV-0012): they carry no level
+    information, may share an energy and may have zero weight, and only
+    sums over the entries at one energy (CONV-0008) are meaningful. (Here
+    entry ``k`` is the pair ``(i, f) = divmod(k, n)``.)
+
+    Parameters
+    ----------
+    cefion : CEFion
+        Diagonalised ion in the crystal field.
+    temperature : float
+        Temperature in K.
+
+    Returns
+    -------
+    energies : ndarray of float, shape (n**2,)
+        Excitation energies :math:`\varepsilon_k` in meV, n = 2J + 1.
+    weights : ndarray of complex, shape (n**2, 3, 3)
+        Scattering weights :math:`W_k^{\alpha\beta}`, dimensionless, α and β
+        in the frame of the J operators (CONV-0004). Each is Hermitian and
+        positive semidefinite, and :math:`\sum_k \mathrm{Tr}\,W_k = J(J+1)`.
+    """
+    E = cefion.energies
+    J = np.asarray(cefion.J)  # (3, n, n): J[a, i, f] = <i|J_a|f>
+    n = len(E)
+    p = boltzman_population(E, temperature)
+    energies = (E[np.newaxis, :] - E[:, np.newaxis]).reshape(n * n)
+    weights = np.einsum("i,aif,bfi->ifab", p, J, J).reshape(n * n, 3, 3)
+    return energies, weights
+
+
 def spectral_weight(
     cefion: CEFion,
     temperature: float,

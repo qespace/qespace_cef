@@ -7,6 +7,10 @@
 - `qespace_cef.constants` gets the neutron constants of CODATA 2022:
   `gamma_n = 1.91304276` (|μ_n/μ_N|), `r0 = 2.8179403205e-15` m and
   `gamma_r0_sq = (γ r₀)²` in barn (0.2906).
+- New `scattering_function(cefion, temperature)`: the magnetic scattering
+  function as excitations (CONV-0007, CONV-0012), energies (n²,) in meV
+  and scattering weights `W_if^{αβ} = p_i <i|J_α|f><f|J_β|i>`, (n², 3, 3),
+  without neutron factors.
 - New `qespace_cef.config`, the one place for tolerances, read at call
   time: `rtol = 1e-10` and `E_floor = 1` meV (CONV-0008, AUDIT A11). New
   `qespace_cef.cefion.degenerate_levels(energies)` groups ascending
