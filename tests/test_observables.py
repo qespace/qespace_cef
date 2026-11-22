@@ -459,13 +459,29 @@ def test_single_crystal_trace_sum_rule():
 
 @pytest.mark.parametrize("Q", [[1.0, 1.0, 0.0], [0.3, 0.5, 0.7]])
 def test_single_crystal_weights_full_projector(Q):
-    """w_if / (neutron factor kf/ki) = p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (P9)."""
+    """The weights summed at each energy equal, summed at the same energy,
+    neutron factor (kf/ki) p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (P9).
+
+    Sums over equal energies, never single entries (CONV-0012); energies
+    grouped as in the CONV-0012 tests.
+    """
     cef = _ce(LOW_SYMMETRY)
-    q = np.asarray(Q) / np.linalg.norm(Q)
-    expected = _projected_matrix_elements(cef, np.eye(3) - np.outer(q, q))
+    Qnorm = np.linalg.norm(Q)
+    q = np.asarray(Q) / Qnorm
+    E = cef.energies
+    expected_energies = (E[None, :] - E[:, None]).ravel()  # E_f - E_i, pairs (i, f)
+    expected = (
+        _neutron_factor(cef, Qnorm)
+        * np.sqrt(1 - expected_energies / EI)
+        * _projected_matrix_elements(cef, np.eye(3) - np.outer(q, q)).ravel()
+    )
     energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
-    W = _bare_weights(cef, energies, w, np.linalg.norm(Q))
-    assert np.allclose(W, expected, rtol=1e-10, atol=1e-12 * expected.max())
+    tolerance = 1e-9 * np.abs(E).max()
+    scale = expected.max()
+    for e in _distinct(expected_energies, tolerance):
+        assert _summed_at(energies, w, e, tolerance) == pytest.approx(
+            _summed_at(expected_energies, expected, e, tolerance), rel=1e-10, abs=1e-12 * scale
+        )
 
 
 @pytest.mark.parametrize("name", ["Nd", "Tb", "Ho"])  # F(0) = 1 to rounding in the table
@@ -537,18 +553,20 @@ def test_conv_0007_debye_waller_and_loop_shape():
 
 
 @pytest.mark.parametrize(
-    ("func", "Q", "Ei"),
+    ("func", "Q", "Ei", "u2"),
     [
-        ("cross_section_crystal", [1.0, 0.0], EI),
-        ("cross_section_crystal", [0.0, 0.0, 0.0], EI),
-        ("cross_section_crystal", [1.0, 0.0, 0.0], 0.0),
-        ("cross_section_powder", -1.0, EI),
-        ("cross_section_powder", 1.0, -5.0),
+        ("cross_section_crystal", [1.0, 0.0], EI, 0.0),
+        ("cross_section_crystal", [0.0, 0.0, 0.0], EI, 0.0),
+        ("cross_section_crystal", [1.0, 0.0, 0.0], 0.0, 0.0),
+        ("cross_section_crystal", [1.0, 0.0, 0.0], EI, np.nan),
+        ("cross_section_powder", -1.0, EI, 0.0),
+        ("cross_section_powder", 1.0, -5.0, 0.0),
+        ("cross_section_powder", 1.0, EI, -0.01),
     ],
 )
-def test_cross_sections_reject_bad_input(func, Q, Ei):
+def test_cross_sections_reject_bad_input(func, Q, Ei, u2):
     with pytest.raises(ValueError):
-        getattr(qc, func)(_ce(LOW_SYMMETRY), TEMPERATURE, Q, Ei=Ei)
+        getattr(qc, func)(_ce(LOW_SYMMETRY), TEMPERATURE, Q, Ei=Ei, u2=u2)
 
 
 # --- g-tensor -------------------------------------------------------------

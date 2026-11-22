@@ -111,6 +111,8 @@ def _cross_section_unprojected(
     """
     if not np.isfinite(Ei) or Ei <= 0:
         raise ValueError(f"Ei must be a positive incident energy in meV, got {Ei!r}.")
+    if not np.isfinite(u2) or u2 < 0:
+        raise ValueError(f"u2 must be a mean-square displacement >= 0 in A^2, got {u2!r}.")
     energies, W = scattering_function(cefion, temperature)
     ion_factor = (cefion.ion.gJ / 2) ** 2 * np.asarray(cefion.ion.mff(Qnorm)) ** 2
     debye_waller = np.exp(-(Qnorm**2) * u2 / 3)
@@ -176,8 +178,8 @@ def cross_section_crystal(
     Raises
     ------
     ValueError
-        If the last axis of ``Q`` is not 3, any Q is zero, or ``Ei`` is not
-        positive.
+        If the last axis of ``Q`` is not 3, any Q is zero, ``Ei`` is not
+        positive, or ``u2`` is negative or not finite.
     """
     Q = np.asarray(Q, dtype=float)
     if Q.shape[-1:] != (3,):
@@ -233,8 +235,8 @@ def cross_section_powder(
     Raises
     ------
     ValueError
-        If any ``Qnorm`` is negative or not finite, or ``Ei`` is not
-        positive.
+        If any ``Qnorm`` is negative or not finite, ``Ei`` is not positive,
+        or ``u2`` is negative or not finite.
     """
     Qnorm = np.asarray(Qnorm, dtype=float)
     if np.any(~np.isfinite(Qnorm) | (Qnorm < 0)):
