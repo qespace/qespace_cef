@@ -28,10 +28,12 @@ telling the maintainer what is missing:
 
 ## 2. Start the implementer
 
-If the maintainer names an existing idle worker, send it the brief with
-SendMessage instead, telling it to cut the plan's branch from `main` in its
-worktree; skip step 3 if its split is already open. Otherwise, before the call, write a bold title line and one sentence on what it will do.
-Then call `start_session` with:
+By default, send the brief with SendMessage to the existing worker "CEF
+implementer" (find it with `list_sessions` linked; it must be idle, its
+worktree clean), telling it to cut the plan's branch from `main` in its
+worktree; skip step 3 if its split is already open. Start a new one only if
+it is gone or the maintainer asks: before the call, write a bold title line
+and one sentence on what it will do. Then call `start_session` with:
 
 - `initiation`: `"user_asked"`; `context`: `"fresh"` (a `"fork"` only when the
   maintainer asks for it, or the step depends on discussion not written into
