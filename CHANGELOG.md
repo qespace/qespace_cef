@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- `qespace_cef.constants` gets the neutron constants of CODATA 2022:
+  `gamma_n = 1.91304276` (|μ_n/μ_N|), `r0 = 2.8179403205e-15` m and
+  `gamma_r0_sq = (γ r₀)²` in barn (0.2906).
 - New `qespace_cef.config`, the one place for tolerances, read at call
   time: `rtol = 1e-10` and `E_floor = 1` meV (CONV-0008, AUDIT A11). New
   `qespace_cef.cefion.degenerate_levels(energies)` groups ascending
