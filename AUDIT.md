@@ -146,3 +146,15 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
 - **Q44 (P3).** The units of the thermodynamic quantities, which no CONV
   states: U and F in meV per ion from the zero of CONV-0010, S and C_v in
   k_B per ion? With that, P3 can be fixed.
+
+## 9. Needs later attention
+
+- **A16 (CONV-0012).** The excitations are returned flat, n² entries without
+  level information, as CONV-0012 says; that came from a misunderstanding
+  (maintainer, 2026-11-22). Intended: `energies` are the levels of the
+  Hamiltonian, (n,); the transition energies `E_f − E_i` keep the pairs,
+  (n, n), and so do the weights, (n, n, 3, 3) and (n, n). As a solved
+  Hamiltonian is immutable (Q29), the pair (i, f) traces back to the levels;
+  the shape costs nothing, as a reshape is a view. Needs a CONV superseding
+  CONV-0012, then `scattering_function`, the cross sections and the
+  `test_conv_0012_*` tests follow.
