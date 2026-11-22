@@ -85,36 +85,68 @@ def scattering_function(cefion: CEFion, temperature: float) -> tuple[np.ndarray,
     return energies, weights
 
 
-def spectral_weight(
+def _cross_section_unprojected(
     cefion: CEFion,
     temperature: float,
-    Q: ArrayLike,
-    scheme: str,
-    Ei: float = 1e6,
-    B_iso: float = 0,
+    Qnorm: np.ndarray,
+    P: np.ndarray,
+    Ei: float,
+    u2: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    r"""Neutron-scattering energies and spectral weights of every transition.
+    r"""Cross-section weights of CONV-0007 for a given projector P.
 
-    For each pair of eigenstates, initial ``i`` and final ``j``, the code
-    computes
+    The shared kernel of :func:`cross_section_crystal` and
+    :func:`cross_section_powder`, which build P and check Q:
 
     .. math::
 
-        \Delta E_{ij} = E_j - E_i, \qquad
-        S_{ij} = f^2(Q) \, e^{-B_{iso} Q^2 / 3} \,
-                 \sqrt{1 - \Delta E_{ij} / E_\mathrm{inc}} \; p_i \; M_{ij},
+        w_k = (\gamma r_0)^2 \, (k_f/k_i)_k \, [\tfrac{1}{2} g_J F(|Q|)]^2
+              e^{-|Q|^2 \langle u^2 \rangle / 3}
+              \sum_{\alpha\beta} P_{\alpha\beta} W_k^{\alpha\beta},
+        \qquad (k_f/k_i)_k = \sqrt{1 - \varepsilon_k / E_i},
 
-    with :math:`f(Q)` the form factor (:meth:`Ion.mff`), :math:`p_i` the
-    Boltzmann population (:func:`boltzman_population`), :math:`E_\mathrm{inc}` the
-    incident neutron energy ``Ei``, and the matrix elements
+    NaN where :math:`\varepsilon_k > E_i`. ``Qnorm`` has the loop shape S
+    (Å⁻¹), ``P`` the shape S + (3, 3); the weights get S + (n²,), in barn
+    sr⁻¹ per ion.
+    """
+    if not np.isfinite(Ei) or Ei <= 0:
+        raise ValueError(f"Ei must be a positive incident energy in meV, got {Ei!r}.")
+    energies, W = scattering_function(cefion, temperature)
+    ion_factor = (cefion.ion.gJ / 2) ** 2 * np.asarray(cefion.ion.mff(Qnorm)) ** 2
+    debye_waller = np.exp(-(Qnorm**2) * u2 / 3)
+    ratio = 1 - energies / Ei
+    kf_ki = np.sqrt(np.where(ratio >= 0, ratio, np.nan))  # NaN where the neutron cannot lose it
+    projected = np.einsum("...ab,kab->...k", P, W).real  # P real symmetric, W Hermitian
+    prefactor = C.gamma_r0_sq * ion_factor * debye_waller
+    return energies, prefactor[..., np.newaxis] * kf_ki * projected
 
-    - ``'powder'``: :math:`M_{ij} = \frac{2}{3} \sum_\alpha |\langle i|\hat{J}_\alpha|j\rangle|^2`;
-    - ``'single-crystal'``: :math:`M_{ij} = \sum_\alpha (1 - \hat{Q}_\alpha^2) |\langle i|\hat{J}_\alpha|j\rangle|^2`,
-      with :math:`\hat{Q} = \vec{Q}/|Q|` in the frame of the J operators.
 
-    The prefactor :math:`N (\gamma r_0)^2` is set to 1, so ``Sqw`` is in
-    arbitrary units. Positive :math:`\Delta E` is neutron energy loss. The
-    transitions are neither sorted nor merged over degenerate levels.
+def cross_section_crystal(
+    cefion: CEFion,
+    temperature: float,
+    Q: ArrayLike,
+    Ei: float,
+    u2: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    r"""Magnetic neutron cross section of one ion in a single crystal (CONV-0007).
+
+    The cross section as excitations (CONV-0012),
+    :math:`d^2\sigma/d\Omega dE = \sum_k w_k \, \delta(\hbar\omega - \varepsilon_k)`,
+    with the scattering weights :math:`W_k` of :func:`scattering_function`
+    and
+
+    .. math::
+
+        w_k = (\gamma r_0)^2 \, (k_f/k_i)_k \, [\tfrac{1}{2} g_J F(|Q|)]^2
+              e^{-|Q|^2 \langle u^2 \rangle / 3}
+              \sum_{\alpha\beta} (\delta_{\alpha\beta} - \hat{Q}_\alpha \hat{Q}_\beta)
+              W_k^{\alpha\beta},
+
+    :math:`(k_f/k_i)_k = \sqrt{1 - \varepsilon_k / E_i}` at fixed incident
+    energy, :math:`F` the dipole form factor (:meth:`Ion.mff`), and
+    :math:`(\gamma r_0)^2` from ``constants.gamma_r0_sq`` (CODATA 2022).
+    Positive :math:`\varepsilon_k` is neutron energy loss. The sum of the
+    weights in an energy window is dσ/dΩ of that window.
 
     Parameters
     ----------
@@ -122,88 +154,93 @@ def spectral_weight(
         Diagonalised ion in the crystal field.
     temperature : float
         Temperature in K.
-    Q : array_like of float, shape (3,)
-        Momentum transfer in 1/Å, in the frame of the J operators. For
-        ``'powder'`` only its length is used.
-    scheme : {'powder', 'single-crystal'}
-        How the matrix elements are averaged, see above.
-    Ei : float, optional
-        Incident neutron energy in meV. The default, 1e6 meV, makes
-        :math:`k_f/k_i \approx 1`.
-    B_iso : float, optional
-        Isotropic displacement parameter in Å², entering as
-        :math:`e^{-B_{iso} Q^2/3}`. Default 0 (no Debye-Waller factor).
+    Q : array_like of float, shape S + (3,)
+        Momentum transfer in Å⁻¹, in the local frame of the J operators
+        (CONV-0004); any loop shape S. Not zero.
+    Ei : float
+        Incident neutron energy in meV.
+    u2 : float, optional
+        Mean-square displacement :math:`\langle u^2 \rangle` in Å², in the
+        Debye–Waller factor :math:`e^{-|Q|^2 \langle u^2 \rangle/3}`.
+        Default 0.
 
     Returns
     -------
-    jumps : ndarray, shape (2J+1, 2J+1)
-        ``jumps[i, j]`` is the transition energy :math:`E_j - E_i` in meV.
-    Sqw : ndarray, shape (2J+1, 2J+1)
-        ``Sqw[i, j]`` is the spectral weight of the transition from ``i`` to
-        ``j``, in arbitrary units. NaN, with a NumPy ``RuntimeWarning``,
-        where :math:`E_j - E_i > E_\mathrm{inc}`, and for ``'single-crystal'`` at
-        Q = 0.
+    energies : ndarray of float, shape (n**2,)
+        Excitation energies in meV, n = 2J + 1, as in
+        :func:`scattering_function`.
+    weights : ndarray of float, shape S + (n**2,)
+        Cross-section weights in barn sr⁻¹ per ion. NaN, without a
+        warning, where the excitation energy exceeds ``Ei``.
 
     Raises
     ------
     ValueError
-        If ``scheme`` is unknown, or ``Q`` does not have 3 components for
-        ``'single-crystal'``.
-
-    Warnings
-    --------
-    Known problems, not fixed yet (AUDIT.md):
-
-    - P9: the single-crystal matrix elements leave out the cross terms
-      :math:`-\hat{Q}_\alpha \hat{Q}_\beta \langle i|\hat{J}_\alpha|j\rangle \langle j|\hat{J}_\beta|i\rangle`
-      of the full projector. For Q along (110) in the audit's example the
-      summed weight was 5.6516 instead of 5.6573; single transitions can be
-      off by more.
-    - C10 (open convention): :math:`e^{-B_{iso} Q^2/3}` is not the
-      crystallographic Debye-Waller factor :math:`e^{-B Q^2/16\pi^2}`.
-    - The weights of single transitions inside a degenerate level depend on
-      the arbitrary eigenbasis; sums over the level do not.
-
-    Notes
-    -----
-    The original code cites "the Enderle book following Stephane Raymond
-    article" for the formula; the full reference is missing.
+        If the last axis of ``Q`` is not 3, any Q is zero, or ``Ei`` is not
+        positive.
     """
+    Q = np.asarray(Q, dtype=float)
+    if Q.shape[-1:] != (3,):
+        raise ValueError(f"Q must have shape (..., 3), got {Q.shape}.")
+    Qnorm = np.linalg.norm(Q, axis=-1)
+    if np.any(Qnorm == 0):
+        raise ValueError("Q must not be zero: the direction of Q sets the projector.")
+    q = Q / Qnorm[..., np.newaxis]
+    P = np.eye(3) - q[..., :, np.newaxis] * q[..., np.newaxis, :]
+    return _cross_section_unprojected(cefion, temperature, Qnorm, P, Ei, u2)
 
-    # Magnetic form factor
-    f2m = cefion.ion.mff(np.linalg.norm(Q)) ** 2
 
-    # Debye-Waller factor
-    eDW = np.exp(-1 / 3 * np.linalg.norm(Q) ** 2 * B_iso)
+def cross_section_powder(
+    cefion: CEFion,
+    temperature: float,
+    Qnorm: ArrayLike,
+    Ei: float,
+    u2: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    r"""Magnetic neutron cross section of one ion in a powder (CONV-0007).
 
-    # Tricky way to create a 2D array of energies associated with transitions between levels
-    jumps = cefion.energies - cefion.energies[np.newaxis].T
+    As :func:`cross_section_crystal`, with the projector averaged over the
+    directions of Q, :math:`\langle \delta_{\alpha\beta} - \hat{Q}_\alpha
+    \hat{Q}_\beta \rangle = \tfrac{2}{3} \delta_{\alpha\beta}`:
 
-    # Calculate the |<\Gamma_f|J_\perp|\Gamma_i>|^2 matrix
-    if scheme == "single-crystal":
-        if len(Q) != 3:
-            raise ValueError("Dimension of the `Q` vector is not 3")
+    .. math::
 
-        J2 = np.square(np.abs(cefion.J))  # J is already diagonalized and in the eigenvector basis
-        # AUDIT P9: only the diagonal of the projector; the cross terms are missing.
-        projection = 1 - (Q / np.linalg.norm(Q)) ** 2
+        w_k = (\gamma r_0)^2 \, (k_f/k_i)_k \, [\tfrac{1}{2} g_J F(|Q|)]^2
+              e^{-|Q|^2 \langle u^2 \rangle / 3}
+              \tfrac{2}{3} \sum_\alpha W_k^{\alpha\alpha}.
 
-        J2_perp = np.einsum("i,ijk", projection, J2)
-    elif scheme == "powder":
-        J2_perp = 2.0 / 3 * np.einsum("ijk->jk", np.square(np.abs(cefion.J)))
-    else:
-        raise ValueError(f"Unknown scheme {scheme!r}; use 'powder' or 'single-crystal'.")
+    Parameters
+    ----------
+    cefion : CEFion
+        Diagonalised ion in the crystal field.
+    temperature : float
+        Temperature in K.
+    Qnorm : array_like of float, shape S
+        Length of the momentum transfer in Å⁻¹, any loop shape S.
+    Ei : float
+        Incident neutron energy in meV.
+    u2 : float, optional
+        Mean-square displacement in Å². Default 0.
 
-    # kf/ki factor, which is actually a matrix
-    kfki = np.sqrt(1 - jumps / Ei)
+    Returns
+    -------
+    energies : ndarray of float, shape (n**2,)
+        Excitation energies in meV, n = 2J + 1.
+    weights : ndarray of float, shape S + (n**2,)
+        Cross-section weights in barn sr⁻¹ per ion. NaN, without a
+        warning, where the excitation energy exceeds ``Ei``.
 
-    # Occupation
-    transition_probs = boltzman_population(cefion.energies, temperature)
-
-    # Multiply the factors, vectors and matrices properly to get spectral weight.
-    Sqw = f2m * eDW * kfki * J2_perp * transition_probs[:, np.newaxis]
-
-    return (jumps, Sqw)
+    Raises
+    ------
+    ValueError
+        If any ``Qnorm`` is negative or not finite, or ``Ei`` is not
+        positive.
+    """
+    Qnorm = np.asarray(Qnorm, dtype=float)
+    if np.any(~np.isfinite(Qnorm) | (Qnorm < 0)):
+        raise ValueError("Qnorm must be finite and not negative.")
+    P = np.broadcast_to(2 / 3 * np.eye(3), Qnorm.shape + (3, 3))
+    return _cross_section_unprojected(cefion, temperature, Qnorm, P, Ei, u2)
 
 
 def magnetization(

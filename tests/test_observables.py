@@ -400,16 +400,15 @@ def test_conv_0012_weights_hermitian_positive_semidefinite(name, pars, field):
     assert np.linalg.eigvalsh(W).min() >= -1e-14 * scale
 
 
-# --- spectral weight ------------------------------------------------------
+# --- CONV-0007: the neutron cross section ---------------------------------
+# Expected values from formulas written here: (gamma r0)^2 from CODATA 2022,
+# the projector, k_f/k_i and the matrix elements of J in the eigenbasis.
 
 LOW_SYMMETRY = dict(B20=0.3, B22=-0.1, B40=0.01, B4m3=0.02, B44=0.03)
 TEMPERATURE = 10.0  # K
-
-
-def _weights_without_kfki(cef, Q, scheme):
-    """Sqw / (kf/ki), with kf/ki = sqrt(1 - (E_j - E_i)/Ei) for the default Ei."""
-    jumps, Sqw = qc.spectral_weight(cef, TEMPERATURE, Q, scheme)
-    return Sqw / np.sqrt(1 - jumps / 1e6)
+EI = 1e3  # meV, test value
+# (gamma r0)^2, CODATA 2022: mu_n/mu_N = -1.91304276(45), r_e = 2.8179403205(13)e-15 m.
+GAMMA_R0_SQ = (1.91304276 * 2.8179403205e-15) ** 2 / 1e-28  # barn
 
 
 def _populations(cef):
@@ -417,37 +416,139 @@ def _populations(cef):
     return p / p.sum()
 
 
+def _neutron_factor(cef, Qnorm, u2=0.0):
+    """(gamma r0)^2 (gJ/2)^2 F(|Q|)^2 exp(-|Q|^2 u2 / 3), in barn."""
+    return (
+        GAMMA_R0_SQ * (cef.ion.gJ / 2) ** 2 * cef.ion.mff(Qnorm) ** 2 * np.exp(-(Qnorm**2) * u2 / 3)
+    )
+
+
+def _bare_weights(cef, energies, weights, Qnorm, Ei=EI):
+    """weights / (neutron factor k_f/k_i), as an (n, n) array of pairs (i, f)."""
+    n = len(cef.energies)
+    kf_ki = np.sqrt(1 - energies / Ei)
+    return (weights / (_neutron_factor(cef, Qnorm) * kf_ki)).reshape(n, n)
+
+
+def _projected_matrix_elements(cef, P):
+    """p_i sum_ab P_ab <i|J_a|f><f|J_b|i>, as (n, n), from the J matrices."""
+    M = np.einsum("ab,aif,bfi->if", P, cef.J, cef.J).real
+    return _populations(cef)[:, None] * M
+
+
 def test_powder_sum_rule():
     """sum_f |<i|J_perp|f>|^2 = 2/3 J(J+1) for every initial state i (powder)."""
     cef = _ce(LOW_SYMMETRY)
-    Q = [1.0, 0, 0]
-    rows = _weights_without_kfki(cef, Q, "powder").sum(axis=1)
-    norm = cef.ion.mff(1.0) ** 2 * _populations(cef)
+    energies, w = qc.cross_section_powder(cef, TEMPERATURE, 1.0, Ei=EI)
+    rows = _bare_weights(cef, energies, w, 1.0).sum(axis=1)
     J = cef.ion.J
-    assert np.allclose(rows / norm, 2 / 3 * J * (J + 1), rtol=1e-5)
+    assert np.allclose(rows / _populations(cef), 2 / 3 * J * (J + 1), rtol=1e-10)
 
 
 def test_single_crystal_trace_sum_rule():
     """sum_if |<i|J_perp|f>|^2 = 2/3 J(J+1)(2J+1), the trace over i (single crystal)."""
     cef = _ce(LOW_SYMMETRY)
     Q = np.array([0.3, 0.5, 0.7])
-    W = _weights_without_kfki(cef, Q, "single-crystal")
-    norm = cef.ion.mff(np.linalg.norm(Q)) ** 2 * _populations(cef)
+    energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    W = _bare_weights(cef, energies, w, np.linalg.norm(Q))
     J = cef.ion.J
-    assert np.sum(W / norm[:, None]) == pytest.approx(2 / 3 * J * (J + 1) * (2 * J + 1), rel=1e-5)
+    assert np.sum(W / _populations(cef)[:, None]) == pytest.approx(
+        2 / 3 * J * (J + 1) * (2 * J + 1), rel=1e-10
+    )
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P9: the cross terms of the projector are missing")
 @pytest.mark.parametrize("Q", [[1.0, 1.0, 0.0], [0.3, 0.5, 0.7]])
 def test_single_crystal_weights_full_projector(Q):
-    """Sqw_if = f^2 p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (kf/ki divided out)."""
+    """w_if / (neutron factor kf/ki) = p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (P9)."""
     cef = _ce(LOW_SYMMETRY)
     q = np.asarray(Q) / np.linalg.norm(Q)
-    projector = np.eye(3) - np.outer(q, q)
-    M = np.einsum("ab,aif,bfi->if", projector, cef.J, cef.J).real
-    expected = cef.ion.mff(np.linalg.norm(Q)) ** 2 * _populations(cef)[:, None] * M
-    W = _weights_without_kfki(cef, Q, "single-crystal")
-    assert np.allclose(W, expected, rtol=1e-5, atol=1e-8 * expected.max())
+    expected = _projected_matrix_elements(cef, np.eye(3) - np.outer(q, q))
+    energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    W = _bare_weights(cef, energies, w, np.linalg.norm(Q))
+    assert np.allclose(W, expected, rtol=1e-10, atol=1e-12 * expected.max())
+
+
+@pytest.mark.parametrize("name", ["Nd", "Tb", "Ho"])  # F(0) = 1 to rounding in the table
+def test_conv_0007_absolute_sum_rule(name):
+    """Powder, Q = 0, u2 = 0: sum_k w_k / (kf/ki)_k = (gamma r0)^2 (gJ/2)^2 (2/3) J(J+1)."""
+    cef = _cef(name, LOW_SYMMETRY, (0, 0, 0))
+    energies, w = qc.cross_section_powder(cef, TEMPERATURE, 0.0, Ei=EI)
+    J, gJ = cef.ion.J, cef.ion.gJ
+    expected = GAMMA_R0_SQ * (gJ / 2) ** 2 * 2 / 3 * J * (J + 1)  # barn / sr
+    assert np.sum(w / np.sqrt(1 - energies / EI)) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.parametrize("kind", ["powder", "crystal"])
+def test_conv_0007_nan_exactly_above_Ei(kind):
+    """The weights are NaN exactly where the excitation energy exceeds Ei, without a warning."""
+    cef = _ce(LOW_SYMMETRY)
+    E = cef.energies
+    Ei = 0.5 * (E.max() - E.min())  # meV, between the excitations
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        if kind == "powder":
+            energies, w = qc.cross_section_powder(cef, TEMPERATURE, 1.0, Ei=Ei)
+        else:
+            energies, w = qc.cross_section_crystal(cef, TEMPERATURE, [0.3, 0.5, 0.7], Ei=Ei)
+    assert np.any(energies > Ei) and np.any(energies < Ei)
+    assert np.array_equal(np.isnan(w), energies > Ei)
+
+
+def test_conv_0007_powder_is_crystal_averaged_over_directions():
+    """The crystal weights averaged over three orthogonal Q directions equal the powder weights.
+
+    Any orthonormal triple q_1, q_2, q_3 has sum_j q_j q_j^T = 1, so the mean
+    projector is (2/3) delta, the average over all directions.
+    """
+    cef = _ce(LOW_SYMMETRY)
+    Qnorm = 1.3  # 1/A
+    axes, _ = np.linalg.qr(np.random.default_rng(7).normal(size=(3, 3)))
+    energies, crystal = qc.cross_section_crystal(cef, TEMPERATURE, Qnorm * axes.T, Ei=EI)
+    _, powder = qc.cross_section_powder(cef, TEMPERATURE, Qnorm, Ei=EI)
+    assert crystal.shape == (3, len(energies))
+    finite = ~np.isnan(powder)
+    assert np.allclose(crystal.mean(axis=0)[finite], powder[finite], rtol=1e-12, atol=1e-15)
+
+
+@pytest.mark.parametrize("axis", [0, 1, 2])
+def test_conv_0007_projector_along_an_axis(axis):
+    """Q along an axis: the full projector is diagonal, sum over the two other components."""
+    cef = _ce(LOW_SYMMETRY)
+    Q = np.zeros(3)
+    Q[axis] = 1.2  # 1/A
+    P = np.diag([0.0 if a == axis else 1.0 for a in range(3)])
+    expected = _projected_matrix_elements(cef, P)
+    energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    W = _bare_weights(cef, energies, w, 1.2)
+    assert np.allclose(W, expected, rtol=1e-10, atol=1e-12 * expected.max())
+
+
+def test_conv_0007_debye_waller_and_loop_shape():
+    """u2 scales the weights by exp(-|Q|^2 u2 / 3); Q of shape S + (3,) gives S + (n^2,)."""
+    cef = _ce(LOW_SYMMETRY)
+    Q = np.array([[[0.3, 0.5, 0.7]], [[1.0, 0.0, 2.0]]])  # S = (2, 1)
+    u2 = 0.02  # A^2, test value
+    energies, w0 = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    _, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI, u2=u2)
+    n2 = len(energies)
+    assert w.shape == (2, 1, n2)
+    factor = np.exp(-np.sum(Q**2, axis=-1) * u2 / 3)[..., None]
+    assert np.allclose(w, w0 * factor, rtol=1e-14, atol=0)
+
+
+@pytest.mark.parametrize(
+    ("func", "Q", "Ei"),
+    [
+        ("cross_section_crystal", [1.0, 0.0], EI),
+        ("cross_section_crystal", [0.0, 0.0, 0.0], EI),
+        ("cross_section_crystal", [1.0, 0.0, 0.0], 0.0),
+        ("cross_section_powder", -1.0, EI),
+        ("cross_section_powder", 1.0, -5.0),
+    ],
+)
+def test_cross_sections_reject_bad_input(func, Q, Ei):
+    with pytest.raises(ValueError):
+        getattr(qc, func)(_ce(LOW_SYMMETRY), TEMPERATURE, Q, Ei=Ei)
 
 
 # --- g-tensor -------------------------------------------------------------

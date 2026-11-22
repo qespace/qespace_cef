@@ -63,13 +63,15 @@ def test_susceptibility():
     assert chi.shape == T.shape + (3, 3) and np.all(np.isfinite(chi))
 
 
-def test_spectral_weight():
-    """Powder spectral weight at 1000 values of |Q|."""
+def test_cross_section_powder():
+    """Powder cross section at 1000 values of |Q|, in one call."""
     cef = _ho()
-    Qs = np.linspace(0.1, 6, 1000)
+    Qs = np.linspace(0.1, 6, 1000)  # 1/A
+    Ei = 1e4  # meV, above every excitation
 
-    def run():
-        return [qc.spectral_weight(cef, 10.0, [Q, 0, 0], "powder") for Q in Qs]
-
-    out = _timed("spectral_weight(powder), 1000 Q", run, repeat=1)
-    assert len(out) == 1000 and out[0][1].shape == (17, 17)
+    energies, w = _timed(
+        "cross_section_powder, 1000 |Q|",
+        lambda: qc.cross_section_powder(cef, 10.0, Qs, Ei=Ei),
+        repeat=1,
+    )
+    assert energies.shape == (17**2,) and w.shape == (1000, 17**2) and np.all(np.isfinite(w))

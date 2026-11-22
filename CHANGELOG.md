@@ -11,6 +11,16 @@
   function as excitations (CONV-0007, CONV-0012), energies (n²,) in meV
   and scattering weights `W_if^{αβ} = p_i <i|J_α|f><f|J_β|i>`, (n², 3, 3),
   without neutron factors.
+- **Breaking:** `cross_section_crystal(cefion, temperature, Q, Ei, u2=0)`
+  and `cross_section_powder(cefion, temperature, Qnorm, Ei, u2=0)` replace
+  `spectral_weight` (CONV-0007). They return the energies (n²,) and the
+  cross-section weights in barn sr⁻¹ per ion, shape S + (n²,) for Q of
+  loop shape S: with `(γr₀)²` and `(g_J/2)²`, which `spectral_weight`
+  left out, and the full projector `δ − Q̂Q̂` for a crystal, whose cross
+  terms it left out (AUDIT P9). `Ei` (meV) is required; `B_iso` is now
+  `u2`, ⟨u²⟩ in Å². Weights above `Ei` are NaN without a warning. On the
+  axes and for a powder the new weights are the old ones times
+  `(γr₀)² (g_J/2)²`; off the axes they also differ by the cross terms.
 - New `qespace_cef.config`, the one place for tolerances, read at call
   time: `rtol = 1e-10` and `E_floor = 1` meV (CONV-0008, AUDIT A11). New
   `qespace_cef.cefion.degenerate_levels(energies)` groups ascending
