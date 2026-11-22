@@ -106,8 +106,10 @@ def _cross_section_unprojected(
         \qquad (k_f/k_i)_k = \sqrt{1 - \varepsilon_k / E_i},
 
     NaN where :math:`\varepsilon_k > E_i`. ``Qnorm`` has the loop shape S
-    (Å⁻¹), ``P`` the shape S + (3, 3); the weights get S + (n²,), in barn
-    sr⁻¹ per ion.
+    (Å⁻¹). ``P`` has the shape S + (3, 3), one projector per Q, or (3, 3)
+    for one projector at every Q (the powder): it is then contracted with
+    the n² weights once, and Q enters only through the prefactor. The
+    weights get S + (n²,), in barn sr⁻¹ per ion.
     """
     if not np.isfinite(Ei) or Ei <= 0:
         raise ValueError(f"Ei must be a positive incident energy in meV, got {Ei!r}.")
@@ -118,7 +120,8 @@ def _cross_section_unprojected(
     debye_waller = np.exp(-(Qnorm**2) * u2 / 3)
     ratio = 1 - energies / Ei
     kf_ki = np.sqrt(np.where(ratio >= 0, ratio, np.nan))  # NaN where the neutron cannot lose it
-    projected = np.einsum("...ab,kab->...k", P, W).real  # P real symmetric, W Hermitian
+    # P real symmetric, W Hermitian. P of shape (3, 3) gives (n²,), contracted once.
+    projected = np.einsum("...ab,kab->...k", P, W).real
     prefactor = C.gamma_r0_sq * ion_factor * debye_waller
     return energies, prefactor[..., np.newaxis] * kf_ki * projected
 
@@ -241,7 +244,7 @@ def cross_section_powder(
     Qnorm = np.asarray(Qnorm, dtype=float)
     if np.any(~np.isfinite(Qnorm) | (Qnorm < 0)):
         raise ValueError("Qnorm must be finite and not negative.")
-    P = np.broadcast_to(2 / 3 * np.eye(3), Qnorm.shape + (3, 3))
+    P = 2 / 3 * np.eye(3)  # the same at every Q: contracted once in the kernel
     return _cross_section_unprojected(cefion, temperature, Qnorm, P, Ei, u2)
 
 
