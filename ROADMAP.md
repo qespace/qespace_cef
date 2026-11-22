@@ -45,6 +45,22 @@ rejected bare-array objects).
 - Whole spectra with a resolution function instead of peak lists.
 - Several sites or ions in one fit.
 
+## Neutron spectra
+
+- `convolve_spectrum(hamiltonian, E, Q, resolution)`, the user-facing
+  spectrum on an energy grid E (meV), built from the cross-section weights.
+- `k_f/k_i` at the grid energy instead of at each ε_k: exact for a broadened
+  line, where the factor varies across it. Moves `Ei` to
+  `convolve_spectrum`, with NaN on grid points above E_i; needs a draft CONV
+  superseding CONV-0007 and CONV-0012 (the weights without `k_f/k_i`).
+- Fixed-E_f kinematics (triple-axis, indirect geometry),
+  `k_f/k_i = √(E_f/(E_f + ħω))`: exactly one of `Ei=` or `Ef=`; needs a CONV
+  superseding CONV-0007.
+- A side-by-side table of the CONV-0007 formula against the functions,
+  showing which factor each layer applies itself and which it takes from
+  below: `convolve_spectrum` → `cross_section_powder` / `_crystal` →
+  `_cross_section_unprojected` → `scattering_function`.
+
 ## Physics
 
 - Intermediate coupling: the full fⁿ basis, J-mixing (Sm³⁺, Eu³⁺). Today the

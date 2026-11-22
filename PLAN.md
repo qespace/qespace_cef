@@ -6,58 +6,60 @@ The step being worked on now, in the form of CLAUDE.md 2.3. It borrows from
 tracking, not a rule (ADR-0001). Ideas for later are in
 [`ROADMAP.md`](ROADMAP.md).
 
-## Now: `feat/degenerate-levels` (CONV-0008, CONV-0009, CONV-0011, P7)
+## Now: `feat/neutron-spectra` (CONV-0007, CONV-0012, P9)
 
-**Goal.** One rule decides which energies form a level, CONV-0008's
-`|E_m − E_n| ≤ rtol · max(max|E|, E_floor)`, from one config place, and
-every consumer uses it. Today `susceptibility` and `gtensor` use the absolute
-`constants.numerical_zero`, against CONV-0009 (which defers to CONV-0008);
-`get_degeneracies` truncates decimals (P7); `summary` has its own threshold
-and prints `eigh`'s basis instead of CONV-0011's.
+**Goal.** `scattering_function`, `cross_section_crystal` and `cross_section_powder` replace
+`spectral_weight`, returning excitations as CONV-0012 defines them: the
+scattering function without neutron factors, and the cross section per ion
+in absolute units with the full projector.
 
-**Steps.** Branch `feat/degenerate-levels`, 5 commits:
+**Steps.** Branch `feat/neutron-spectra`, 4 commits:
 
-1. `feat: one config place and the level grouping of CONV-0008`.
-   `qespace_cef/config.py` with `rtol = 1e-10` and `E_floor = 1.0` (meV),
-   read at call time; `cefion.degenerate_levels(energies)`, the levels as
-   index slices of the sorted energies. Tests `test_conv_0008_*`: every exact
-   Kramers doublet of 200 low-symmetry Hamiltonians is one level; the free
-   ion is one level; grouping unchanged under a random Hermitian perturbation
-   of size ε `max|E|`.
-2. `fix(observables)!: degenerate pairs by CONV-0008 in susceptibility and
-   gtensor`. Both use the grouping; `numerical_zero` leaves `constants.py`.
-   The continuity test is re-chosen so the split falls below and above the
-   new tolerance, χ continuous in both. Docstrings and comments cite
-   CONV-0008.
-3. `fix(cefion)!: group get_degeneracies by CONV-0008 (P7)`. The
-   `precision` argument goes; each level is reported with its mean energy.
-   The P7 xfail turns green.
-4. `feat(cefion): print the canonical basis in summary (CONV-0011)`.
-   `summary` groups by step 1 (`_PRINT_DEGENERACY_ATOL` goes) and prints the
-   basis of CONV-0011: J_z inside each level, then J_x, J_y where J_z is
-   degenerate there (by `rtol · J`); Kramers partners by `Θ` for half-integer
-   J in zero field; per-state phase otherwise. `eigenvectors` is unchanged.
-   Tests `test_conv_0011_*`: the printed basis is the same after a random
-   unitary rotation inside each level; `Θ|−> = |+>` for Kramers pairs;
-   `<J_z>` ascending in each level.
-5. `docs: describe the degenerate levels`: `ARCHITECTURE.md` (module map,
-   tolerance row, test tree), `AUDIT.md` (P7, the CONV-0008 part of A11).
-   CHANGELOG lines go with each commit.
+1. `feat(constants): neutron and electron constants of CODATA 2022`.
+   `gamma_n = 1.91304276` (|μ_n/μ_N|, CODATA 2022 −1.913 042 76(45)) and
+   `r0 = 2.8179403205e-15` m (2.817 940 3205(13)), with source, and
+   `(γr₀)²` in barn (≈ 0.2906).
+2. `feat(observables): scattering_function (CONV-0012)`.
+   `scattering_function(cefion, temperature)` returns energies (n²,) in meV
+   and scattering weights (n², 3, 3), complex,
+   `W_if^{αβ} = p_i <i|J_α|f><f|J_β|i>`. Tests `test_conv_0012_*`: sum rule
+   `Σ_k Tr W_k = J(J+1)`; detailed balance; summed weights per level pair
+   unchanged under a unitary rotation inside each level; each `W_k`
+   Hermitian positive semidefinite.
+3. `feat(observables)!: cross sections replace spectral_weight (CONV-0007)`.
+   One kernel `_cross_section_unprojected(cefion, temperature, Qnorm, P, Ei,
+   u2)` applies `(γr₀)²`, `(g_J/2)² F(|Q|)²`, `e^{−|Q|²u2/3}`, `k_f/k_i`
+   and `Σ P_αβ W^{αβ}`; NaN where `ħω > E_i`. Two wrappers only build P
+   and check Q's shape: `cross_section_crystal(cefion, temperature, Q, Ei,
+   u2=0)` with Q `(..., 3)` in Å⁻¹ (local frame, CONV-0004) and
+   `P = δ − Q̂Q̂`; `cross_section_powder(...)` with `|Q|` `(...,)` and
+   `P = (2/3) δ`. Both return energies and cross-section weights (n²,) in
+   barn sr⁻¹ per ion; `Ei` (meV) is required. `spectral_weight` goes. Tests
+   `test_conv_0007_*`: absolute sum rule
+   `Σ_k w_k / (k_f/k_i)_k = (γr₀)² (g_J/2)² (2/3) J(J+1)` for Q → 0,
+   `u2 = 0`; NaN exactly where `ħω > E_i`; powder equals the crystal
+   averaged over Q directions; full projector against the diagonal for Q
+   along an axis. The P9 xfail turns green; `test_performance.py` calls
+   `cross_section_powder`.
+4. `docs: describe the neutron spectra`: `README.md`, `ARCHITECTURE.md`,
+   `AUDIT.md` (P9, the CONV-0007 and CONV-0012 rows). CHANGELOG lines
+   go with each commit.
 
-**Files.** `qespace_cef/config.py` (new), `qespace_cef/__init__.py`,
-`qespace_cef/cefion.py`, `qespace_cef/observables.py`,
-`qespace_cef/constants.py`, `tests/test_cefion.py`,
-`tests/test_observables.py`, `ARCHITECTURE.md`, `AUDIT.md`, `CHANGELOG.md`.
+**Files.** `qespace_cef/constants.py`, `qespace_cef/observables.py`,
+`qespace_cef/__init__.py`, `tests/test_constants.py`,
+`tests/test_observables.py`, `tests/test_performance.py`, `README.md`,
+`ARCHITECTURE.md`, `AUDIT.md`, `CHANGELOG.md`.
 
-**Choices for your review.** `get_degeneracies` loses `precision` and
-reports mean energies; the J_z degeneracy inside a level uses `rtol · J`
-(CONV-0011 names no tolerance).
+**Decided in discussion.** One kernel, two wrappers (Q2); `Ei` required,
+fixed-E_f kinematics later (Q3a); `k_f/k_i` taken at ε_k, exact for δ-peaks
+and slightly off across a broadened line, moved to the grid later (Q4a).
 
-**Risks.** χ changes only for pairs split between 10⁻¹² meV and the new
-tolerance, where the Curie and van Vleck weights agree to O(ΔE/k_BT); the
-review measures it. `gtensor` keeps its other problems (P4, P17, A10).
+**Risks.** The cross section changes for every caller: absolute units and
+`(g_J/2)²` scale it by `(γr₀)² (g_J/2)²`, and P9 changes single-crystal
+spectra off the axes. The review measures both against `spectral_weight` on
+`main`.
 
-**Tests.** pytest (451 + new, 29 xfailed after P7), doctests, ruff. No nox.
+**Tests.** pytest (496 + new, 29 xfailed after P9), doctests, ruff. No nox.
 
 ## In parallel: decisions only you can take
 
