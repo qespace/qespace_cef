@@ -46,3 +46,22 @@ def test_conversions_from_codata_2022(name, expected):
 def test_uB_matches_nist_in_eV():
     """``uB`` (meV/T) agrees with NIST's mu_B in eV/T within its uncertainty."""
     assert abs(C.uB * 1e-3 - BOHR_MAGNETON_EV) <= BOHR_MAGNETON_EV_UNCERTAINTY
+
+
+# CODATA 2022, neutron scattering (CONV-0007).
+NEUTRON_MOMENT = -1.91304276  # mu_n / mu_N, uncertainty 0.00000045
+ELECTRON_RADIUS = 2.8179403205e-15  # m, classical electron radius, uncertainty 0.0000000013e-15
+BARN = 1e-28  # m^2
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("gamma_n", abs(NEUTRON_MOMENT)),
+        ("r0", ELECTRON_RADIUS),  # m
+        ("gamma_r0_sq", (NEUTRON_MOMENT * ELECTRON_RADIUS) ** 2 / BARN),  # barn
+    ],
+)
+def test_neutron_constants_from_codata_2022(name, expected):
+    """gamma, r0 and (gamma r0)^2 in barn follow from CODATA 2022, to rounding."""
+    assert getattr(C, name) == pytest.approx(expected, rel=1e-15, abs=0)

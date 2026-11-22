@@ -22,3 +22,8 @@ K2meV = 1e3 * _k / _e  # meV/K, k_B
 meV2K = 1 / K2meV  # K/meV, 1 / k_B
 uB = 1e3 * uB_SI / _e  # meV/T, Bohr magneton
 invcm2meV = 1e3 * 100 * _h * _c / _e  # meV per cm^-1, h c
+
+# Neutron scattering (CONV-0007), CODATA 2022.
+gamma_n = 1.91304276  # |mu_n / mu_N|, neutron magnetic moment in nuclear magnetons, -1.91304276(45)
+r0 = 2.8179403205e-15  # m, classical electron radius, standard uncertainty 0.0000000013e-15
+gamma_r0_sq = (gamma_n * r0) ** 2 / 1e-28  # barn, (gamma r0)^2, about 0.2906

@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 import qespace_cef as qc
+from qespace_cef.cefion import degenerate_levels
 
 # CODATA 2022 (NIST, physics.nist.gov/cuu/Constants): e = 1.602176634e-19 C and
 # k = 1.380649e-23 J/K exact, mu_B = 9.2740100657(29)e-24 J/T.
@@ -309,16 +310,105 @@ def test_heat_capacity_is_T_dS_dT(temperature):
     assert Cv == pytest.approx(temperature * _derivative(3, temperature), rel=1e-4)
 
 
-# --- spectral weight ------------------------------------------------------
+# --- CONV-0012: the scattering function as excitations --------------------
+# Tests compare sums over the entries at one energy, never single entries.
+
+SPECTRUM_CASES = [  # (ion, parameters in meV, field in T), test values
+    ("Ce", dict(B20=0.3, B22=-0.1, B40=0.01, B4m3=0.02, B44=0.03), (0, 0, 0)),
+    ("Pr", dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4), (0, 0, 0)),  # cubic, degenerate
+    ("Er", dict(B20=-0.02, B22=0.01, B40=1e-4, B43=3e-4), (0.1, 0.2, 0.3)),
+]
+
+
+def _cef(name, pars, field):
+    return qc.CEFion(qc.Ion(name), qc.CEFpars(pars), Hfield=list(field))
+
+
+def _distinct(energies, tolerance):
+    """The distinct values of ``energies``, merged within ``tolerance``."""
+    values = np.sort(energies)
+    keep = np.r_[True, np.diff(values) > tolerance]
+    return values[keep]
+
+
+def _summed_at(energies, weights, energy, tolerance):
+    """The sum of the weights of the entries within ``tolerance`` of ``energy``."""
+    return weights[np.abs(energies - energy) <= tolerance].sum(axis=0)
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+@pytest.mark.parametrize("temperature", [1.0, 30.0, 300.0])
+def test_conv_0012_sum_rule(name, pars, field, temperature):
+    """sum_k Tr W_k = sum_i p_i <i|J^2|i> = J(J+1)."""
+    cef = _cef(name, pars, field)
+    energies, W = qc.scattering_function(cef, temperature)
+    n = len(cef.energies)
+    assert energies.shape == (n * n,) and W.shape == (n * n, 3, 3)
+    J = cef.ion.J
+    assert np.trace(W, axis1=1, axis2=2).sum().real == pytest.approx(J * (J + 1), rel=1e-12)
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+def test_conv_0012_detailed_balance(name, pars, field):
+    """Summed over each energy: S^ab(-e) = exp(-e / k_B T) S^ba(e)."""
+    temperature = 20.0  # K
+    cef = _cef(name, pars, field)
+    energies, W = qc.scattering_function(cef, temperature)
+    tolerance = 1e-9 * np.abs(cef.energies).max()
+    scale = np.abs(W).max()
+    for e in _distinct(energies, tolerance):
+        if e <= tolerance:
+            continue
+        gain = _summed_at(energies, W, -e, tolerance)
+        loss = _summed_at(energies, W, e, tolerance)
+        assert np.allclose(
+            gain, np.exp(-e / (KB * temperature)) * loss.T, rtol=1e-9, atol=1e-13 * scale
+        )
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+def test_conv_0012_summed_weights_invariant_inside_levels(name, pars, field):
+    """A unitary rotation inside each level leaves the summed weights at every energy unchanged."""
+    temperature = 20.0  # K
+    cef = _cef(name, pars, field)
+    energies, W = qc.scattering_function(cef, temperature)
+    rng = np.random.default_rng(12)
+    n = len(cef.energies)
+    U = np.zeros((n, n), complex)
+    for level in degenerate_levels(cef.energies):
+        d = level.stop - level.start
+        U[level, level], _ = np.linalg.qr(rng.normal(size=(d, d)) + 1j * rng.normal(size=(d, d)))
+    cef.J = np.einsum("ki,akl,lj->aij", U.conj(), np.asarray(cef.J), U)
+    energies_r, W_r = qc.scattering_function(cef, temperature)
+    tolerance = 1e-9 * np.abs(cef.energies).max()
+    scale = np.abs(W).max()
+    for e in _distinct(energies, tolerance):
+        assert np.allclose(
+            _summed_at(energies_r, W_r, e, tolerance),
+            _summed_at(energies, W, e, tolerance),
+            rtol=0,
+            atol=1e-12 * scale,
+        )
+
+
+@pytest.mark.parametrize(("name", "pars", "field"), SPECTRUM_CASES)
+def test_conv_0012_weights_hermitian_positive_semidefinite(name, pars, field):
+    """Each W_k is a Hermitian, positive semidefinite 3x3 matrix."""
+    _, W = qc.scattering_function(_cef(name, pars, field), 20.0)
+    scale = np.abs(W).max()
+    assert np.allclose(W, np.conj(np.swapaxes(W, 1, 2)), rtol=0, atol=1e-14 * scale)
+    assert np.linalg.eigvalsh(W).min() >= -1e-14 * scale
+
+
+# --- CONV-0007: the neutron cross section ---------------------------------
+# Expected values from formulas written here: (gamma r0)^2 from CODATA 2022,
+# the projector, k_f/k_i and the matrix elements of J in the eigenbasis.
 
 LOW_SYMMETRY = dict(B20=0.3, B22=-0.1, B40=0.01, B4m3=0.02, B44=0.03)
 TEMPERATURE = 10.0  # K
-
-
-def _weights_without_kfki(cef, Q, scheme):
-    """Sqw / (kf/ki), with kf/ki = sqrt(1 - (E_j - E_i)/Ei) for the default Ei."""
-    jumps, Sqw = qc.spectral_weight(cef, TEMPERATURE, Q, scheme)
-    return Sqw / np.sqrt(1 - jumps / 1e6)
+EI = 1e3  # meV, test value
+# (gamma r0)^2, CODATA 2022: mu_n/mu_N = -1.91304276(45), r_e = 2.8179403205(13)e-15 m.
+GAMMA_R0_SQ = (1.91304276 * 2.8179403205e-15) ** 2 / 1e-28  # barn
 
 
 def _populations(cef):
@@ -326,37 +416,157 @@ def _populations(cef):
     return p / p.sum()
 
 
+def _neutron_factor(cef, Qnorm, u2=0.0):
+    """(gamma r0)^2 (gJ/2)^2 F(|Q|)^2 exp(-|Q|^2 u2 / 3), in barn."""
+    return (
+        GAMMA_R0_SQ * (cef.ion.gJ / 2) ** 2 * cef.ion.mff(Qnorm) ** 2 * np.exp(-(Qnorm**2) * u2 / 3)
+    )
+
+
+def _bare_weights(cef, energies, weights, Qnorm, Ei=EI):
+    """weights / (neutron factor k_f/k_i), as an (n, n) array of pairs (i, f)."""
+    n = len(cef.energies)
+    kf_ki = np.sqrt(1 - energies / Ei)
+    return (weights / (_neutron_factor(cef, Qnorm) * kf_ki)).reshape(n, n)
+
+
+def _projected_matrix_elements(cef, P):
+    """p_i sum_ab P_ab <i|J_a|f><f|J_b|i>, as (n, n), from the J matrices."""
+    M = np.einsum("ab,aif,bfi->if", P, cef.J, cef.J).real
+    return _populations(cef)[:, None] * M
+
+
 def test_powder_sum_rule():
     """sum_f |<i|J_perp|f>|^2 = 2/3 J(J+1) for every initial state i (powder)."""
     cef = _ce(LOW_SYMMETRY)
-    Q = [1.0, 0, 0]
-    rows = _weights_without_kfki(cef, Q, "powder").sum(axis=1)
-    norm = cef.ion.mff(1.0) ** 2 * _populations(cef)
+    energies, w = qc.cross_section_powder(cef, TEMPERATURE, 1.0, Ei=EI)
+    rows = _bare_weights(cef, energies, w, 1.0).sum(axis=1)
     J = cef.ion.J
-    assert np.allclose(rows / norm, 2 / 3 * J * (J + 1), rtol=1e-5)
+    assert np.allclose(rows / _populations(cef), 2 / 3 * J * (J + 1), rtol=1e-10)
 
 
 def test_single_crystal_trace_sum_rule():
     """sum_if |<i|J_perp|f>|^2 = 2/3 J(J+1)(2J+1), the trace over i (single crystal)."""
     cef = _ce(LOW_SYMMETRY)
     Q = np.array([0.3, 0.5, 0.7])
-    W = _weights_without_kfki(cef, Q, "single-crystal")
-    norm = cef.ion.mff(np.linalg.norm(Q)) ** 2 * _populations(cef)
+    energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    W = _bare_weights(cef, energies, w, np.linalg.norm(Q))
     J = cef.ion.J
-    assert np.sum(W / norm[:, None]) == pytest.approx(2 / 3 * J * (J + 1) * (2 * J + 1), rel=1e-5)
+    assert np.sum(W / _populations(cef)[:, None]) == pytest.approx(
+        2 / 3 * J * (J + 1) * (2 * J + 1), rel=1e-10
+    )
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P9: the cross terms of the projector are missing")
 @pytest.mark.parametrize("Q", [[1.0, 1.0, 0.0], [0.3, 0.5, 0.7]])
 def test_single_crystal_weights_full_projector(Q):
-    """Sqw_if = f^2 p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (kf/ki divided out)."""
+    """The weights summed at each energy equal, summed at the same energy,
+    neutron factor (kf/ki) p_i sum_ab (delta_ab - Qa Qb / Q^2) <i|J_a|f><f|J_b|i> (P9).
+
+    Sums over equal energies, never single entries (CONV-0012); energies
+    grouped as in the CONV-0012 tests.
+    """
     cef = _ce(LOW_SYMMETRY)
-    q = np.asarray(Q) / np.linalg.norm(Q)
-    projector = np.eye(3) - np.outer(q, q)
-    M = np.einsum("ab,aif,bfi->if", projector, cef.J, cef.J).real
-    expected = cef.ion.mff(np.linalg.norm(Q)) ** 2 * _populations(cef)[:, None] * M
-    W = _weights_without_kfki(cef, Q, "single-crystal")
-    assert np.allclose(W, expected, rtol=1e-5, atol=1e-8 * expected.max())
+    Qnorm = np.linalg.norm(Q)
+    q = np.asarray(Q) / Qnorm
+    E = cef.energies
+    expected_energies = (E[None, :] - E[:, None]).ravel()  # E_f - E_i, pairs (i, f)
+    expected = (
+        _neutron_factor(cef, Qnorm)
+        * np.sqrt(1 - expected_energies / EI)
+        * _projected_matrix_elements(cef, np.eye(3) - np.outer(q, q)).ravel()
+    )
+    energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    tolerance = 1e-9 * np.abs(E).max()
+    scale = expected.max()
+    for e in _distinct(expected_energies, tolerance):
+        assert _summed_at(energies, w, e, tolerance) == pytest.approx(
+            _summed_at(expected_energies, expected, e, tolerance), rel=1e-10, abs=1e-12 * scale
+        )
+
+
+@pytest.mark.parametrize("name", ["Nd", "Tb", "Ho"])  # F(0) = 1 to rounding in the table
+def test_conv_0007_absolute_sum_rule(name):
+    """Powder, Q = 0, u2 = 0: sum_k w_k / (kf/ki)_k = (gamma r0)^2 (gJ/2)^2 (2/3) J(J+1)."""
+    cef = _cef(name, LOW_SYMMETRY, (0, 0, 0))
+    energies, w = qc.cross_section_powder(cef, TEMPERATURE, 0.0, Ei=EI)
+    J, gJ = cef.ion.J, cef.ion.gJ
+    expected = GAMMA_R0_SQ * (gJ / 2) ** 2 * 2 / 3 * J * (J + 1)  # barn / sr
+    assert np.sum(w / np.sqrt(1 - energies / EI)) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.parametrize("kind", ["powder", "crystal"])
+def test_conv_0007_nan_exactly_above_Ei(kind):
+    """The weights are NaN exactly where the excitation energy exceeds Ei, without a warning."""
+    cef = _ce(LOW_SYMMETRY)
+    E = cef.energies
+    Ei = 0.5 * (E.max() - E.min())  # meV, between the excitations
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        if kind == "powder":
+            energies, w = qc.cross_section_powder(cef, TEMPERATURE, 1.0, Ei=Ei)
+        else:
+            energies, w = qc.cross_section_crystal(cef, TEMPERATURE, [0.3, 0.5, 0.7], Ei=Ei)
+    assert np.any(energies > Ei) and np.any(energies < Ei)
+    assert np.array_equal(np.isnan(w), energies > Ei)
+
+
+def test_conv_0007_powder_is_crystal_averaged_over_directions():
+    """The crystal weights averaged over three orthogonal Q directions equal the powder weights.
+
+    Any orthonormal triple q_1, q_2, q_3 has sum_j q_j q_j^T = 1, so the mean
+    projector is (2/3) delta, the average over all directions.
+    """
+    cef = _ce(LOW_SYMMETRY)
+    Qnorm = 1.3  # 1/A
+    axes, _ = np.linalg.qr(np.random.default_rng(7).normal(size=(3, 3)))
+    energies, crystal = qc.cross_section_crystal(cef, TEMPERATURE, Qnorm * axes.T, Ei=EI)
+    _, powder = qc.cross_section_powder(cef, TEMPERATURE, Qnorm, Ei=EI)
+    assert crystal.shape == (3, len(energies))
+    finite = ~np.isnan(powder)
+    assert np.allclose(crystal.mean(axis=0)[finite], powder[finite], rtol=1e-12, atol=1e-15)
+
+
+@pytest.mark.parametrize("axis", [0, 1, 2])
+def test_conv_0007_projector_along_an_axis(axis):
+    """Q along an axis: the full projector is diagonal, sum over the two other components."""
+    cef = _ce(LOW_SYMMETRY)
+    Q = np.zeros(3)
+    Q[axis] = 1.2  # 1/A
+    P = np.diag([0.0 if a == axis else 1.0 for a in range(3)])
+    expected = _projected_matrix_elements(cef, P)
+    energies, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    W = _bare_weights(cef, energies, w, 1.2)
+    assert np.allclose(W, expected, rtol=1e-10, atol=1e-12 * expected.max())
+
+
+def test_conv_0007_debye_waller_and_loop_shape():
+    """u2 scales the weights by exp(-|Q|^2 u2 / 3); Q of shape S + (3,) gives S + (n^2,)."""
+    cef = _ce(LOW_SYMMETRY)
+    Q = np.array([[[0.3, 0.5, 0.7]], [[1.0, 0.0, 2.0]]])  # S = (2, 1)
+    u2 = 0.02  # A^2, test value
+    energies, w0 = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI)
+    _, w = qc.cross_section_crystal(cef, TEMPERATURE, Q, Ei=EI, u2=u2)
+    n2 = len(energies)
+    assert w.shape == (2, 1, n2)
+    factor = np.exp(-np.sum(Q**2, axis=-1) * u2 / 3)[..., None]
+    assert np.allclose(w, w0 * factor, rtol=1e-14, atol=0)
+
+
+@pytest.mark.parametrize(
+    ("func", "Q", "Ei", "u2"),
+    [
+        ("cross_section_crystal", [1.0, 0.0], EI, 0.0),
+        ("cross_section_crystal", [0.0, 0.0, 0.0], EI, 0.0),
+        ("cross_section_crystal", [1.0, 0.0, 0.0], 0.0, 0.0),
+        ("cross_section_crystal", [1.0, 0.0, 0.0], EI, np.nan),
+        ("cross_section_powder", -1.0, EI, 0.0),
+        ("cross_section_powder", 1.0, -5.0, 0.0),
+        ("cross_section_powder", 1.0, EI, -0.01),
+    ],
+)
+def test_cross_sections_reject_bad_input(func, Q, Ei, u2):
+    with pytest.raises(ValueError):
+        getattr(qc, func)(_ce(LOW_SYMMETRY), TEMPERATURE, Q, Ei=Ei, u2=u2)
 
 
 # --- g-tensor -------------------------------------------------------------

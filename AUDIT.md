@@ -11,7 +11,7 @@ are never reused.
 
 Places are named by module and function. Every P item still in the code has
 an `# AUDIT Pn:` comment where it happens and a Warnings section in the
-docstring of the public object it affects. P3, P9 and P17
+docstring of the public object it affects. P3 and P17
 also have strict `xfail` tests with expected values that don't come from
 the code (`test/known-problems`); a fix turns its tests green and removes
 the markers. P4 gets its test with the g-tensor convention (C7); P13, P14 and
@@ -29,7 +29,6 @@ from `747c871` and does not depend on what changed since.
 |---|---|---|---|---|---|
 | P3 | bug | `observables.thermodynamics` | Energies in meV are mixed with temperatures in K: `F = −T ln Z` is in K, while `E` stays in meV, so `S = (E − F)/T` and `Cv` come out in mixed units | Entropy (k_B) at 10 / 20 / 40 K: exact 1.293 / 1.374 / 1.494, code 1.054 / 1.203 / 1.325. Cv (k_B): exact 0.170 / 0.108 / 0.239, code 0.00126 / 0.00080 / 0.00177 (low by a factor of 11.6², about 135) | Convert the energies to `k_B T` once and state the units of the returns (CONV-0003); test against `−∂F/∂T` and the high-T limit `ln(2J+1)` |
 | P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the draft on degenerate levels (CONV-0008) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 (CONV-0008) |
-| P9 | bug (read) | `observables.spectral_weight`, `'single-crystal'` | `Σ_α (1 − Q̂_α²) \|J_α\|²` leaves out the cross terms `−Q̂_α Q̂_β J_α J_β*` | Q ∥ (110): summed weight 5.6516 from the code, 5.6573 with the cross terms. That's small here; per transition it can be larger | Use the full projector `Σ_αβ (δ_αβ − Q̂_α Q̂_β) <i\|J_α\|f><f\|J_β\|i>` (CONV-0007) |
 | P13 | data | `Ion` table, Ce | The `<j0>`/`<j2>` coefficients for Ce are those of Ce²⁺, the only Ce entry in the ILL table (`atoms-form-factors.txt`); the generator that built the table (`composeTables`, in the history at `747c871`) mapped `ce` to `Ce2`. The other ions use the 3+ values | `atoms-form-factors.txt`: only `{F Ce2 ...}` lines | Record it as a known approximation next to the value, with its source (CONV-0007) |
 | P14 | data, rule | `Ion` table | The values (J, gJ, α, β, γ, form factors) have no source next to them (CLAUDE.md 3.2.2); the generator named "Czech guys" and "J.P. Brown" | read | Cite Stevens (1952) / Hutchings (1964) for α, β, γ and the ILL / ITC Vol. C tables (with DOI) for the form factors |
 | P16 | physics question | `cefmatrices`, `CEFpars` | Odd-rank operators (l = 1, 3, 5) are implemented and accepted as CEF parameters. Inside one J multiplet, parity removes odd l from the CEF Hamiltonian | `CEFpars(dict(B52=0.1, B3m1=0.2))` is accepted. Rerun on `610c884` | Keep them as building blocks, but decide whether `CEFpars` accepts them (Q12) |
@@ -85,8 +84,8 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
-| CONV-0007 cross sections | accepted | – | P9, P13 |
-| CONV-0012 spectral weights | accepted | – | `spectral_weight` (replaced by `scattering_function`, `cross_section`) |
+| CONV-0007 cross sections | accepted | – | P13 |
+| CONV-0012 spectral weights | accepted | – | – |
 | CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config) | P4 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0009 susceptibility | accepted | – | – |
@@ -100,7 +99,7 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
 1. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
-   need sources: P3, P4, P9, P13, P14, P16, P17. Probably two branches.
+   need sources: P3, P4, P13, P14, P16, P17. Probably two branches.
 2. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
    A11, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
    after Q29 and Q31.

@@ -2,7 +2,7 @@
 
 Crystal electric field (CEF) calculations for a magnetic rare-earth ion: build
 the CEF Hamiltonian from Stevens operators, diagonalise it, and compute the
-observables that follow from it (energy levels, neutron spectral weights,
+observables that follow from it (energy levels, neutron cross sections,
 magnetisation, susceptibility, g-tensor, thermodynamics).
 
 The theory follows A. T. Boothroyd, *Principles of Neutron Scattering from
@@ -42,6 +42,8 @@ cef.get_degeneracies()  # [[energy, degeneracy], ...]: three Kramers doublets he
 qc.gtensor(cef)  # g-tensor of the ground doublet
 qc.magnetization(cef, 2.0, [0, 0, 1])  # T = 2 K, H = 1 T along z
 Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
+energies, w = qc.cross_section_powder(cef, 10.0, [0.5, 1.0, 2.0], Ei=50.0)
+# 10 K, |Q| in 1/A, Ei in meV: energies (36,) in meV, weights (3, 36) in barn/sr per ion
 ```
 
 ## What is in the package
@@ -52,7 +54,8 @@ Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
 | `CEFpars` | Set of CEF parameters `Blm` (e.g. `B20`, `B44`, `B6m1` for m = −1); input in `meV`, `K` or `invcm`, stored in meV |
 | `CEFion` | Ion in the CEF and an external field: Hamiltonian, `J` operators, energies, eigenvectors, degeneracies |
 | `boltzman_population` | Thermal populations of the levels |
-| `spectral_weight` | Energies and neutron scattering intensities of all transitions at a given temperature and Q |
+| `scattering_function` | The magnetic scattering function as excitations: energies and scattering weights `p_i <i\|J_α\|f><f\|J_β\|i>`, no neutron factors (CONV-0007, CONV-0012) |
+| `cross_section_crystal`, `cross_section_powder` | Neutron cross section per ion as excitations: energies and weights in barn sr⁻¹, at a temperature, Q (a vector, or \|Q\| for a powder) and incident energy `Ei` (CONV-0007) |
 | `magnetization`, `magnetization_exchange` | Magnetic moment in a field, optionally with a mean-field exchange term |
 | `susceptibility` | Magnetic susceptibility tensor `χ_αβ` in μB/T per ion versus temperature (Van Vleck, CONV-0009) |
 | `gtensor` | g-tensor of the ground state |
