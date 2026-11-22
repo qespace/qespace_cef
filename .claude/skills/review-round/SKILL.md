@@ -1,6 +1,6 @@
 ---
 name: review-round
-description: Review an implementer's branch of qespace_cef against PLAN.md, CLAUDE.md and the accepted CONVs, independently of the implementer's own report, and report to the maintainer with numbers. Use when an implementer started by implementation-round reports done, or when the maintainer asks to review a branch.
+description: Review an implementer's branch of qespace_cef against PLAN.md, CLAUDE.md and the accepted ADRs and CONVs, independently of the implementer's own report, and report to the maintainer with numbers. Use when an implementer started by implementation-round reports done, or when the maintainer asks to review a branch.
 ---
 
 # Review round
@@ -22,7 +22,7 @@ In the package root, read-only:
   Any other file is a finding.
 - `git diff main...<branch>`, read in full. Check against:
   - PLAN.md *Now*: each step is done, and nothing beyond it;
-  - the accepted CONVs the step touches: the code follows them; every newly
+  - the accepted ADRs and CONVs the step touches: the code follows them; every newly
     accepted CONV has tests named `test_conv_xxxx_*` (CLAUDE.md 6.6);
   - CLAUDE.md 5 (code) and 6 (tests): tests assert results with expected
     values that do not come from the code under test; no test is loosened

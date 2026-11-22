@@ -1,7 +1,7 @@
 ---
 id: ADR-0001
 title: Rules, descriptions and tracking: how the maintainer works with agents
-status: accepted
+status: superseded
 date: 2026-11-20
 supersedes:
 ---

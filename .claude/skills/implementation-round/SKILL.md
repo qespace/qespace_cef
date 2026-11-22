@@ -19,7 +19,9 @@ telling the maintainer what is missing:
 2. PLAN.md, *Now*, has the four parts the brief relies on: a branch name, a
    **Files** list, numbered **Steps** (commits) and **Tests**. A step that
    needs a decision still marked `OPEN:` or a CONV still in draft is not
-   ready: report it instead of starting.
+   ready, nor is a plan that contradicts an accepted ADR or CONV (check the
+   ones it cites and the ADRs on the API it touches): report it instead of
+   starting.
 3. No branch for this step exists yet (`git branch --list`), and no
    implementer you started is still running (the linked sessions).
 4. If the plan promises an unchanged result (a refactor, "no computed result

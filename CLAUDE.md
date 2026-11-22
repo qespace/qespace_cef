@@ -9,7 +9,9 @@ Before planning anything, read the decisions in `decisions/` that touch the
 task (design choices as ADRs in `decisions/adr/`, physics conventions as CONVs
 in `decisions/conventions/`), then `ARCHITECTURE.md` (module map, test tree)
 and `DEV.md` (commands, dependencies, releases). Precedence: this file < an
-ADR < a CONV. `ARCHITECTURE.md`, `DEV.md` and `README.md` describe; when they
+ADR and this file < a CONV. A CONV defines the physics, never how the code
+exposes it (names, arguments, shapes); an ADR decides the design, citing the
+CONVs it builds on, and defines no convention. `ARCHITECTURE.md`, `DEV.md` and `README.md` describe; when they
 disagree with a rule, the rule wins. Flag every disagreement to the
 maintainer.
 
@@ -173,8 +175,9 @@ Keep in sync with the code, in the same change: the module map and test tree in
 `ARCHITECTURE.md`, the commands in `DEV.md`, the usage in `README.md`
 (copy-pasteable commands). Record significant design decisions as short ADRs
 in `decisions/adr/`, and physics conventions as CONVs in
-`decisions/conventions/`, each from the `_template.md` there. Only the maintainer accepts one. Never edit an accepted
-one; supersede it.
+`decisions/conventions/`, each from the `_template.md` there. Only the maintainer accepts one. An accepted one is
+edited only editorially (typos, links, wording that keeps the meaning); any
+other change is a new one that supersedes it.
 
 ## 8. Commit messages (section 1.2 and 1.3)
 
@@ -207,7 +210,10 @@ The maintainer may work with two kinds of session. A session that is neither
 1. The **advisor** discusses with the maintainer, writes the decisions the
    maintainer takes (CONVs, ADRs) and the tracking files (`PLAN.md`,
    `AUDIT.md`, `ROADMAP.md`), and reviews implementers' branches. It never
-   changes package code or tests.
+   changes package code or tests. Whenever it writes or changes this file,
+   an ADR or a CONV, it checks that each keeps to its domain (ADR-0004):
+   this file no design or physics, a CONV no implementation, an ADR no
+   convention.
 2. An **implementer** carries out `PLAN.md`, section *Now*, and nothing else.
    It starts only on the maintainer's word, with that plan committed on
    `main`, and works in its own git worktree on its own branch; a branch name
@@ -219,7 +225,8 @@ The maintainer may work with two kinds of session. A session that is neither
    needed, it stops and reports. It reports as in 1.3.5 and stops.
 4. The advisor reviews the branch on its own: the scope against the plan's
    files, pytest and ruff run by itself, the step's own checks against
-   its own data, the CONV tests and the commit messages. Corrections go back
+   its own data, the accepted ADRs and CONVs, the CONV tests and the
+   commit messages. Corrections go back
    to the same implementer. The maintainer merges, or tells the advisor to;
    the advisor then replaces the plan's *Now*.
 5. Worktrees live under `.claude/worktrees/` inside this repository, so they
