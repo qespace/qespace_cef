@@ -33,6 +33,7 @@ from `747c871` and does not depend on what changed since.
 | P14 | data, rule | `Ion` table | The values (J, gJ, α, β, γ, form factors) have no source next to them (CLAUDE.md 3.2.2); the generator named "Czech guys" and "J.P. Brown" | read | Cite Stevens (1952) / Hutchings (1964) for α, β, γ and the ILL / ITC Vol. C tables (with DOI) for the form factors |
 | P16 | physics question | `cefmatrices`, `CEFpars` | Odd-rank operators (l = 1, 3, 5) are implemented and accepted as CEF parameters. Inside one J multiplet, parity removes odd l from the CEF Hamiltonian | `CEFpars(dict(B52=0.1, B3m1=0.2))` is accepted. Rerun on `610c884` | Keep them as building blocks, but decide whether `CEFpars` accepts them (Q12) |
 | P17 | bug | `observables.gtensor` | The z column uses `\|<0\|J_α\|0>\|`. The `abs()` makes even `G = g gᵀ` depend on the basis inside the doublet, so the principal g values are wrong in a general basis. (From the maintainer's notes: "I feel implementation of `gtensor` is wrong") | Ce, 5 random bases of the ground doublet: the spread of g gᵀ is 2.93 (`B20=1`) and 2.15 (low symmetry) with the code's formula, 4e-15 with `g_αβ = gJ Tr(P J_α σ_β)`. For `B20=1` the principal values of the latter are 0.857, 2.571, 2.571 (correct). Run on `610c884` | `g_αβ = gJ Tr(P J_α σ_β)` over the doublet, reported as G or principal values (P4); the convention with C7; non-Kramers doublets need their own treatment |
+| P21 | convention | `CEFion` (Zeeman term), `CEFion.magnetic_moment`, `magnetization`, `magnetization_exchange`, `susceptibility(method='magnetization')` | The code uses the moment-parallel convention, `−gJ μB J·B` and the moment `+gJ μB <J>`; the draft CONV-0006 takes the electron's sign, `+gJ μB J·B` and `−gJ μB <J>` | read (ARCHITECTURE.md, Physics conventions) | Flip both signs in one change, with CONV-0006's tests; energies, M along B, χ and the cross sections stay, ⟨J⟩ and the eigenvectors in a field become their time-reversed partners. Probably in `refactor/api-v2` |
 
 ## 2. Documentation against behaviour
 
@@ -83,12 +84,12 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0003 units | accepted | its Statement still says `OPEN:` the units of the API (Q42) | P3 |
 | CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
-| CONV-0006 Zeeman term | draft | the sign of the Zeeman term and of the moment | – |
+| CONV-0006 Zeeman term | draft | – (the electron's sign, μ = −gJ μB J, ℋ_Z = −μ·B) | P21 |
 | CONV-0007 cross sections | accepted | – | P13 |
 | CONV-0012 spectral weights | accepted | – | – |
 | CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config) | P4 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
-| CONV-0009 susceptibility | accepted | – | – |
+| CONV-0009 susceptibility | accepted; superseded by the draft CONV-0013 (the moment's sign of CONV-0006, no API) | – | – |
 | CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
 

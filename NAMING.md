@@ -34,7 +34,7 @@ are left out.
 |---|---|---|---|---|
 | free ion | `Ion(ion_name)` | `ion` | **Decided:** `FreeIon(name)` | ADR-0002 said `Ion` |
 | CEF parameters | `CEFpars(Bdict, units, pointGroup)` | `cefpars` | **Decided:** `CrystalFieldParameters(values, notation=..., units=..., point_group=...)` (Q64) | ADR-0002 said `Blm`; **decided:** keyword `notation`, as McPhase |
-| ion in the CEF and a field | `CEFion(ion, cfp, Hfield, diagonalize)` | `cefion` | **Decided:** `SingleIon(free_ion, parameters, field)` (Q63) | ADR-0002 said `Hamiltonian`; McPhase's single ion, coupled in RPA later |
+| ion in the CEF and a field | `CEFion(ion, cfp, Hfield, diagonalize)` | `cefion` | **Decided:** `SingleIon(free_ion, parameters, Bxyz)` (Q63) | ADR-0002 said `Hamiltonian`; McPhase's single ion, coupled in RPA later |
 | Stevens operators | `StevensBase(J)`, `.O4m3()`, `['4m3']` | `cefmatrices` | one function, e.g. `stevens_operator(J, l, m)` | A6, A14 |
 | modules | `ion`, `cefion`, `cefpars`, `cefmatrices`, `data_containers` | | e.g. `free_ion`, `single_ion`, `parameters`, `operators`, `tables` | the `cef` prefix repeats the package |
 | leaked names | `np`, `C`, `ArrayLike`, the submodules | `qespace_cef.*` | `__all__` | A4 |
@@ -65,7 +65,7 @@ are left out.
 | point group | `pointGroup` (arg), `pointGroupName` (arg), `symmetry` (attr), `point_group_synonyms` | `cefpars`, `data_containers` | `point_group`, on `CrystalFieldParameters` | four names |
 | allowed parameters | `CEFpars.allowed_Bpars(pointGroupName)` | | e.g. `CrystalFieldParameters.allowed(point_group)` | |
 | implemented operators | `StevensBase.implementedOps` | | `implemented_operators` | |
-| magnetic field | `Hfield` | `CEFion`, `magnetization*` | rule 3: `Bxyz` or `Hxyz` (Q59) | H or B is CONV-0006 (draft) |
+| magnetic field | `Hfield` | `CEFion`, `magnetization*` | **Decided:** `Bxyz`, the induction B in T (Q59) | CONV-0006 (draft): ℋ_Z = −μ·B, μ = −gJ μB J |
 
 ## Solved state
 
@@ -89,7 +89,7 @@ are left out.
 | populations | `boltzman_population(energies, temperature)` | (2J+1,) | **Decided:** `boltzmann_population` | misspelt |
 | scattering weights | `scattering_function(cefion, temperature)` | | **Decided:** `scattering_weights` (Q55) | |
 | cross sections | `cross_section_crystal(…, Q, Ei, u2)`, `cross_section_powder(…, Qnorm, Ei, u2)` | barn sr⁻¹ per ion | `Qxyz`, `Qnorm`, `E_incident` (**decided**), `u2` | |
-| magnetisation | `magnetization(cefion, temperature, Hfield)` | μB, tuple of 3 | **Decided:** returns an array | field: Q59 |
+| magnetisation | `magnetization(cefion, temperature, Hfield)` | μB, tuple of 3 | **Decided:** returns an array; field `Bxyz` | |
 | mean field | `magnetization_exchange(…, lam, precision, max_iterations)` | λ in T per μB | `lam`, **decided:** `conv_tol`, `max_iterations` | |
 | susceptibility | `susceptibility(cefion, temperatures, method)` | μB/T per ion, (…, 3, 3) | `temperature` | |
 | g-tensor | `gtensor(cefion)` | (3, 3) | `g_tensor` | C7 work |
@@ -135,5 +135,4 @@ are left out.
 
 ## Open
 
-- **Q59.** The field vector: `Bxyz` or `Hxyz` once CONV-0006 says which
-  field enters, or no suffix if the field is not crystallographic (Q60).
+None.

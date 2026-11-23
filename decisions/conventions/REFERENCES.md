@@ -10,7 +10,9 @@ equations named.
   https://www.fys.ku.dk/~jjensen/Book/echap4.pdf. Checked 2026-11-21: sec. 4.2
   (correlation function as matrix elements), (4.2.1)–(4.2.3c) (cross section,
   projector, ½gF(κ), e^{−2W} with W ≈ κ²⟨u²⟩/6, static and dynamic parts,
-  χ″). Also (2.1.18) for CONV-0009.
+  χ″). Also (2.1.18) for CONV-0009, and sec. 2.1, (2.1.1a–c), the moment-parallel
+  convention of CONV-0006 (checked 2026-11-23: H_Z = −Σ μ_i·H_i,
+  μ_i = g μB J_i).
 - S. Raymond, "Magnetic excitations", Collection SFN 13, 02003 (2014),
   doi:10.1051/sfn/20141302003. Checked 2026-11-21: (1.4) cross section,
   (1.5) fluctuation–dissipation (no 1/π, unlike Jensen and Mackintosh

@@ -4,6 +4,7 @@ title: The v2 objects FreeIon, CrystalFieldParameters and SingleIon
 status: draft
 date: 2026-11-23
 supersedes: ADR-0002
+superseded_by:
 ---
 
 ## Context
@@ -40,8 +41,9 @@ Option 2, used as `import qespace_cef as cef`:
   notation. The keys never carry the notation. Not `CrystalField`: in some
   notations, Stevens among them, the parameters belong to an ion
   (CONV-0001).
-- `cef.SingleIon(free_ion, parameters, field)` (v1 `CEFion`): the ion in
-  its crystal field and a field. It converts the parameters to the notation
+- `cef.SingleIon(free_ion, parameters, Bxyz)` (v1 `CEFion`): the ion in
+  its crystal field and the field B of CONV-0006, its xyz components in the
+  local frame (CONV-0004). It converts the parameters to the notation
   of its Hamiltonian, with the factors of CONV-0001, and holds the solved
   state: the Hamiltonian matrix, the energies, the eigenvectors and `Jxyz`,
   J in the eigenbasis, so observables don't rotate operators themselves.
@@ -51,7 +53,6 @@ ADR.
 
 `OPEN:` when a `SingleIon` is solved and whether it is immutable (Q29).
 `OPEN:` observables as functions or methods (Q31).
-`OPEN:` the name of the field argument (Q59).
 
 ## Consequences
 
