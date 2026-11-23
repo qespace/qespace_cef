@@ -354,10 +354,11 @@ def susceptibility(
 ) -> np.ndarray:
     r"""Single-ion magnetic susceptibility tensor in zero field, versus temperature.
 
-    The susceptibility of CONV-0009,
+    The susceptibility of CONV-0013,
     :math:`\chi_{\alpha\beta} = \partial \langle m_\alpha \rangle / \partial B_\beta`
-    at :math:`B = 0`, with :math:`m = g_J \mu_B J`, in :math:`\mu_B`/T per
-    ion. Both methods return the same quantity.
+    at :math:`B = 0`, in :math:`\mu_B`/T per ion. Both methods return the
+    same quantity, from the zero-field Hamiltonian of ``cefion``: the field
+    the ion was solved in does not enter.
 
     ``'perturbation'`` (default) evaluates Van Vleck's formula,
 
@@ -392,7 +393,8 @@ def susceptibility(
     Parameters
     ----------
     cefion : CEFion
-        Diagonalised ion in the crystal field; its ``Hfield`` is not used.
+        Diagonalised ion in the crystal field. Its ``Hfield`` is not used:
+        an ion solved in a field is solved again in zero field.
     temperatures : array_like of float, shape S
         Temperatures in K, any shape (a scalar gives ``S = ()``).
     method : {'perturbation', 'magnetization'}, optional
@@ -424,6 +426,10 @@ def susceptibility(
                 Hfield[beta] = eps
                 chi[it, :, beta] = np.array(magnetization(cefion, temperature, Hfield)) / eps
     elif method == "perturbation":
+        # chi is the response at zero field (CONV-0013), not a function of B:
+        # an ion solved in a field is solved again without it.
+        if np.any(cefion.Hfield):
+            cefion = CEFion(ion=cefion.ion, cfp=cefion.cfp)
         J = np.asarray(cefion.J)  # (3, n, n), in the eigenbasis
         # jumps[n, m] = E_m - E_n; degenerate pairs are the pairs of states in
         # one level of CONV-0008 (CONV-0009 defers to it).

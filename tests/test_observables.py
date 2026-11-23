@@ -125,28 +125,53 @@ def _level_tolerance(energies):
     return 1e-10 * max(np.abs(energies).max(), 1.0)
 
 
-# The field along x splits the ground doublet by about 6e-12, 6e-11, 6e-9 and
-# 6e-8 meV; the tolerance is 6.4e-10 meV.
+TETRAGONAL_PR = dict(B20=0.3, B40=0.01, B44=0.05)  # Pr3+, meV, test values: two doublets
+
+
+# B22 splits the two non-Kramers doublets of tetragonal Pr3+ by about 9e-12 and
+# 3e-11 meV (B22 = 1e-12 meV), 9e-11 and 3e-10, 9e-9 and 3e-8, 9e-8 and 3e-7 meV
+# (1e-8 meV); the tolerance is about 2e-9 meV.
 @pytest.mark.parametrize(
-    ("field", "below"), [(1e-10, True), (1e-9, True), (1e-7, False), (1e-6, False)]
-)  # T
-def test_susceptibility_continuous_through_degeneracy(field, below):
+    ("B22", "below"), [(1e-12, True), (1e-11, True), (1e-9, False), (1e-8, False)]
+)  # meV
+def test_susceptibility_continuous_through_degeneracy(B22, below):
     """chi is continuous as a splitting shrinks through the tolerance (CONV-0008, P20).
 
-    A field along x splits the ground Kramers doublet of the tetragonal Ce3+
-    ion. Below the tolerance of CONV-0008 the pair is one level and takes the
-    Curie weight p_n / k_B T; above it, the van Vleck weight
-    (p_n - p_m) / (E_m - E_n), whose limit is the Curie weight. The change of
-    chi_zz with the field is of second order, about (muB B / k_B T)^2 < 1e-13
-    here, so on both sides chi_zz must equal its zero-field value.
+    A tiny B22 splits the two doublets of the tetragonal Pr3+ ion, in zero
+    field (chi is a zero-field quantity, CONV-0013). Below the tolerance each
+    doublet is one level and takes the Curie weight p_n / k_B T; above it, the
+    van Vleck weight (p_n - p_m) / (E_m - E_n), whose limit is the Curie
+    weight. B22 -> -B22 is a rotation by 45 degrees about z, so chi_zz and
+    Tr chi are even in B22 and change by O(B22^2): on both sides they must
+    equal their values at B22 = 0.
     """
     temperature = 5.0  # K
-    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(TETRAGONAL), Hfield=[field, 0.0, 0.0])
-    split = cef.energies[1] - cef.energies[0]
-    assert (split <= _level_tolerance(cef.energies)) == below  # the side the case is about
-    assert split < 1e-6 * KB * temperature
-    chi_zz = qc.susceptibility(cef, temperature)[2, 2]
-    assert chi_zz == pytest.approx(qc.susceptibility(_ce(), temperature)[2, 2], rel=1e-12)
+    cef = qc.CEFion(qc.Ion("Pr"), qc.CEFpars(dict(TETRAGONAL_PR, B22=B22)))
+    gaps = np.diff(cef.energies)
+    splits = gaps[gaps < 1e-3]  # meV: the two split doublets
+    assert len(splits) == 2
+    assert np.all((splits <= _level_tolerance(cef.energies)) == below)  # the side
+    assert splits.max() < 1e-6 * KB * temperature
+    chi = qc.susceptibility(cef, temperature)
+    chi0 = qc.susceptibility(qc.CEFion(qc.Ion("Pr"), qc.CEFpars(TETRAGONAL_PR)), temperature)
+    assert chi[2, 2] == pytest.approx(chi0[2, 2], rel=1e-12)
+    assert np.trace(chi) == pytest.approx(np.trace(chi0), rel=1e-12)
+
+
+@pytest.mark.parametrize("method", ["perturbation", "magnetization"])
+def test_conv_0013_susceptibility_is_zero_field(method):
+    """chi is the zero-field response whatever field the given ion was solved in (H1).
+
+    Free Ce3+ solved at 10 T along z: chi_zz at 2 K is the zero-field Curie
+    value gJ^2 muB J(J+1) / (3 k_B T) = 0.7197 muB/T. The field-split
+    eigensystem gave 1.4852 by perturbation.
+    """
+    ion = qc.Ion("Ce")
+    cef = qc.CEFion(ion, qc.CEFpars(dict(B20=0.0)), Hfield=[0.0, 0.0, 10.0])
+    chi = qc.susceptibility(cef, 2.0, method=method)
+    expected = _curie(ion, 2.0) * np.eye(3)
+    rel = 1e-10 if method == "perturbation" else 1e-5
+    np.testing.assert_allclose(chi, expected, rtol=0, atol=rel * expected.max())
 
 
 def test_conv_0008_susceptibility_levels_from_config(monkeypatch):
