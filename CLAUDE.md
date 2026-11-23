@@ -64,7 +64,7 @@ holds for subagents and worktrees.
 ### 1.4 Always
 
 1. Stage explicit paths, never `git add -A` or `git add .`.
-2. Never push unless asked. Never tag, amend, rebase, reset, force or otherwise
+2. Never push. Never tag, amend, rebase, reset, force or otherwise
    rewrite history. Delete a branch only after it is merged and the maintainer
    agrees.
 
