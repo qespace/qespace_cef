@@ -80,6 +80,9 @@ holds for subagents and worktrees.
    ID.
 5. Report outcomes with numbers: tests passed / failed / xfailed, deviations
    from references and the tolerance used, versions. Say what was not verified.
+   For changes to files the maintainer reads in the diff, give the main
+   ideas in a few lines, not the content again; where a line rests on
+   earlier decisions, say in a clause what they were.
 6. Where you may look and write:
    1. Scratch work (temporary tests, plans, renders) goes to a place of your
       choice, never into tracked files.
