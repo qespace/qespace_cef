@@ -1,5 +1,7 @@
 """Tests of ``qespace_cef.CEFpars``."""
 
+import warnings
+
 import numpy as np
 import pytest
 from reference import mcphase
@@ -74,3 +76,24 @@ def test_conv_0001_labels(ion, lm):
     np.testing.assert_allclose(
         cef_ion.hamiltonian, expected, rtol=0, atol=1e-10 * np.abs(expected).max()
     )
+
+
+@pytest.mark.parametrize("label", ["B10", "B3m2", "B55"])
+def test_odd_rank_parameters_warn(label):
+    """Odd-rank parameters are accepted with a UserWarning (Q12, P16): parity removes them."""
+    with pytest.warns(UserWarning, match="odd rank"):
+        cfp = qc.CEFpars({label: 0.1})
+    assert cfp.Bpars == {label: pytest.approx(0.1)}
+
+
+def test_even_rank_parameters_do_not_warn():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        qc.CEFpars(dict(B00=1.0, B20=0.1, B4m3=0.01, B66=1e-4))
+
+
+@pytest.mark.parametrize("label", ["O20", "b20", "20", "X44"])
+def test_parameter_labels_start_with_B(label):
+    """Only B... labels name parameters (M6): O20 was a second spelling of B20."""
+    with pytest.raises(ValueError):
+        qc.CEFpars({label: 1.0})

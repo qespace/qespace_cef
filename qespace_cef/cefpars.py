@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 from . import constants as C
@@ -41,17 +43,19 @@ class CEFpars:
     Raises
     ------
     ValueError
-        If ``units`` is unknown.
+        If ``units`` is unknown, or a name in ``Bdict`` does not start
+        with ``'B'``.
     KeyError
         If a name in ``Bdict`` has no implemented operator.
     NameError
         If ``pointGroup`` is unknown.
 
-    Warnings
-    --------
-    P16 (AUDIT.md), open question: parameters of odd rank (k = 1, 3, 5)
-    are accepted, though parity removes odd k from the CEF Hamiltonian
-    within one J multiplet. Whether to accept them is open (AUDIT C3).
+    Warns
+    -----
+    UserWarning
+        For a parameter of odd rank (k = 1, 3, 5). It is accepted, though
+        parity removes odd k from the CEF Hamiltonian within one J multiplet,
+        and its operator is odd under time reversal (Q12).
 
     Examples
     --------
@@ -79,10 +83,18 @@ class CEFpars:
         # Assign parameters to internal dictionary
         self.Bpars = dict()
         for Bname, Bvalue in Bdict.items():
-            Oname = Bname.replace("B", "O")
-            # AUDIT P16: accepts odd k (1, 3, 5), which parity forbids in one J multiplet.
+            if not isinstance(Bname, str) or not Bname.startswith("B"):
+                raise ValueError(f"Parameter names start with 'B', e.g. 'B20'; got {Bname!r}.")
+            Oname = "O" + Bname[1:]
             if Oname not in StevensBase.implementedOps():
                 raise KeyError(f"Operator corresponding to {Bname} is not implemented.")
+            if int(Bname[1]) % 2 == 1:
+                warnings.warn(
+                    f"{Bname} has odd rank: parity removes odd-rank terms from the CEF "
+                    "Hamiltonian of one J multiplet, and they are odd under time reversal.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             self.Bpars[Bname] = float(Bvalue) * unitConversions[units]
 

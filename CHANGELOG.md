@@ -4,6 +4,34 @@
 
 ## Unreleased
 
+- **Breaking:** `susceptibility(method='perturbation')` of an ion solved in
+  a field gives the zero-field susceptibility (CONV-0013): free Ce³⁺ solved
+  at 10 T gave χ_zz = 1.485 instead of the Curie value 0.720 μB/T at 2 K
+  (AUDIT_GPT H1).
+- **Breaking:** `thermodynamics` returns U and F in meV per ion from the
+  zero of CONV-0014, S and the heat capacity in k_B per ion (CONV-0003);
+  F was in K and S and C in mixed units (AUDIT P3). S and C no longer
+  change with `B00`, and the results stay finite at low T, where Z may
+  overflow (H2, H3). Ce³⁺ (B20=0.5, B40=0.01, B44=0.1 meV) at 10 K:
+  S = 1.2927, C = 0.1702 k_B, were 4.85 and 0.00126.
+- `gtensor` raises `ValueError` unless the ground level has exactly two
+  states; it accepted any level of two or more and used states 0 and 1,
+  and its guard was an `assert` (H4).
+- `CEFion.summary` pairs Kramers partners by time reversal only for a
+  time-even Hamiltonian (no field, no odd-rank parameter); a partner from
+  another level could be printed (H5). `summary(precision=0)` keeps
+  coefficients at the cutoff (L2). `CEFpars` warns (`UserWarning`) for a
+  parameter of odd rank (AUDIT P16, Q12).
+- **Breaking:** the level tolerance is `rtol · max(max E − min E,
+  E_floor)` (CONV-0015, supersedes CONV-0008), so a shift of all
+  energies (`B00`) no longer changes the grouping (M5).
+- Public inputs are validated with `ValueError`: a field of three finite
+  components, parameter names starting with `B` (`O20` was a second
+  spelling of `B20`), finite energies in the level grouping, J a
+  non-negative multiple of ½ in the J matrices, a finite crystal Q,
+  temperatures > 0 for populations and thermodynamics, a scalar
+  temperature in `scattering_function`, `max_iterations ≥ 1` (M3, M6,
+  L1).
 - `qespace_cef.constants` gets the neutron constants of CODATA 2022:
   `gamma_n = 1.91304276` (|μ_n/μ_N|), `r0 = 2.8179403205e-15` m and
   `gamma_r0_sq = (γ r₀)²` in barn (0.2906).

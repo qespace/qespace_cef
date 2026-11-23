@@ -6,6 +6,7 @@ removed.
 """
 
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -130,7 +131,7 @@ def test_summary_options():
 
 
 def test_summary_groups_levels_for_printing():
-    """States in one level of CONV-0008 print as one level; a larger splitting does not.
+    """States in one level of CONV-0015 print as one level; a larger splitting does not.
 
     Cubic Pr3+: eigh returns the 28.584 meV doublet as two values that differ
     by rounding noise; the print groups them. Ce3+ in 1e-6 T splits each
@@ -259,7 +260,7 @@ def test_degeneracies_report_mean_energy(name, pars):
         assert energy == pytest.approx(group.mean(), rel=1e-12, abs=1e-12 * np.abs(e).max())
 
 
-# --- CONV-0008: degenerate levels -----------------------------------------
+# --- CONV-0015: degenerate levels -----------------------------------------
 # Expected values from the physics (Kramers' theorem, the free ion), not from
 # the code under test.
 
@@ -281,7 +282,7 @@ def _degeneracies(energies):
     return [s.stop - s.start for s in _degenerate_levels(energies)]
 
 
-def test_conv_0008_kramers_doublets_are_one_level():
+def test_conv_0015_kramers_doublets_are_one_level():
     """In 200 low-symmetry Hamiltonians of Kramers ions every level is one exact doublet."""
     rng = np.random.default_rng(8)
     for k in range(200):
@@ -290,7 +291,7 @@ def test_conv_0008_kramers_doublets_are_one_level():
 
 
 @pytest.mark.parametrize("name", ALL_IONS)
-def test_conv_0008_free_ion_is_one_level(name):
+def test_conv_0015_free_ion_is_one_level(name):
     """H = 0: all 2J+1 states form one level (the tolerance is rtol E_floor)."""
     cef = _cefion(name, {})
     assert _degeneracies(cef.energies) == [int(2 * cef.ion.J + 1)]
@@ -300,7 +301,7 @@ def test_conv_0008_free_ion_is_one_level(name):
     ("name", "pars"),
     [("Ce", LOW_SYMMETRY), ("Er", LOW_SYMMETRY), ("Pr", CUBIC_PR), ("Ho", CUBIC_HO)],
 )
-def test_conv_0008_grouping_stable_under_perturbation(name, pars):
+def test_conv_0015_grouping_stable_under_perturbation(name, pars):
     """A random Hermitian perturbation of size eps max|E| leaves the levels unchanged."""
     H = _cefion(name, pars).hamiltonian
     levels = _degenerate_levels(np.linalg.eigvalsh(H))
@@ -313,7 +314,7 @@ def test_conv_0008_grouping_stable_under_perturbation(name, pars):
         assert _degenerate_levels(np.linalg.eigvalsh(H + dH)) == levels
 
 
-def test_conv_0008_tolerance_read_from_config_at_call_time(monkeypatch):
+def test_conv_0015_tolerance_read_from_config_at_call_time(monkeypatch):
     """rtol and E_floor come from qespace_cef.config when the function is called."""
     E = np.array([-1e-3, -1e-3 + 5e-11, 1e-3])  # meV; split 5e-11 meV
     assert _degeneracies(E) == [2, 1]  # tolerance 1e-10 * max(1e-3, 1) meV
@@ -427,3 +428,68 @@ def test_conv_0011_kramers_partners_by_time_reversal(name, pars, field):
         for i in range(d // 2):
             assert np.real(states[i].conj() @ _jz(J) @ states[i]) < 0
             assert np.allclose(_time_reversal(states[i], J), states[d - 1 - i], rtol=0, atol=1e-9)
+
+
+# --- summary: time reversal and the coefficient cutoff (H5, L2) -----------
+
+
+@pytest.mark.parametrize(
+    ("name", "pars", "field"),
+    [
+        ("Ce", dict(B20=1.0, B10=-6.0), (0, 0, 0)),  # odd rank: not time-even
+        ("Ce", dict(B20=0.5, B40=0.01, B44=0.1), (0, 0, 0)),
+        ("Er", LOW_SYMMETRY, (0.1, 0.2, 0.3)),
+    ],
+)
+def test_summary_states_lie_in_their_level(name, pars, field):
+    """Every printed state lies inside the eigenspace of its level (H5).
+
+    Ce3+ with B20=1, B10=-6 meV: the ground level is |+1/2>, |+3/2> at
+    -11 meV. B10 J_z is odd under time reversal, so pairing a state with its
+    time reverse put |-1/2> (at -5 meV) into the ground level.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # odd-rank parameters warn
+        cef = _cefion(name, pars, field)
+    for level, states in zip(_degenerate_levels(cef.energies), _printed_basis(cef)):
+        V = cef.eigenvectors[level]  # rows span the level
+        residual = states - (states @ V.conj().T) @ V
+        assert np.abs(residual).max() < 1e-9
+
+
+def test_summary_precision_zero_keeps_pure_kets():
+    """``precision=0`` keeps coefficients at the cutoff 10^0 = 1: pure kets are printed (L2)."""
+    text = _cefion("Ce", dict(B20=1.0)).summary(precision=0)
+    lines = [line for line in text.splitlines() if line.startswith("ev_")]
+    assert len(lines) == 6 and all("|" in line for line in lines)
+
+
+@pytest.mark.parametrize("B00", [0.0, 10.0])  # meV
+def test_conv_0015_grouping_independent_of_B00(B00):
+    """A shift of all energies by B00 leaves the levels unchanged (M5).
+
+    Ce3+ with B20 = 5e-11 meV: three doublets split by 3e-10 and 4.5e-10 meV,
+    above the tolerance rtol * max(spread, E_floor) = 1e-10 meV. With a
+    tolerance from max|E| = 10 meV, B00 = 10 merged them into one level.
+    """
+    cef = _cefion("Ce", dict(B20=5e-11, B00=B00))
+    assert _degeneracies(cef.energies) == [2, 2, 2]
+
+
+# --- validation of public inputs (M6) -------------------------------------
+
+
+@pytest.mark.parametrize(
+    "field", [[1.0], [1.0, 0.0], [0.0, 0.0, 0.0, 1.0], [[0, 0, 1]], [0.0, np.nan, 0.0]]
+)
+def test_cefion_rejects_a_field_not_of_three_finite_components(field):
+    """A field of shape (3,) in T, finite (M6): Hfield=[1] acted as [1, 1, 1]."""
+    with pytest.raises(ValueError):
+        qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)), Hfield=field)
+
+
+@pytest.mark.parametrize("energies", [[0.0, np.nan, 100.0], [0.0, np.inf], [-np.inf, 0.0]])
+def test_degenerate_levels_rejects_non_finite_energies(energies):
+    """[0, nan, 100] was one three-state level (M6)."""
+    with pytest.raises(ValueError):
+        _degenerate_levels(energies)

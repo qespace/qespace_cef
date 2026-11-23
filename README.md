@@ -41,7 +41,8 @@ cef.get_degeneracies()  # [[energy, degeneracy], ...]: three Kramers doublets he
 
 qc.gtensor(cef)  # g-tensor of the ground doublet
 qc.magnetization(cef, 2.0, [0, 0, 1])  # T = 2 K, H = 1 T along z
-Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K
+# T in K; U and F in meV, S and Cv in k_B, per ion
+Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))
 energies, w = qc.cross_section_powder(cef, 10.0, [0.5, 1.0, 2.0], Ei=50.0)
 # 10 K, |Q| in 1/A, Ei in meV: energies (36,) in meV, weights (3, 36) in barn/sr per ion
 ```
@@ -58,8 +59,8 @@ energies, w = qc.cross_section_powder(cef, 10.0, [0.5, 1.0, 2.0], Ei=50.0)
 | `cross_section_crystal`, `cross_section_powder` | Neutron cross section per ion as excitations: energies and weights in barn sr⁻¹, at a temperature, Q (a vector, or \|Q\| for a powder) and incident energy `Ei` (CONV-0007) |
 | `magnetization`, `magnetization_exchange` | Magnetic moment in a field, optionally with a mean-field exchange term |
 | `susceptibility` | Magnetic susceptibility tensor `χ_αβ` in μB/T per ion versus temperature (Van Vleck, CONV-0013) |
-| `gtensor` | g-tensor of the ground state |
-| `thermodynamics` | Partition function, internal energy, free energy, entropy, heat capacity |
+| `gtensor` | g-tensor of the ground doublet (a `ValueError` if the ground level is not twofold) |
+| `thermodynamics` | Partition function, internal and free energy in meV per ion, entropy and heat capacity in k_B per ion |
 
 `qespace_cef/symbolic/` holds experimental scripts that diagonalise the CEF
 Hamiltonian symbolically with `sympy`; they are not part of the public API.

@@ -9,15 +9,17 @@ from .ion import Ion
 
 
 def _degenerate_levels(energies: ArrayLike) -> list[slice]:
-    r"""The levels of CONV-0008, as slices of the ascending energies.
+    r"""The levels of CONV-0015, as slices of the ascending energies.
 
     Two consecutive energies belong to the same level when
 
-    .. math:: E_{i+1} - E_i \le r_\mathrm{tol} \, \max(\max_k |E_k|, E_\mathrm{floor}),
+    .. math:: E_{i+1} - E_i \le r_\mathrm{tol} \, \max(\max_k E_k - \min_k E_k, E_\mathrm{floor}),
 
     with ``rtol`` and ``E_floor`` read from :mod:`qespace_cef.config` at
     call time (defaults 10⁻¹⁰ and 1 meV). A level ends wherever two
-    consecutive energies differ by more than that.
+    consecutive energies differ by more than that. The scale is the spread
+    of the energies, so a shift of all of them (``B00``) does not change
+    the grouping.
 
     Parameters
     ----------
@@ -35,7 +37,7 @@ def _degenerate_levels(energies: ArrayLike) -> list[slice]:
     Raises
     ------
     ValueError
-        If ``energies`` is not one-dimensional or not ascending.
+        If ``energies`` is not one-dimensional, not finite or not ascending.
 
     Examples
     --------
@@ -52,10 +54,13 @@ def _degenerate_levels(energies: ArrayLike) -> list[slice]:
         raise ValueError(f"energies must be one-dimensional, got shape {E.shape}.")
     if E.size == 0:
         return []
+    if not np.all(np.isfinite(E)):
+        raise ValueError("energies must be finite.")
     gaps = np.diff(E)
     if np.any(gaps < 0):
         raise ValueError("energies must be ascending.")
-    tolerance = config.rtol * max(float(np.abs(E).max()), config.E_floor)
+    # The spread, not max|E|: a shift of all energies (B00) leaves it unchanged.
+    tolerance = config.rtol * max(float(E[-1] - E[0]), config.E_floor)
     bounds = [0, *(np.flatnonzero(gaps > tolerance) + 1).tolist(), E.size]
     return [slice(start, stop) for start, stop in zip(bounds[:-1], bounds[1:])]
 
@@ -194,6 +199,8 @@ class CEFion:
 
     Raises
     ------
+    ValueError
+        If ``Hfield`` is not three finite components.
     Exception
         If the Hamiltonian is not Hermitian (``numpy.allclose``).
 
@@ -227,7 +234,9 @@ class CEFion:
         self.Jval = self.ion.J
         Jval = self.Jval
 
-        self.Hfield = np.array(Hfield)
+        self.Hfield = np.array(Hfield, dtype=float)
+        if self.Hfield.shape != (3,) or not np.all(np.isfinite(self.Hfield)):
+            raise ValueError(f"Hfield must be 3 finite components in T, got {Hfield!r}.")
         self.cfp = cfp
 
         # Prepare the rest of the fields based on the main input parameters
@@ -353,7 +362,7 @@ class CEFion:
         return np.real(mu + mu.conj()) / 2
 
     def get_degeneracies(self) -> list[list]:
-        """Energy levels and their degeneracies, grouped by CONV-0008.
+        """Energy levels and their degeneracies, grouped by CONV-0015.
 
         The ``energies`` are grouped into levels by
         :func:`_degenerate_levels`, with the tolerance from
@@ -377,20 +386,23 @@ class CEFion:
         The levels are the ``excitation_energies``, measured from the ground
         state, whose energy ``energies[0]`` is given in the first line
         (CONV-0010). The states are grouped into levels by
-        :func:`_degenerate_levels` (CONV-0008). Under each level its states
+        :func:`_degenerate_levels` (CONV-0015). Under each level its states
         are printed in the canonical basis of CONV-0011, written in the
         free-ion kets, leaving out coefficients smaller than
-        ``10**-precision``:
+        ``10**-precision`` (one at the cutoff is kept):
 
         1. J_z is diagonalised inside the level, states ordered by <J_z>
            ascending; where J_z is degenerate there (within
            ``config.rtol * J``), J_x and then J_y are diagonalised inside
            that subspace.
-        2. Half-integer J in zero field: each state with <J_z> < 0 gets the
-           phase that makes its largest component real and positive, and its
-           partner is its time reverse, Θ|m> = (-1)^(J-m) |-m> followed by
-           complex conjugation.
+        2. Half-integer J, zero field and no parameter of odd rank (a
+           Hamiltonian even under time reversal): each state with <J_z> < 0
+           gets the phase that makes its largest component real and
+           positive, and its partner is its time reverse,
+           Θ|m> = (-1)^(J-m) |-m> followed by complex conjugation.
         3. Otherwise each state gets that phase on its own.
+
+        Every printed state lies inside its level.
 
         ``eigenvectors`` are not changed.
 
@@ -419,7 +431,15 @@ class CEFion:
         if not len(self.energies):
             return "Undiagonalized Hamiltonian"
 
-        kramers = self.Jval % 1 == 0.5 and not np.any(self.Hfield)
+        # Time reversal pairs the states only of a time-even Hamiltonian: no
+        # field and no odd-rank parameter (O_lm with odd l is odd under it).
+        odd_rank = any(
+            int(name[1]) % 2 == 1 and value != 0 for name, value in self.cfp.Bpars.items()
+        )
+        kramers = self.Jval % 1 == 0.5 and not np.any(self.Hfield) and not odd_rank
+        # Coefficients at the cutoff are kept, within config.rtol, so that a
+        # pure ket survives precision = 0.
+        cutoff = 10.0**-precision * (1 - config.rtol)
 
         lines = [
             f"Energy levels{' and eigenvectors' if evecs else ''}, energies above the "
@@ -435,7 +455,7 @@ class CEFion:
                     components = [
                         f"({c:.{precision}f}){ket}"
                         for c, ket in zip(ev, self.freeionkets)
-                        if np.abs(c) > 10.0**-precision
+                        if np.abs(c) >= cutoff
                     ]
                     block.append(f"ev_{level}: " + " + ".join(components))
             lines.append("\n".join(block))

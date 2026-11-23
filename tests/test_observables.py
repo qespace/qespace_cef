@@ -121,36 +121,81 @@ def test_susceptibility_prints_nothing(capsys):
 
 
 def _level_tolerance(energies):
-    """The tolerance of CONV-0008 with its defaults rtol = 1e-10, E_floor = 1 meV, in meV."""
-    return 1e-10 * max(np.abs(energies).max(), 1.0)
+    """The tolerance of CONV-0015 with its defaults rtol = 1e-10, E_floor = 1 meV, in meV."""
+    return 1e-10 * max(np.max(energies) - np.min(energies), 1.0)
 
 
-# The field along x splits the ground doublet by about 6e-12, 6e-11, 6e-9 and
-# 6e-8 meV; the tolerance is 6.4e-10 meV.
+def test_conv_0015_susceptibility_independent_of_B00():
+    """chi does not change when B00 shifts all energies (CONV-0014, CONV-0015, M5).
+
+    Ce3+ with B20 = 5e-11 meV at 1e-9 K, a case sensitive to the grouping:
+    with a tolerance from max|E|, B00 = 10 meV merged the three doublets, and
+    chi_xx moved from 1.616e9 to 2.083e9 muB/T (29 %).
+
+    What remains is rounding: shifted by 10 meV, the eigenvalues carry an
+    error of about eps * 10 meV on splits of 3e-10 meV, and the van Vleck
+    weight goes as 1 / split, so chi agrees to eps * max|E| / min split.
+    """
+    temperature = 1e-9  # K
+    cefs = [_ce(dict(B20=5e-11, B00=B00)) for B00 in (0.0, 10.0)]
+    chi = [qc.susceptibility(cef, temperature) for cef in cefs]
+    E = cefs[1].energies
+    split = np.diff(E)[np.diff(E) > 1e-13].min()  # meV, between the doublets
+    bound = np.finfo(float).eps * np.abs(E).max() / split  # about 7e-6
+    assert np.abs(chi[1] - chi[0]).max() <= bound * np.abs(chi[0]).max()
+
+
+TETRAGONAL_PR = dict(B20=0.3, B40=0.01, B44=0.05)  # Pr3+, meV, test values: two doublets
+
+
+# B22 splits the two non-Kramers doublets of tetragonal Pr3+ by about 9e-12 and
+# 3e-11 meV (B22 = 1e-12 meV), 9e-11 and 3e-10, 9e-9 and 3e-8, 9e-8 and 3e-7 meV
+# (1e-8 meV); the tolerance is about 2e-9 meV.
 @pytest.mark.parametrize(
-    ("field", "below"), [(1e-10, True), (1e-9, True), (1e-7, False), (1e-6, False)]
-)  # T
-def test_susceptibility_continuous_through_degeneracy(field, below):
-    """chi is continuous as a splitting shrinks through the tolerance (CONV-0008, P20).
+    ("B22", "below"), [(1e-12, True), (1e-11, True), (1e-9, False), (1e-8, False)]
+)  # meV
+def test_susceptibility_continuous_through_degeneracy(B22, below):
+    """chi is continuous as a splitting shrinks through the tolerance (CONV-0015, P20).
 
-    A field along x splits the ground Kramers doublet of the tetragonal Ce3+
-    ion. Below the tolerance of CONV-0008 the pair is one level and takes the
-    Curie weight p_n / k_B T; above it, the van Vleck weight
-    (p_n - p_m) / (E_m - E_n), whose limit is the Curie weight. The change of
-    chi_zz with the field is of second order, about (muB B / k_B T)^2 < 1e-13
-    here, so on both sides chi_zz must equal its zero-field value.
+    A tiny B22 splits the two doublets of the tetragonal Pr3+ ion, in zero
+    field (chi is a zero-field quantity, CONV-0013). Below the tolerance each
+    doublet is one level and takes the Curie weight p_n / k_B T; above it, the
+    van Vleck weight (p_n - p_m) / (E_m - E_n), whose limit is the Curie
+    weight. B22 -> -B22 is a rotation by 45 degrees about z, so chi_zz and
+    Tr chi are even in B22 and change by O(B22^2): on both sides they must
+    equal their values at B22 = 0.
     """
     temperature = 5.0  # K
-    cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(TETRAGONAL), Hfield=[field, 0.0, 0.0])
-    split = cef.energies[1] - cef.energies[0]
-    assert (split <= _level_tolerance(cef.energies)) == below  # the side the case is about
-    assert split < 1e-6 * KB * temperature
-    chi_zz = qc.susceptibility(cef, temperature)[2, 2]
-    assert chi_zz == pytest.approx(qc.susceptibility(_ce(), temperature)[2, 2], rel=1e-12)
+    cef = qc.CEFion(qc.Ion("Pr"), qc.CEFpars(dict(TETRAGONAL_PR, B22=B22)))
+    gaps = np.diff(cef.energies)
+    splits = gaps[gaps < 1e-3]  # meV: the two split doublets
+    assert len(splits) == 2
+    assert np.all((splits <= _level_tolerance(cef.energies)) == below)  # the side
+    assert splits.max() < 1e-6 * KB * temperature
+    chi = qc.susceptibility(cef, temperature)
+    chi0 = qc.susceptibility(qc.CEFion(qc.Ion("Pr"), qc.CEFpars(TETRAGONAL_PR)), temperature)
+    assert chi[2, 2] == pytest.approx(chi0[2, 2], rel=1e-12)
+    assert np.trace(chi) == pytest.approx(np.trace(chi0), rel=1e-12)
 
 
-def test_conv_0008_susceptibility_levels_from_config(monkeypatch):
-    """The Curie and van Vleck pairs follow the levels of CONV-0008, read at call time.
+@pytest.mark.parametrize("method", ["perturbation", "magnetization"])
+def test_conv_0013_susceptibility_is_zero_field(method):
+    """chi is the zero-field response whatever field the given ion was solved in (H1).
+
+    Free Ce3+ solved at 10 T along z: chi_zz at 2 K is the zero-field Curie
+    value gJ^2 muB J(J+1) / (3 k_B T) = 0.7197 muB/T. The field-split
+    eigensystem gave 1.4852 by perturbation.
+    """
+    ion = qc.Ion("Ce")
+    cef = qc.CEFion(ion, qc.CEFpars(dict(B20=0.0)), Hfield=[0.0, 0.0, 10.0])
+    chi = qc.susceptibility(cef, 2.0, method=method)
+    expected = _curie(ion, 2.0) * np.eye(3)
+    rel = 1e-10 if method == "perturbation" else 1e-5
+    np.testing.assert_allclose(chi, expected, rtol=0, atol=rel * expected.max())
+
+
+def test_conv_0015_susceptibility_levels_from_config(monkeypatch):
+    """The Curie and van Vleck pairs follow the levels of CONV-0015, read at call time.
 
     With rtol = 0.5 the tolerance, 0.5 max|E| = 3.2 meV, merges the two lower
     doublets of the tetragonal Ce3+ ion (0.78 meV apart) into one level, so
@@ -159,7 +204,7 @@ def test_conv_0008_susceptibility_levels_from_config(monkeypatch):
     """
     temperature = 5.0  # K
     cef = _ce()
-    tolerance = 0.5 * np.abs(cef.energies).max()  # meV
+    tolerance = 0.5 * (cef.energies.max() - cef.energies.min())  # meV
     assert np.diff(cef.energies)[1] < tolerance < np.diff(cef.energies)[3]
     monkeypatch.setattr(qc.config, "rtol", 0.5)
     default = _chi_exact(cef, temperature, [1, 0, 0]) * MUB
@@ -262,8 +307,8 @@ def test_conv_0009_tetragonal_tensor():
 
 
 # --- thermodynamics -------------------------------------------------------
-# Identities that hold in any consistent set of units, so they do not choose
-# the units of the returns (C1, C11).
+# U and F in meV per ion, S and C in k_B per ion (CONV-0003). The identities
+# S = -(dF/dT) / k_B and C = (dU/dT) / k_B carry k_B (meV/K) for those units.
 
 
 def _thermo(temperatures):
@@ -286,28 +331,71 @@ def test_partition_function_and_energy():
     assert np.allclose(U, (w * E).sum(1) / w.sum(1), rtol=1e-5)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P3: meV and K mixed in S")
 @pytest.mark.parametrize("temperature", T)
 def test_entropy_is_minus_dF_dT(temperature):
-    """S = -dF/dT."""
+    """S = -(dF/dT) / k_B, S in k_B and F in meV per ion."""
     S = _thermo([temperature])[3][0]
-    assert S == pytest.approx(-_derivative(2, temperature), rel=1e-4)
+    assert S == pytest.approx(-_derivative(2, temperature) / KB, rel=1e-4)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P3: meV and K mixed in Cv")
 @pytest.mark.parametrize("temperature", T)
 def test_heat_capacity_is_dE_dT(temperature):
-    """Cv = dE/dT."""
+    """Cv = (dU/dT) / k_B, Cv in k_B and U in meV per ion."""
     Cv = _thermo([temperature])[4][0]
-    assert Cv == pytest.approx(_derivative(1, temperature), rel=1e-4)
+    assert Cv == pytest.approx(_derivative(1, temperature) / KB, rel=1e-4)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P3: meV and K mixed in S and Cv")
 @pytest.mark.parametrize("temperature", T)
 def test_heat_capacity_is_T_dS_dT(temperature):
     """Cv = T dS/dT."""
     Cv = _thermo([temperature])[4][0]
     assert Cv == pytest.approx(temperature * _derivative(3, temperature), rel=1e-4)
+
+
+def _boltzmann_entropy_and_heat_capacity(energies, temperature):
+    """S = -sum p ln p and C = <(E - <E>)^2> / (k_B T)^2, in k_B, from the populations."""
+    x = (energies - energies.min()) / (KB * temperature)
+    p = np.exp(-x) / np.exp(-x).sum()
+    S = -np.sum(p[p > 0] * np.log(p[p > 0]))
+    C = np.sum(p * (x - np.sum(p * x)) ** 2)
+    return S, C
+
+
+@pytest.mark.parametrize("B00", [0.0, 1.0])  # meV
+def test_entropy_and_heat_capacity_independent_of_B00(B00):
+    """S and C in k_B per ion do not depend on the zero of energy (CONV-0014, H2).
+
+    Ce3+, B20=0.5, B40=0.01, B44=0.1 meV at 10 K: S = 1.2927, C = 0.1702 k_B
+    (AUDIT_GPT H2) from the Boltzmann sums.
+    """
+    temperature = 10.0  # K
+    cef = _ce(dict(TETRAGONAL, B00=B00))
+    _, U, F, S, C = qc.thermodynamics(cef, np.array([temperature]))
+    S_ref, C_ref = _boltzmann_entropy_and_heat_capacity(cef.energies, temperature)
+    assert S[0] == pytest.approx(S_ref, rel=1e-12)
+    assert C[0] == pytest.approx(C_ref, rel=1e-12)
+    assert S[0] == pytest.approx(1.292718, abs=1e-6) and C[0] == pytest.approx(0.170246, abs=1e-6)
+    _, U0, F0, _, _ = qc.thermodynamics(_ce(), np.array([temperature]))
+    assert U[0] - U0[0] == pytest.approx(B00, abs=1e-12) and F[0] - F0[0] == pytest.approx(
+        B00, abs=1e-12
+    )
+
+
+def test_thermodynamics_finite_at_low_temperature():
+    """Ce3+ with B20=1 meV at 0.1 K: U -> -8 meV, F -> -8 meV - k_B T ln 2, S -> ln 2, C -> 0 (H3).
+
+    The ground doublet lies at -8 meV and the next level 6 meV above it, so
+    the excited levels carry exp(-6 meV / k_B T) ~ 1e-302 of the weight.
+    """
+    temperature = 0.1  # K
+    cef = _ce(dict(B20=1.0))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _, U, F, S, C = qc.thermodynamics(cef, np.array([temperature]))
+    assert U[0] == pytest.approx(-8.0, abs=1e-12)
+    assert F[0] == pytest.approx(-8.0 - KB * temperature * np.log(2), abs=1e-12)
+    assert S[0] == pytest.approx(np.log(2), rel=1e-12)
+    assert C[0] == pytest.approx(0.0, abs=1e-12)
 
 
 # --- CONV-0012: the scattering function as excitations --------------------
@@ -602,8 +690,8 @@ def test_gtensor_principal_values_axial():
 
 
 @pytest.mark.parametrize(("field", "doublet"), [(1e-10, True), (1e-6, False)])  # T
-def test_conv_0008_gtensor_ground_doublet(field, doublet):
-    """The ground doublet is a level of CONV-0008: a split below the tolerance still counts.
+def test_conv_0015_gtensor_ground_doublet(field, doublet):
+    """The ground doublet is a level of CONV-0015: a split below the tolerance still counts.
 
     A field along x splits the ground doublet of the tetragonal Ce3+ ion by
     6e-12 meV at 1e-10 T (below the tolerance, 6.4e-10 meV) and by 6e-8 meV at
@@ -616,8 +704,26 @@ def test_conv_0008_gtensor_ground_doublet(field, doublet):
         g = qc.gtensor(cef)
         assert g.shape == (3, 3) and np.all(np.isfinite(g)) and np.abs(g).max() > 0
     else:
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             qc.gtensor(cef)
+
+
+@pytest.mark.parametrize(
+    ("name", "pars"),
+    [("Ce", {}), ("Nd", dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4))],
+)  # meV: free Ce3+ (one sixfold level), cubic Nd3+ (a quartet among its levels)
+def test_gtensor_needs_exactly_one_ground_doublet(name, pars):
+    """A ground level that is not exactly twofold raises ValueError (H4, A10).
+
+    The free ion has one level of 2J + 1 states; a ground quartet has four.
+    states 0 and 1 then span only part of the level, and g would describe a
+    wrong subspace.
+    """
+    cef = qc.CEFion(qc.Ion(name), qc.CEFpars(pars))
+    ground = _degenerate_levels(cef.energies)[0]
+    assert ground.stop - ground.start == {"Ce": 6, "Nd": 4}[name]  # the case the test is about
+    with pytest.raises(ValueError):
+        qc.gtensor(cef)
 
 
 @pytest.mark.xfail(strict=True, reason="AUDIT P17: abs() makes g g^T depend on the doublet basis")
@@ -664,3 +770,41 @@ def test_magnetization_exchange_zero_field():
         warnings.simplefilter("error")
         M = qc.magnetization_exchange(_ce(), 5.0, [0.0, 0.0, 0.0], lam=1.0)
     assert M == (0.0, 0.0, 0.0)
+
+
+# --- validation of public inputs (M3, M6, L1) -----------------------------
+
+
+@pytest.mark.parametrize("temperature", [0.0, -1.0, np.nan, np.inf])
+def test_populations_need_a_positive_temperature(temperature):
+    """Populations at T <= 0 were NaN (M6)."""
+    with pytest.raises(ValueError):
+        qc.boltzman_population(np.array([0.0, 0.0, 1.0]), temperature)
+
+
+@pytest.mark.parametrize("temperatures", [[0.0], [5.0, -1.0], [np.nan]])
+def test_thermodynamics_needs_positive_temperatures(temperatures):
+    with pytest.raises(ValueError):
+        qc.thermodynamics(_ce(), np.array(temperatures))
+
+
+def test_scattering_function_needs_a_scalar_temperature():
+    """Six temperatures gave one spectrum, paired with the six states (M3)."""
+    with pytest.raises(ValueError):
+        qc.scattering_function(_ce(), np.linspace(1.0, 50.0, 6))
+
+
+@pytest.mark.parametrize("Q", [[np.nan, 0.0, 0.0], [1.0, np.inf, 0.0]])
+def test_cross_section_crystal_needs_a_finite_Q(Q):
+    """A NaN component made every weight NaN (M6)."""
+    with pytest.raises(ValueError):
+        qc.cross_section_crystal(_ce(), 10.0, Q, Ei=50.0)
+
+
+@pytest.mark.parametrize("max_iterations", [0, -1])
+def test_magnetization_exchange_needs_one_iteration(max_iterations):
+    """max_iterations = 0 raised UnboundLocalError (L1)."""
+    with pytest.raises(ValueError):
+        qc.magnetization_exchange(
+            _ce(), 5.0, [0.0, 0.0, 1.0], lam=1.0, max_iterations=max_iterations
+        )

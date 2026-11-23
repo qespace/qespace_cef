@@ -31,8 +31,14 @@ def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
     -------
     ndarray of float, shape (n,)
         Occupation probability of each state; they sum to 1.
-    """
 
+    Raises
+    ------
+    ValueError
+        If ``temperature`` is not finite and positive.
+    """
+    if not np.all(np.isfinite(temperature)) or np.any(np.asarray(temperature) <= 0):
+        raise ValueError(f"temperature must be finite and positive in K, got {temperature!r}.")
     p = np.exp(-np.array(energies - min(energies)) * C.meV2K / temperature)
     Z = sum(p)
     return p / Z
@@ -57,7 +63,7 @@ def scattering_function(cefion: CEFion, temperature: float) -> tuple[np.ndarray,
 
     The entries form an unordered set (CONV-0012): they carry no level
     information, may share an energy and may have zero weight, and only
-    sums over the entries at one energy (CONV-0008) are meaningful. (Here
+    sums over the entries at one energy (CONV-0015) are meaningful. (Here
     entry ``k`` is the pair ``(i, f) = divmod(k, n)``.)
 
     Parameters
@@ -75,7 +81,14 @@ def scattering_function(cefion: CEFion, temperature: float) -> tuple[np.ndarray,
         Scattering weights :math:`W_k^{\alpha\beta}`, dimensionless, α and β
         in the frame of the J operators (CONV-0004). Each is Hermitian and
         positive semidefinite, and :math:`\sum_k \mathrm{Tr}\,W_k = J(J+1)`.
+
+    Raises
+    ------
+    ValueError
+        If ``temperature`` is not a scalar, or not finite and positive.
     """
+    if np.ndim(temperature) != 0:
+        raise ValueError("temperature must be a scalar in K; call once per temperature.")
     E = cefion.energies
     J = np.asarray(cefion.J)  # (3, n, n): J[a, i, f] = <i|J_a|f>
     n = len(E)
@@ -181,12 +194,14 @@ def cross_section_crystal(
     Raises
     ------
     ValueError
-        If the last axis of ``Q`` is not 3, any Q is zero, ``Ei`` is not
+        If the last axis of ``Q`` is not 3, any Q is zero or not finite, ``Ei`` is not
         positive, or ``u2`` is negative or not finite.
     """
     Q = np.asarray(Q, dtype=float)
     if Q.shape[-1:] != (3,):
         raise ValueError(f"Q must have shape (..., 3), got {Q.shape}.")
+    if not np.all(np.isfinite(Q)):
+        raise ValueError("Q must be finite.")
     Qnorm = np.linalg.norm(Q, axis=-1)
     if np.any(Qnorm == 0):
         raise ValueError("Q must not be zero: the direction of Q sets the projector.")
@@ -328,10 +343,14 @@ def magnetization_exchange(
 
     Raises
     ------
+    ValueError
+        If ``max_iterations`` is less than 1.
     RuntimeError
         If the moment has not converged after ``max_iterations`` steps.
     """
 
+    if max_iterations < 1:
+        raise ValueError(f"max_iterations must be at least 1, got {max_iterations!r}.")
     Hfield = np.asarray(Hfield, dtype=float)
     M = magnetization(cefion, temperature, Hfield)
     for _ in range(max_iterations):
@@ -354,10 +373,11 @@ def susceptibility(
 ) -> np.ndarray:
     r"""Single-ion magnetic susceptibility tensor in zero field, versus temperature.
 
-    The susceptibility of CONV-0009,
+    The susceptibility of CONV-0013,
     :math:`\chi_{\alpha\beta} = \partial \langle m_\alpha \rangle / \partial B_\beta`
-    at :math:`B = 0`, with :math:`m = g_J \mu_B J`, in :math:`\mu_B`/T per
-    ion. Both methods return the same quantity.
+    at :math:`B = 0`, in :math:`\mu_B`/T per ion. Both methods return the
+    same quantity, from the zero-field Hamiltonian of ``cefion``: the field
+    the ion was solved in does not enter.
 
     ``'perturbation'`` (default) evaluates Van Vleck's formula,
 
@@ -373,12 +393,12 @@ def susceptibility(
 
     with :math:`p_n` the Boltzmann populations, both sums over all states,
     energies in meV, :math:`\mu_B` in meV/T, and :math:`E_m = E_n` when the
-    two states belong to one level of CONV-0008
+    two states belong to one level of CONV-0015
     (:func:`qespace_cef.cefion._degenerate_levels`). The van Vleck
     weight is evaluated as
     :math:`p_n (1 - e^{-(E_m - E_n)/k_B T}) / (E_m - E_n)` on the pairs
     :math:`E_m > E_n`, with ``expm1``, and mirrored, :math:`W_{mn} = W_{nm}`,
-    so it stays accurate as two levels approach each other (CONV-0008).
+    so it stays accurate as two levels approach each other (CONV-0015).
 
     ``'magnetization'`` takes the finite difference
     :math:`\chi_{\alpha\beta} = M_\alpha(\epsilon \hat{e}_\beta) / \epsilon`
@@ -392,7 +412,8 @@ def susceptibility(
     Parameters
     ----------
     cefion : CEFion
-        Diagonalised ion in the crystal field; its ``Hfield`` is not used.
+        Diagonalised ion in the crystal field. Its ``Hfield`` is not used:
+        an ion solved in a field is solved again in zero field.
     temperatures : array_like of float, shape S
         Temperatures in K, any shape (a scalar gives ``S = ()``).
     method : {'perturbation', 'magnetization'}, optional
@@ -424,9 +445,13 @@ def susceptibility(
                 Hfield[beta] = eps
                 chi[it, :, beta] = np.array(magnetization(cefion, temperature, Hfield)) / eps
     elif method == "perturbation":
+        # chi is the response at zero field (CONV-0013), not a function of B:
+        # an ion solved in a field is solved again without it.
+        if np.any(cefion.Hfield):
+            cefion = CEFion(ion=cefion.ion, cfp=cefion.cfp)
         J = np.asarray(cefion.J)  # (3, n, n), in the eigenbasis
         # jumps[n, m] = E_m - E_n; degenerate pairs are the pairs of states in
-        # one level of CONV-0008 (CONV-0009 defers to it).
+        # one level of CONV-0015 (CONV-0013 defers to it).
         jumps = cefion.energies[np.newaxis, :] - cefion.energies[:, np.newaxis]
         level = np.empty(len(cefion.energies), dtype=np.int64)
         for k, states in enumerate(_degenerate_levels(cefion.energies)):
@@ -442,7 +467,7 @@ def susceptibility(
             # (p_n - p_m) / (E_m - E_n) for every other pair, in both orders.
             # The van Vleck weight is p_n (1 - exp(-(E_m - E_n) / k_B T)) /
             # (E_m - E_n), with expm1 on the pairs E_m > E_n only: it does
-            # not cancel for a pair near the degeneracy rule (CONV-0008),
+            # not cancel for a pair near the degeneracy rule (CONV-0015),
             # and its argument is never positive, so it cannot overflow.
             # W is symmetric, so the pairs E_m < E_n take W[m, n] = W[n, m].
             p = boltzman_population(cefion.energies, temperature)
@@ -483,9 +508,10 @@ def gtensor(cefion: CEFion) -> np.ndarray:
 
     Raises
     ------
-    AssertionError
-        If the two lowest energies are not one level of CONV-0008
-        (:func:`qespace_cef.cefion._degenerate_levels`).
+    ValueError
+        If the ground level of CONV-0015
+        (:func:`qespace_cef.cefion._degenerate_levels`) does not have
+        exactly two states.
 
     Warnings
     --------
@@ -503,10 +529,12 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     How g should be defined is open (AUDIT C7).
     """
 
-    ground = _degenerate_levels(cefion.energies)[0]  # CONV-0008
-    assert ground.stop - ground.start >= 2, (
-        "Ground state is not a doublet, g-tensor is not defined."
-    )
+    ground = _degenerate_levels(cefion.energies)[0]  # CONV-0015
+    if ground.stop - ground.start != 2:
+        raise ValueError(
+            f"The ground level has {ground.stop - ground.start} states, not 2: "
+            "the g-tensor is defined for a ground doublet only."
+        )
     Jeff = cefion.J  # J operator projected to the ground state doublet
 
     # PyCrystalField. AUDIT P4: depends on the basis picked inside the doublet.
@@ -523,16 +551,28 @@ def thermodynamics(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     r"""Single-ion thermodynamics from the partition function.
 
-    With :math:`E_n` the eigenenergies (meV) and :math:`\beta = 1/k_B T`,
-    the code computes
+    With :math:`E_n` the energies (meV, CONV-0014), :math:`E_0` the lowest,
+    and :math:`k_B T` in meV, the code sums Boltzmann factors of the
+    energies above the ground state, which never overflow,
 
     .. math::
 
-        Z = \sum_n e^{-\beta E_n}, \quad
-        E = \langle E \rangle = \frac{1}{Z} \sum_n E_n e^{-\beta E_n}, \quad
-        F = -T \ln Z, \quad
-        S = \frac{E - F}{T}, \quad
-        C_V = \frac{\langle E^2 \rangle - \langle E \rangle^2}{T^2}.
+        z = \sum_n e^{-(E_n - E_0)/k_B T}, \quad
+        p_n = e^{-(E_n - E_0)/k_B T} / z,
+
+    and returns, per ion,
+
+    .. math::
+
+        Z = e^{-E_0/k_B T} z, \quad
+        U = \sum_n p_n E_n, \quad
+        F = E_0 - k_B T \ln z, \quad
+        S = \frac{U - F}{k_B T}, \quad
+        C = \frac{\sum_n p_n (E_n - U)^2}{(k_B T)^2},
+
+    the heat capacity being the magnetic contribution at constant field.
+    U and F are measured from the zero of CONV-0014 and move with ``B00``;
+    S and C do not depend on it.
 
     Parameters
     ----------
@@ -544,38 +584,40 @@ def thermodynamics(
     Returns
     -------
     Z : ndarray, shape (n,)
-        Partition function, dimensionless.
-    E : ndarray, shape (n,)
+        Partition function, dimensionless. ``inf`` (or 0) where it leaves
+        the float range at low T; the other returns stay finite.
+    U : ndarray, shape (n,)
         Internal energy in meV per ion.
     F : ndarray, shape (n,)
-        Free energy :math:`-T \ln Z`, in K per ion.
+        Free energy :math:`-k_B T \ln Z` in meV per ion.
     S : ndarray, shape (n,)
-        :math:`(E - F)/T`: meV/K and dimensionless terms mixed.
-    Cv : ndarray, shape (n,)
-        Heat capacity in meV²/K² per ion.
+        Entropy in :math:`k_B` per ion.
+    C : ndarray, shape (n,)
+        Heat capacity in :math:`k_B` per ion.
 
-    Warnings
-    --------
-    P3 (AUDIT.md), not fixed yet: energies in meV are mixed with
-    temperatures in K, so ``S`` and ``Cv`` are not in units of
-    :math:`k_B`. In the audit's example, at 10 K: S = 1.054 instead of
-    1.293 :math:`k_B`, and Cv low by a factor of about 135 (11.6²).
+    Raises
+    ------
+    ValueError
+        If a temperature is not finite and positive.
     """
-    Z = np.zeros(len(T))
-    E = np.zeros(len(T))
-    E2 = np.zeros(len(T))
+    T = np.asarray(T, dtype=float)
+    if not np.all(np.isfinite(T)) or np.any(T <= 0):
+        raise ValueError("temperatures must be finite and positive in K.")
+    E = np.asarray(cefion.energies)
+    E0 = E.min()
+    dE = E - E0  # >= 0, meV
+    kT = C.K2meV * T  # meV
+    w = np.exp(-dE / kT[..., np.newaxis])  # <= 1: no overflow, the ground state gives 1
+    z = w.sum(axis=-1)
+    p = w / z[..., np.newaxis]
+    mean = np.sum(p * dE, axis=-1)  # U - E0
+    variance = np.sum(p * (dE - mean[..., np.newaxis]) ** 2, axis=-1)  # about the thermal mean
 
-    for En in cefion.energies:
-        Z += np.exp(-En * C.meV2K / T)
-        E += En * np.exp(-En * C.meV2K / T)
-        E2 += En * En * np.exp(-En * C.meV2K / T)
+    with np.errstate(over="ignore", under="ignore"):
+        Z = z * np.exp(-E0 / kT)  # may leave the float range; U, F, S, C don't use it
+    U = E0 + mean
+    F = E0 - kT * np.log(z)
+    S = mean / kT + np.log(z)
+    Cv = variance / kT**2
 
-    E /= Z
-    E2 /= Z
-
-    # AUDIT P3: F in K, E in meV; S and Cv mix the two.
-    F = -T * np.log(Z)
-    S = (E - F) / T
-    Cv = (E2 - E**2) / T**2
-
-    return Z, E, F, S, Cv
+    return Z, U, F, S, Cv
