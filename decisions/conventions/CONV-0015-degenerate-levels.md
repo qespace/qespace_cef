@@ -1,7 +1,7 @@
 ---
 id: CONV-0015
 title: Degenerate levels
-status: draft
+status: accepted
 owner: qespace_cef
 supersedes: CONV-0008
 superseded_by:

@@ -1,10 +1,14 @@
 ---
 id: CONV-0008
 title: Degenerate levels
-status: accepted
+status: superseded
 owner: qespace_cef
 supersedes:
+superseded_by: CONV-0015
 ---
+
+> Superseded by CONV-0015 on 2026-11-24: the tolerance scales with the spread
+> of the energies, max E − min E, so the grouping doesn't depend on their zero.
 
 ## Statement
 
