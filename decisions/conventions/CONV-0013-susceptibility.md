@@ -1,7 +1,7 @@
 ---
 id: CONV-0013
 title: Single-ion magnetic susceptibility
-status: draft
+status: accepted
 owner: qespace_cef
 supersedes: CONV-0009
 superseded_by:

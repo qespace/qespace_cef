@@ -84,12 +84,12 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0003 units | accepted | its Statement still says `OPEN:` the units of the API (Q42) | P3 |
 | CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
-| CONV-0006 Zeeman term | draft | – (the electron's sign, μ = −gJ μB J, ℋ_Z = −μ·B) | P21 |
+| CONV-0006 Zeeman term | accepted | – (the electron's sign, μ = −gJ μB J, ℋ_Z = −μ·B) | P21 |
 | CONV-0007 cross sections | accepted | – | P13 |
 | CONV-0012 spectral weights | accepted | – | – |
 | CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config) | P4 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
-| CONV-0009 susceptibility | accepted; superseded by the draft CONV-0013 (the moment's sign of CONV-0006, no API) | – | – |
+| CONV-0013 susceptibility (supersedes CONV-0009) | accepted | – | P21 (the finite-difference test with the moment of CONV-0006) |
 | CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
 

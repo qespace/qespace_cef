@@ -1,12 +1,17 @@
 ---
 id: CONV-0009
 title: Single-ion magnetic susceptibility
-status: accepted
+status: superseded
 owner: qespace_cef
 enforced_by: tests/test_observables.py::test_conv_0009_*
 since:
 supersedes:
+superseded_by: CONV-0013
 ---
+
+> Superseded by CONV-0013 on 2026-11-23: the moment operator takes the
+> electron's sign of CONV-0006, `m = −gJ μB J`; the formulas and values of χ
+> are unchanged, and the API lines are left to an ADR.
 
 ## Statement
 

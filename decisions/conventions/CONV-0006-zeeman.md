@@ -1,7 +1,7 @@
 ---
 id: CONV-0006
 title: Zeeman term and magnetic moment
-status: draft
+status: accepted
 owner: qespace_cef
 supersedes:
 superseded_by:
@@ -11,7 +11,7 @@ superseded_by:
 
 The magnetic moment of an ion and its Zeeman term in a magnetic field are
 
-    μ = −gJ μB J,        ℋ_Z = −μ·B = +gJ μB J·B,
+    μ = −gJ μB J,        H_Z = −μ·B = +gJ μB J·B,
 
 with J the angular momentum of the ground J multiplet (CONV-0005, ħ = 1),
 gJ its Landé factor and B the magnetic induction acting on the ion, in T
@@ -37,7 +37,7 @@ signs of the charge and of g are put:
    written in μ. Wikipedia "Zeeman effect", PyCrystalField (paper II.C and
    II.E), SpinW and Sunny. CODATA's bookkeeping is the same physics with the
    sign inside g: g_e = −2.0023… and μ_e = g_e μB S.
-2. **Moment parallel to J**: μ = +gJ μB J, ℋ_Z = −gJ μB J·H, with H given
+2. **Moment parallel to J**: μ = +gJ μB J, H_Z = −gJ μB J·H, with H given
    as μ0H in T. Jensen and Mackintosh (2.1.1c), McPhase (manual, Zeeman
    energy), Mantid. This absorbs the charge's sign into J.
 
