@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 import qespace_cef as qc
-from qespace_cef.cefion import degenerate_levels
+from qespace_cef.cefion import _degenerate_levels
 
 # CODATA 2022 (NIST, physics.nist.gov/cuu/Constants): e = 1.602176634e-19 C and
 # k = 1.380649e-23 J/K exact, mu_B = 9.2740100657(29)e-24 J/T.
@@ -375,7 +375,7 @@ def test_conv_0012_summed_weights_invariant_inside_levels(name, pars, field):
     rng = np.random.default_rng(12)
     n = len(cef.energies)
     U = np.zeros((n, n), complex)
-    for level in degenerate_levels(cef.energies):
+    for level in _degenerate_levels(cef.energies):
         d = level.stop - level.start
         U[level, level], _ = np.linalg.qr(rng.normal(size=(d, d)) + 1j * rng.normal(size=(d, d)))
     cef.J = np.einsum("ki,akl,lj->aij", U.conj(), np.asarray(cef.J), U)

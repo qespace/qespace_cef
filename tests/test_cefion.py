@@ -12,7 +12,7 @@ import pytest
 
 import qespace_cef as qc
 from qespace_cef import constants as C
-from qespace_cef.cefion import degenerate_levels
+from qespace_cef.cefion import _degenerate_levels
 from qespace_cef.cefmatrices import StevensBase
 
 KRAMERS_IONS = ["Ce", "Nd", "Sm", "Dy", "Er", "Yb"]  # odd number of 4f electrons
@@ -278,7 +278,7 @@ def _random_low_symmetry(rng):
 
 
 def _degeneracies(energies):
-    return [s.stop - s.start for s in degenerate_levels(energies)]
+    return [s.stop - s.start for s in _degenerate_levels(energies)]
 
 
 def test_conv_0008_kramers_doublets_are_one_level():
@@ -303,14 +303,14 @@ def test_conv_0008_free_ion_is_one_level(name):
 def test_conv_0008_grouping_stable_under_perturbation(name, pars):
     """A random Hermitian perturbation of size eps max|E| leaves the levels unchanged."""
     H = _cefion(name, pars).hamiltonian
-    levels = degenerate_levels(np.linalg.eigvalsh(H))
+    levels = _degenerate_levels(np.linalg.eigvalsh(H))
     scale = np.finfo(float).eps * np.abs(np.linalg.eigvalsh(H)).max()
     rng = np.random.default_rng(80)
     for _ in range(20):
         A = rng.normal(size=H.shape) + 1j * rng.normal(size=H.shape)
         dH = (A + A.conj().T) / 2
         dH *= scale / np.abs(np.linalg.eigvalsh(dH)).max()  # spectral norm eps max|E|
-        assert degenerate_levels(np.linalg.eigvalsh(H + dH)) == levels
+        assert _degenerate_levels(np.linalg.eigvalsh(H + dH)) == levels
 
 
 def test_conv_0008_tolerance_read_from_config_at_call_time(monkeypatch):
@@ -327,7 +327,7 @@ def test_conv_0008_tolerance_read_from_config_at_call_time(monkeypatch):
 @pytest.mark.parametrize("energies", [[1.0, 0.0], [[0.0, 1.0]]])
 def test_degenerate_levels_rejects_unsorted_or_not_1d(energies):
     with pytest.raises(ValueError):
-        degenerate_levels(energies)
+        _degenerate_levels(energies)
 
 
 # --- CONV-0011: the canonical basis printed by summary --------------------
@@ -392,7 +392,7 @@ def test_conv_0011_basis_unchanged_by_rotation_inside_levels(name, pars, field):
     cef = _cefion(name, pars, field)
     before = _printed_basis(cef)
     rng = np.random.default_rng(11)
-    for level in degenerate_levels(cef.energies):
+    for level in _degenerate_levels(cef.energies):
         d = level.stop - level.start
         Q, _ = np.linalg.qr(rng.normal(size=(d, d)) + 1j * rng.normal(size=(d, d)))
         cef.eigenvectors[level] = Q @ cef.eigenvectors[level]

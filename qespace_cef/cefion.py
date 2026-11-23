@@ -8,7 +8,7 @@ from .cefpars import CEFpars
 from .ion import Ion
 
 
-def degenerate_levels(energies: ArrayLike) -> list[slice]:
+def _degenerate_levels(energies: ArrayLike) -> list[slice]:
     r"""The levels of CONV-0008, as slices of the ascending energies.
 
     Two consecutive energies belong to the same level when
@@ -42,9 +42,9 @@ def degenerate_levels(energies: ArrayLike) -> list[slice]:
     Ce3+ with ``B20`` alone has three Kramers doublets:
 
     >>> import qespace_cef as qc
-    >>> from qespace_cef.cefion import degenerate_levels
+    >>> from qespace_cef.cefion import _degenerate_levels
     >>> cef = qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)))
-    >>> [s.stop - s.start for s in degenerate_levels(cef.energies)]
+    >>> [s.stop - s.start for s in _degenerate_levels(cef.energies)]
     [2, 2, 2]
     """
     E = np.asarray(energies, dtype=float)
@@ -356,7 +356,7 @@ class CEFion:
         """Energy levels and their degeneracies, grouped by CONV-0008.
 
         The ``energies`` are grouped into levels by
-        :func:`degenerate_levels`, with the tolerance from
+        :func:`_degenerate_levels`, with the tolerance from
         :mod:`qespace_cef.config` at call time.
 
         Returns
@@ -368,7 +368,7 @@ class CEFion:
         """
         return [
             [float(np.mean(self.energies[level])), level.stop - level.start]
-            for level in degenerate_levels(self.energies)
+            for level in _degenerate_levels(self.energies)
         ]
 
     def summary(self, evecs: bool = True, precision: int = 3) -> str:
@@ -377,7 +377,7 @@ class CEFion:
         The levels are the ``excitation_energies``, measured from the ground
         state, whose energy ``energies[0]`` is given in the first line
         (CONV-0010). The states are grouped into levels by
-        :func:`degenerate_levels` (CONV-0008). Under each level its states
+        :func:`_degenerate_levels` (CONV-0008). Under each level its states
         are printed in the canonical basis of CONV-0011, written in the
         free-ion kets, leaving out coefficients smaller than
         ``10**-precision``:
@@ -425,7 +425,7 @@ class CEFion:
             f"Energy levels{' and eigenvectors' if evecs else ''}, energies above the "
             f"ground state (E_0 = {self.energies[0]:.{precision}f} meV):"
         ]
-        for level, states in enumerate(degenerate_levels(self.energies)):
+        for level, states in enumerate(_degenerate_levels(self.energies)):
             energy = self.excitation_energies[states.start]
             degeneracy = states.stop - states.start
             block = [f"E({level:d}) =\t{energy:.{precision}f} meV\t{degeneracy:2d}-fold degenerate"]

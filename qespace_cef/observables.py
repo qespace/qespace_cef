@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from . import constants as C
-from .cefion import CEFion, degenerate_levels
+from .cefion import CEFion, _degenerate_levels
 
 
 def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
@@ -374,7 +374,7 @@ def susceptibility(
     with :math:`p_n` the Boltzmann populations, both sums over all states,
     energies in meV, :math:`\mu_B` in meV/T, and :math:`E_m = E_n` when the
     two states belong to one level of CONV-0008
-    (:func:`qespace_cef.cefion.degenerate_levels`). The van Vleck
+    (:func:`qespace_cef.cefion._degenerate_levels`). The van Vleck
     weight is evaluated as
     :math:`p_n (1 - e^{-(E_m - E_n)/k_B T}) / (E_m - E_n)` on the pairs
     :math:`E_m > E_n`, with ``expm1``, and mirrored, :math:`W_{mn} = W_{nm}`,
@@ -429,7 +429,7 @@ def susceptibility(
         # one level of CONV-0008 (CONV-0009 defers to it).
         jumps = cefion.energies[np.newaxis, :] - cefion.energies[:, np.newaxis]
         level = np.empty(len(cefion.energies), dtype=np.int64)
-        for k, states in enumerate(degenerate_levels(cefion.energies)):
+        for k, states in enumerate(_degenerate_levels(cefion.energies)):
             level[states] = k
         degenerate = level[:, np.newaxis] == level[np.newaxis, :]
         # The pairs (n, m) with E_m > E_n that are not degenerate; their
@@ -485,7 +485,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     ------
     AssertionError
         If the two lowest energies are not one level of CONV-0008
-        (:func:`qespace_cef.cefion.degenerate_levels`).
+        (:func:`qespace_cef.cefion._degenerate_levels`).
 
     Warnings
     --------
@@ -503,7 +503,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     How g should be defined is open (AUDIT C7).
     """
 
-    ground = degenerate_levels(cefion.energies)[0]  # CONV-0008
+    ground = _degenerate_levels(cefion.energies)[0]  # CONV-0008
     assert ground.stop - ground.start >= 2, (
         "Ground state is not a doublet, g-tensor is not defined."
     )
