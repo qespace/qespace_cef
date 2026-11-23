@@ -1,10 +1,14 @@
 ---
 id: CONV-0012
 title: Spectral weights: spectra as excitations, not functions
-status: accepted
+status: superseded
 owner: qespace_cef
 supersedes:
+superseded_by: CONV-0014
 ---
+
+> Superseded by CONV-0014 on 2026-11-23: the weights are unchanged; each
+> pair (i, f) keeps its states, and the shapes moved to ADR-0007.
 
 ## Statement
 

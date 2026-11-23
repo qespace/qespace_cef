@@ -1,7 +1,7 @@
 ---
 id: CONV-0002
 title: Vectors and matrices of vectors
-status: draft
+status: accepted
 owner: qespace_cef
 supersedes:
 superseded_by:
@@ -29,12 +29,18 @@ components follows CONV-0004.
 ## Rationale
 
 Physics texts write vectors as columns and the eigenvalue problem as
-`H U = U D`; NumPy's `eigh` returns the eigenvectors as columns. Stacking
-the vectors as rows instead, as pymatgen and spglib's Python interface do
-for lattices, turns every formula into its transpose (`D = U H U†`). The
-International Tables mix the two, the basis as a row and the coordinates
-as a column, and mixing within one formula puts transposes in the wrong
-place: `B A = 1` with A in columns and B in rows.
+`H U = U D`. Stacking the vectors as rows instead turns every formula into
+its transpose (`D = U H U†`).
+
+This differs from the crystallographic convention of the International
+Tables, which is mixed: the direct basis is written as a row `(a, b, c)`
+with the coordinates as a column, and the reciprocal basis as a column with
+the Miller indices as a row. Its direct basis vectors are thus stacked as
+columns and its reciprocal ones as rows, so the duality reads `B A ∝ 1`.
+Here both bases are stacked as columns and the duality reads `Bᵀ A ∝ 1`,
+like every other change of basis; reciprocal coordinates are a column too.
+Data written in the crystallographic convention need one transpose, of the
+reciprocal basis, where they are read.
 
 A matrix such as U or a lattice matrix is both a set of vectors and a map,
 a change of basis. This CONV takes the reading of the map, so the formulas
@@ -49,8 +55,7 @@ of a reciprocal lattice is crystallography's.
 ## Consequences
 
 - Every formula with a change of basis is written by this CONV.
-- Converting from codes that stack vectors as rows needs one transpose,
-  where the data are read.
+- Input that stacks vectors as rows needs one transpose, where it is read.
 - Tests: an operator taken to the eigenbasis and back is unchanged; `H` in
   its own eigenbasis is diagonal with the energies; for a basis and its
   dual, `Bᵀ A` is proportional to the identity.

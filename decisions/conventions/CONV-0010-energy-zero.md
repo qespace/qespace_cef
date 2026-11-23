@@ -1,10 +1,14 @@
 ---
 id: CONV-0010
 title: Zero of energy and excitation energies
-status: accepted
+status: superseded
 owner: qespace_cef
 supersedes:
+superseded_by: CONV-0014
 ---
+
+> Superseded by CONV-0014 on 2026-11-23: the zero of energy is unchanged;
+> the excitation energies are all pairs E_f − E_i, no code names.
 
 ## Statement
 

@@ -1,10 +1,14 @@
 ---
 id: ADR-0003
 title: Broadcasting and the shape rule
-status: accepted
+status: superseded
 date: 2026-11-20
 supersedes:
+superseded_by: ADR-0007
 ---
+
+> Superseded by ADR-0007 on 2026-11-23: broadcasting is unchanged; it adds
+> the layout of data vectors, matrices and Hilbert-space axes.
 
 ## Context
 

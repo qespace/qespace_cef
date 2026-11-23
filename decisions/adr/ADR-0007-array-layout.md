@@ -1,7 +1,7 @@
 ---
 id: ADR-0007
 title: Broadcasting and the layout of arrays
-status: draft
+status: accepted
 date: 2026-11-23
 supersedes: ADR-0003
 superseded_by:
