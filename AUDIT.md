@@ -81,7 +81,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV | Status | Open | Findings waiting |
 |---|---|---|---|
 | CONV-0001 parameters and operators | accepted | Q12, Q33 | P16 |
-| CONV-0003 units | accepted | its Statement still says `OPEN:` the units of the API (Q42) | P3 |
+| CONV-0003 units | accepted | – (outputs per ion, in units built from the inputs with μB, k_B and barn) | P3 |
 | CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | accepted | – (the electron's sign, μ = −gJ μB J, ℋ_Z = −μ·B) | P21 |
@@ -111,8 +111,7 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
 `PLAN.md`. The IDs continue after those of the review sessions.
 
 - **Q11 (section 6.2).** Which draft do you want to decide next? P4 and P17
-  wait for C7 (no draft yet) and CONV-0008, P3 for the
-  units of the thermodynamic quantities (Q44).
+  wait for C7 (no draft yet) and CONV-0008.
 - **Q12 (P16, CONV-0001).** Should `CEFpars` accept odd-rank parameters
   (l = 1, 3, 5)? CONV-0001 tabulates only even l.
 - **Q32 (ADR-0004).** IDs: this package numbers its own `ADR-xxxx` and
@@ -127,14 +126,6 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   test; CONV-0001 has none, and an accepted CONV is never edited. Leave it,
   with the tests naming the CONV (`test_conv_0001_*`), or supersede CONV-0001
   with a copy that adds the line?
-- **Q42 (CONV-0003).** The accepted CONV-0003 still says "`OPEN:` the
-  units of the API" and lists the units "As implemented" (meV, K, T, Å⁻¹,
-  μB per ion, χ in μB/T per ion). Is that list the decision? An accepted
-  CONV is never edited, so the clean form is a new CONV that supersedes it
-  without the `OPEN:` line.
-- **Q44 (P3).** The units of the thermodynamic quantities, which no CONV
-  states: U and F in meV per ion from the zero of CONV-0014, S and C_v in
-  k_B per ion? With that, P3 can be fixed.
 
 ## 9. Needs later attention
 
