@@ -32,12 +32,12 @@ are left out.
 
 | Concept | v1 | Where | v2 | Note |
 |---|---|---|---|---|
-| free ion | `Ion(ion_name)` | `ion` | **Decided:** `FreeIon(name)` | ADR-0002 said `Ion` |
+| free ion | `Ion(ion_name)` | `ion` | **Decided:** `IonData(name)` (Q71) | a data holder; ADR-0002 said `Ion` |
 | CEF parameters | `CEFpars(Bdict, units, pointGroup)` | `cefpars` | **Decided:** `CrystalFieldParameters(values, notation=..., units=..., point_group=...)` (Q64) | ADR-0002 said `Blm`; **decided:** keyword `notation`, as McPhase |
-| ion in the CEF and a field | `CEFion(ion, cfp, Hfield, diagonalize)` | `cefion` | **Decided:** `SingleIon(free_ion, parameters, Bxyz)` (Q63) | ADR-0002 said `Hamiltonian`; McPhase's single ion, coupled in RPA later |
+| ion in the CEF and a field | `CEFion(ion, cfp, Hfield, diagonalize)` | `cefion` | **Decided:** `Ion(ion_data, parameters, Bxyz)` (Q72), the entry point | ADR-0002 said `Hamiltonian`; McPhase's single ion, coupled in RPA later |
 | Stevens operators | `StevensBase(J)`, `.O4m3()`, `['4m3']` | `cefmatrices` | one function, e.g. `stevens_operator(J, l, m)` | A6, A14 |
-| modules | `ion`, `cefion`, `cefpars`, `cefmatrices`, `data_containers` | | e.g. `free_ion`, `single_ion`, `parameters`, `operators`, `tables` | the `cef` prefix repeats the package |
-| leaked names | `np`, `C`, `ArrayLike`, the submodules | `qespace_cef.*` | `__all__` | A4 |
+| modules | `ion`, `cefion`, `cefpars`, `cefmatrices`, `data_containers` | | **Decided:** `ion_data`, `ion`, `parameters`, `operators`, `tables` (N3) | the `cef` prefix repeats the package |
+| leaked names | `np`, `C`, `ArrayLike`, the submodules | `qespace_cef.*` | **Decided:** `__all__`, explicit imports, no `import *` (Q70) | A4 |
 
 ## Quantum numbers and operators
 
@@ -60,7 +60,7 @@ are left out.
 |---|---|---|---|---|
 | parameter set | `Bdict` (arg), `Bpars` (attr), `cfp` (arg of `CEFion`) | `cefpars`, `cefion` | `CrystalFieldParameters`; argument `parameters` | three names |
 | parameter keys | `'B20'`, `'B4m3'` (strings, parsed) | `CEFpars`, `StevensBase['4m3']` | **Decided:** `(l, m)` tuples, `(4, -3)`; the notation only in the keyword (Q65) | no `m` parsing (A14) |
-| notation | Stevens only | | keyword `notation='stevens'`, `'wybourne'`, ... (CONV-0001, Table 5); converted with the `FreeIon` in `SingleIon` | |
+| notation | Stevens only | | keyword `notation='stevens'`, `'wybourne'`, ... (CONV-0001, Table 5); converted with the `IonData` in `Ion` | |
 | parameter units | `units` in {'meV', 'K', 'invcm'} | `CEFpars` | `units` | stored in meV |
 | point group | `pointGroup` (arg), `pointGroupName` (arg), `symmetry` (attr), `point_group_synonyms` | `cefpars`, `data_containers` | `point_group`, on `CrystalFieldParameters` | four names |
 | allowed parameters | `CEFpars.allowed_Bpars(pointGroupName)` | | e.g. `CrystalFieldParameters.allowed(point_group)` | |
@@ -78,7 +78,7 @@ are left out.
 | E_f − E_i | first return of the spectra | meV, ((2J+1)²,) | **Decided:** `excitation_energies`, (2J+1, 2J+1), as in CONV-0012 | A16 |
 | eigenvectors | `CEFion.eigenvectors` | (2J+1, 2J+1), columns | `eigenvectors` | |
 | moment per state | `CEFion.magnetic_moment` | μB, (2J+1, 3) | `magnetic_moment` | not crystallographic: no suffix (Q60) |
-| levels | `degenerate_levels(energies)` → slices; `CEFion.get_degeneracies()` → [[E, g]] | | **Decided:** private helper `_degenerate_levels` on energies; `get_degeneracies` on `SingleIon` | renamed by you on the working tree |
+| levels | `degenerate_levels(energies)` → slices; `CEFion.get_degeneracies()` → [[E, g]] | | **Decided:** private helper `_degenerate_levels` on energies; `get_degeneracies` on `Ion` | renamed by you on the working tree |
 | level print | `CEFion.summary(evecs, precision)` | str | `summary(show_eigenvectors, precision)` | rule 6 |
 
 ## Observables
@@ -105,6 +105,39 @@ are left out.
 | `gamma_n`, `r0`, `gamma_r0_sq` | –, m, barn | keep | γ in its context |
 | `config.rtol`, `config.E_floor` | –, meV | keep | |
 
+## The pass of 2026-11-23
+
+Your answers to the proposed rows; the rows you did not mention you
+accepted (2026-11-23).
+
+| ID | Row | Result |
+|---|---|---|
+| N1 | Stevens operators | `stevens_operator(J, l, m)`; it raises for an `(l, m)` it doesn't implement |
+| N2 | `implementedOps` | dropped: N1 raises instead |
+| N3 | module names | `ion_data`, `ion`, `parameters`, `operators`, `tables`; `observables`, `constants`, `config` kept |
+| N4 | leaked names | no `import *` anywhere: explicit imports; `__all__` declares the public API (Q70) |
+| N5 | `JJ`, `J2p1` | dropped |
+| N6 | Landé factor | `gJ`, an attribute of `IonData` |
+| N7 | form factor | `form_factor(Qnorm)`, `form_factor_coefficients` |
+| N8 | free-ion kets | `basis_labels` |
+| N9 | point group | `point_group`; the synonym lookup private |
+| N10 | allowed parameters | `CrystalFieldParameters.allowed(point_group)`. For later: check that the allowed `(l, m)` are the same in the Wybourne and Stevens notations |
+| N11 | parameter units | `'meV'`, `'K'`, `'invcm'` |
+| N12 | solved state | `hamiltonian`, `energies`, `eigenvectors`, `magnetic_moment` |
+| N13 | level print | `summary(show_eigenvectors=True, precision=3)` |
+| N14 | mean field | `lam`, `conv_tol`, `max_iterations` |
+| N15 | susceptibility | `method='van_vleck'` or `'finite_difference'`; first argument `ion` (N20) |
+| N16 | g-tensor | `g_tensor` |
+| N17 | cross sections | names kept; `Qxyz` / `Qnorm`, `E_incident`, `u2` |
+| N18 | constants | `mu_B` (meV/T), `k_B` (meV/K), `invcm2meV`; `mu_B_SI` private; `meV2K` dropped |
+| N19 | neutron constants, config | kept |
+| N20 | first argument of the observables | `ion`, the `Ion` |
+
+Then decided: `__all__` with explicit imports (Q70); `IonData` for the
+free-ion data (Q71); `Ion` for the main object, the entry point (Q72); the
+package becomes `qespace_cft`, `import qespace_cft as cft`, renamed on
+GitHub by you once the names are final (Q73).
+
 ## Collisions: one name, two quantities
 
 | ID | Name | Quantities | Decided |
@@ -116,7 +149,7 @@ are left out.
 | C5 | `J` | quantum number, operator vector | the quantum number; operators `Jxyz` |
 | C6 | `precision` | decimals, convergence tolerance | decimals; `conv_tol` |
 | C7 | γ, Γ | Stevens factor, irreps, `gamma_n` | each in its context |
-| C8 | `hamiltonian`, `Hamiltonian` | matrix, v2 class | the class is `SingleIon`; `hamiltonian` stays the matrix |
+| C8 | `hamiltonian`, `Hamiltonian` | matrix, v2 class | the class is `Ion`; `hamiltonian` stays the matrix |
 
 ## How other codes name them
 
@@ -128,8 +161,8 @@ are left out.
 
 ## Decisions these need
 
-- ADR-0005 (draft) supersedes ADR-0002: `FreeIon`, `CrystalFieldParameters`,
-  `SingleIon`. What each notation means and its conversion factors stay in
+- ADR-0005 (draft) supersedes ADR-0002: the package `qespace_cft`,
+  `IonData`, `CrystalFieldParameters`, `Ion`. What each notation means and its conversion factors stay in
   CONV-0001 (ADR-0004).
 - The naming rule (Q26) as ADR-0006, from the rules above.
 
