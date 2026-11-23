@@ -37,7 +37,7 @@ def _degenerate_levels(energies: ArrayLike) -> list[slice]:
     Raises
     ------
     ValueError
-        If ``energies`` is not one-dimensional or not ascending.
+        If ``energies`` is not one-dimensional, not finite or not ascending.
 
     Examples
     --------
@@ -54,6 +54,8 @@ def _degenerate_levels(energies: ArrayLike) -> list[slice]:
         raise ValueError(f"energies must be one-dimensional, got shape {E.shape}.")
     if E.size == 0:
         return []
+    if not np.all(np.isfinite(E)):
+        raise ValueError("energies must be finite.")
     gaps = np.diff(E)
     if np.any(gaps < 0):
         raise ValueError("energies must be ascending.")
@@ -197,6 +199,8 @@ class CEFion:
 
     Raises
     ------
+    ValueError
+        If ``Hfield`` is not three finite components.
     Exception
         If the Hamiltonian is not Hermitian (``numpy.allclose``).
 
@@ -230,7 +234,9 @@ class CEFion:
         self.Jval = self.ion.J
         Jval = self.Jval
 
-        self.Hfield = np.array(Hfield)
+        self.Hfield = np.array(Hfield, dtype=float)
+        if self.Hfield.shape != (3,) or not np.all(np.isfinite(self.Hfield)):
+            raise ValueError(f"Hfield must be 3 finite components in T, got {Hfield!r}.")
         self.cfp = cfp
 
         # Prepare the rest of the fields based on the main input parameters

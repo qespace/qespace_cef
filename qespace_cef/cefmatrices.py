@@ -19,8 +19,18 @@ from numpy.typing import NDArray
 
 
 # J matrices
+def _check_J(J: float) -> None:
+    """Raise ValueError unless J is a finite, non-negative multiple of 1/2."""
+    if not (np.isfinite(J) and J >= 0 and 2 * J == round(2 * J)):
+        raise ValueError(f"J must be a non-negative multiple of 1/2, got {J!r}.")
+
+
 def J_z(J: float) -> NDArray[np.float64]:
-    r"""Matrix of :math:`\hat{J}_z`, shape (2J+1, 2J+1), real diagonal."""
+    r"""Matrix of :math:`\hat{J}_z`, shape (2J+1, 2J+1), real diagonal.
+
+    Raises ValueError unless J is a non-negative multiple of 1/2.
+    """
+    _check_J(J)
     return diag(linspace(J, -J, int(2 * J + 1)))
 
 
@@ -39,8 +49,11 @@ def J_plus(J: float) -> NDArray[np.float64]:
 
     The only non-zero elements are on the first superdiagonal,
     :math:`\langle m+1|\hat{J}_+|m\rangle = \sqrt{J(J+1) - m(m+1)}` for
-    m = J-1, ..., -J, the m of the lower state (CONV-0005).
+    m = J-1, ..., -J, the m of the lower state (CONV-0005). Raises
+    ValueError unless J is a non-negative multiple of 1/2; ``J_x``, ``J_y``
+    and ``J_minus`` are built from it.
     """
+    _check_J(J)
     m = linspace(J - 1, -J, int(2 * J))
     return diag(sqrt(J * (J + 1) - m * (m + 1)), 1)
 

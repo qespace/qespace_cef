@@ -90,3 +90,10 @@ def test_even_rank_parameters_do_not_warn():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         qc.CEFpars(dict(B00=1.0, B20=0.1, B4m3=0.01, B66=1e-4))
+
+
+@pytest.mark.parametrize("label", ["O20", "b20", "20", "X44"])
+def test_parameter_labels_start_with_B(label):
+    """Only B... labels name parameters (M6): O20 was a second spelling of B20."""
+    with pytest.raises(ValueError):
+        qc.CEFpars({label: 1.0})

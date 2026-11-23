@@ -247,3 +247,20 @@ def test_observation_4_negative_q(J):
             if np.abs(op).max() > 0 and (not np.allclose(op.real, 0) or np.allclose(op, op.T)):
                 wrong.append(_name(k, q))
     assert wrong == []
+
+
+@pytest.mark.parametrize("J", [0.75, -0.5, 1.2, float("nan")])
+@pytest.mark.parametrize("func", ["J_z", "J_y", "J_x", "J_plus", "J_minus"])
+def test_j_matrices_reject_j_not_a_multiple_of_one_half(func, J):
+    """J must be a non-negative multiple of 1/2 (M6): J_z(0.75) had m values 1.5 apart."""
+    from qespace_cef import cefmatrices
+
+    with pytest.raises(ValueError):
+        getattr(cefmatrices, func)(J)
+
+
+@pytest.mark.parametrize("J", [0, 0.5, 4, 7.5])
+def test_j_matrices_accept_multiples_of_one_half(J):
+    from qespace_cef.cefmatrices import J_z
+
+    assert J_z(J).shape == (int(2 * J + 1),) * 2

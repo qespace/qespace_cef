@@ -31,8 +31,14 @@ def boltzman_population(energies: np.ndarray, temperature: float) -> np.ndarray:
     -------
     ndarray of float, shape (n,)
         Occupation probability of each state; they sum to 1.
-    """
 
+    Raises
+    ------
+    ValueError
+        If ``temperature`` is not finite and positive.
+    """
+    if not np.all(np.isfinite(temperature)) or np.any(np.asarray(temperature) <= 0):
+        raise ValueError(f"temperature must be finite and positive in K, got {temperature!r}.")
     p = np.exp(-np.array(energies - min(energies)) * C.meV2K / temperature)
     Z = sum(p)
     return p / Z
@@ -75,7 +81,14 @@ def scattering_function(cefion: CEFion, temperature: float) -> tuple[np.ndarray,
         Scattering weights :math:`W_k^{\alpha\beta}`, dimensionless, α and β
         in the frame of the J operators (CONV-0004). Each is Hermitian and
         positive semidefinite, and :math:`\sum_k \mathrm{Tr}\,W_k = J(J+1)`.
+
+    Raises
+    ------
+    ValueError
+        If ``temperature`` is not a scalar, or not finite and positive.
     """
+    if np.ndim(temperature) != 0:
+        raise ValueError("temperature must be a scalar in K; call once per temperature.")
     E = cefion.energies
     J = np.asarray(cefion.J)  # (3, n, n): J[a, i, f] = <i|J_a|f>
     n = len(E)
@@ -181,12 +194,14 @@ def cross_section_crystal(
     Raises
     ------
     ValueError
-        If the last axis of ``Q`` is not 3, any Q is zero, ``Ei`` is not
+        If the last axis of ``Q`` is not 3, any Q is zero or not finite, ``Ei`` is not
         positive, or ``u2`` is negative or not finite.
     """
     Q = np.asarray(Q, dtype=float)
     if Q.shape[-1:] != (3,):
         raise ValueError(f"Q must have shape (..., 3), got {Q.shape}.")
+    if not np.all(np.isfinite(Q)):
+        raise ValueError("Q must be finite.")
     Qnorm = np.linalg.norm(Q, axis=-1)
     if np.any(Qnorm == 0):
         raise ValueError("Q must not be zero: the direction of Q sets the projector.")
@@ -328,10 +343,14 @@ def magnetization_exchange(
 
     Raises
     ------
+    ValueError
+        If ``max_iterations`` is less than 1.
     RuntimeError
         If the moment has not converged after ``max_iterations`` steps.
     """
 
+    if max_iterations < 1:
+        raise ValueError(f"max_iterations must be at least 1, got {max_iterations!r}.")
     Hfield = np.asarray(Hfield, dtype=float)
     M = magnetization(cefion, temperature, Hfield)
     for _ in range(max_iterations):
@@ -575,8 +594,15 @@ def thermodynamics(
         Entropy in :math:`k_B` per ion.
     C : ndarray, shape (n,)
         Heat capacity in :math:`k_B` per ion.
+
+    Raises
+    ------
+    ValueError
+        If a temperature is not finite and positive.
     """
     T = np.asarray(T, dtype=float)
+    if not np.all(np.isfinite(T)) or np.any(T <= 0):
+        raise ValueError("temperatures must be finite and positive in K.")
     E = np.asarray(cefion.energies)
     E0 = E.min()
     dE = E - E0  # >= 0, meV

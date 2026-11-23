@@ -43,7 +43,8 @@ class CEFpars:
     Raises
     ------
     ValueError
-        If ``units`` is unknown.
+        If ``units`` is unknown, or a name in ``Bdict`` does not start
+        with ``'B'``.
     KeyError
         If a name in ``Bdict`` has no implemented operator.
     NameError
@@ -82,7 +83,9 @@ class CEFpars:
         # Assign parameters to internal dictionary
         self.Bpars = dict()
         for Bname, Bvalue in Bdict.items():
-            Oname = Bname.replace("B", "O")
+            if not isinstance(Bname, str) or not Bname.startswith("B"):
+                raise ValueError(f"Parameter names start with 'B', e.g. 'B20'; got {Bname!r}.")
+            Oname = "O" + Bname[1:]
             if Oname not in StevensBase.implementedOps():
                 raise KeyError(f"Operator corresponding to {Bname} is not implemented.")
             if int(Bname[1]) % 2 == 1:

@@ -770,3 +770,41 @@ def test_magnetization_exchange_zero_field():
         warnings.simplefilter("error")
         M = qc.magnetization_exchange(_ce(), 5.0, [0.0, 0.0, 0.0], lam=1.0)
     assert M == (0.0, 0.0, 0.0)
+
+
+# --- validation of public inputs (M3, M6, L1) -----------------------------
+
+
+@pytest.mark.parametrize("temperature", [0.0, -1.0, np.nan, np.inf])
+def test_populations_need_a_positive_temperature(temperature):
+    """Populations at T <= 0 were NaN (M6)."""
+    with pytest.raises(ValueError):
+        qc.boltzman_population(np.array([0.0, 0.0, 1.0]), temperature)
+
+
+@pytest.mark.parametrize("temperatures", [[0.0], [5.0, -1.0], [np.nan]])
+def test_thermodynamics_needs_positive_temperatures(temperatures):
+    with pytest.raises(ValueError):
+        qc.thermodynamics(_ce(), np.array(temperatures))
+
+
+def test_scattering_function_needs_a_scalar_temperature():
+    """Six temperatures gave one spectrum, paired with the six states (M3)."""
+    with pytest.raises(ValueError):
+        qc.scattering_function(_ce(), np.linspace(1.0, 50.0, 6))
+
+
+@pytest.mark.parametrize("Q", [[np.nan, 0.0, 0.0], [1.0, np.inf, 0.0]])
+def test_cross_section_crystal_needs_a_finite_Q(Q):
+    """A NaN component made every weight NaN (M6)."""
+    with pytest.raises(ValueError):
+        qc.cross_section_crystal(_ce(), 10.0, Q, Ei=50.0)
+
+
+@pytest.mark.parametrize("max_iterations", [0, -1])
+def test_magnetization_exchange_needs_one_iteration(max_iterations):
+    """max_iterations = 0 raised UnboundLocalError (L1)."""
+    with pytest.raises(ValueError):
+        qc.magnetization_exchange(
+            _ce(), 5.0, [0.0, 0.0, 1.0], lam=1.0, max_iterations=max_iterations
+        )

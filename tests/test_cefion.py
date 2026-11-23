@@ -474,3 +474,22 @@ def test_conv_0015_grouping_independent_of_B00(B00):
     """
     cef = _cefion("Ce", dict(B20=5e-11, B00=B00))
     assert _degeneracies(cef.energies) == [2, 2, 2]
+
+
+# --- validation of public inputs (M6) -------------------------------------
+
+
+@pytest.mark.parametrize(
+    "field", [[1.0], [1.0, 0.0], [0.0, 0.0, 0.0, 1.0], [[0, 0, 1]], [0.0, np.nan, 0.0]]
+)
+def test_cefion_rejects_a_field_not_of_three_finite_components(field):
+    """A field of shape (3,) in T, finite (M6): Hfield=[1] acted as [1, 1, 1]."""
+    with pytest.raises(ValueError):
+        qc.CEFion(qc.Ion("Ce"), qc.CEFpars(dict(B20=1.0)), Hfield=field)
+
+
+@pytest.mark.parametrize("energies", [[0.0, np.nan, 100.0], [0.0, np.inf], [-np.inf, 0.0]])
+def test_degenerate_levels_rejects_non_finite_energies(energies):
+    """[0, nan, 100] was one three-state level (M6)."""
+    with pytest.raises(ValueError):
+        _degenerate_levels(energies)
