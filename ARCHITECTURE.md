@@ -33,13 +33,13 @@ per field axis.
 | Module | Contents | Depends on |
 |---|---|---|
 | `__init__.py` | Public API: `Ion`, `CEFpars`, `CEFion`, the module `config` and `from .observables import *`; `__version__` read from the package metadata | all below |
-| `config.py` | The one config place for tolerances (A11), read at call time: `rtol = 1e-10` and `E_floor = 1` meV of CONV-0008 | – |
+| `config.py` | The one config place for tolerances (A11), read at call time: `rtol = 1e-10` and `E_floor = 1` meV of CONV-0015 | – |
 | `constants.py` | Physical constants from CODATA 2022 (e, h, c, k exact; μB), cited in the module docstring, and the unit conversions derived from them: `K2meV` and `meV2K = 1 / K2meV` (meV/K, K/meV), `uB` (meV/T), `invcm2meV` (meV per cm⁻¹); for neutron scattering `gamma_n`, `r0` (m) and `gamma_r0_sq`, (γr₀)² in barn | – |
 | `cefmatrices.py` | Angular-momentum matrices `J_x`, `J_y`, `J_z`, `J_plus`, `J_minus`, the one construction of J (CONV-0005); class `StevensBase(J)`, which takes its `Jx`, `Jy`, `Jz`, `Jp`, `Jm` from these functions and gives the Stevens operators `O_lm` for l = 0 to 6, every m, as methods `O20()`, `O4m3()` and as `StevensBase(J)['20']` | numpy |
 | `ion.py` | `Ion(name)`: rare-earth ions Ce, Pr, Nd, Sm, Tb, Dy, Ho, Er, Tm, Yb (3+). J, `gJ`, Stevens factors α, β, γ, `<j0>` and `<j2>` coefficients, and `mff(Q)`, the dipole magnetic form factor | numpy |
 | `cefpars.py` | `CEFpars(Bdict, units, pointGroup)`: dictionary of `B_lm` in meV, checked against the operators `StevensBase` implements; `allowed_Bpars(pointGroup)`, a table of the non-zero parameters for each point group | `cefmatrices`, `constants`, `data_containers` |
 | `data_containers.py` | `point_group_synonyms` (Hermann–Mauguin, Schoenflies, lattice) | numpy |
-| `cefion.py` | `degenerate_levels(energies)`: the levels of CONV-0008 as slices of the ascending energies. `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh` (levels ascending), rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `energies`, `excitation_energies`, `magnetic_moment`, `get_degeneracies` (levels by CONV-0008, mean energies), `summary` (the level scheme as text, levels by CONV-0008, states in the canonical basis of CONV-0011) | `ion`, `cefpars`, `cefmatrices`, `config`, `constants`, numpy |
+| `cefion.py` | `_degenerate_levels(energies)`: the levels of CONV-0015 as slices of the ascending energies. `CEFion`: builds the Hamiltonian, checks that it is Hermitian, diagonalises it with `numpy.linalg.eigh` (levels ascending), rotates `Jx`, `Jy`, `Jz` into the eigenbasis; `energies`, `excitation_energies`, `magnetic_moment`, `get_degeneracies` (levels by CONV-0015, mean energies), `summary` (the level scheme as text, levels by CONV-0015, states in the canonical basis of CONV-0011, Kramers pairs only for a time-even Hamiltonian) | `ion`, `cefpars`, `cefmatrices`, `config`, `constants`, numpy |
 | `observables.py` | `boltzman_population`, `scattering_function`, `cross_section_crystal`, `cross_section_powder` (one kernel, `_cross_section_unprojected`), `magnetization`, `magnetization_exchange`, `susceptibility`, `gtensor`, `thermodynamics` | `cefion`, `constants` |
 | `symbolic/` | Experimental `sympy` scripts and their own `cefmatrices.py`. Not imported, not tested, not API | sympy (dependency group `symbolic`) |
 | `atoms-form-factors.txt` | J. Brown's form-factor table (ILL), from which the ion table in `ion.py` was generated (the generator, `composeTables`, is in the history at 747c871) | – |
@@ -64,9 +64,10 @@ in `decisions/conventions/`; no row here sets one.
 | Parameters | `B_lm` in the Stevens convention, `H = Σ B_lm O_lm`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
 | Zeeman term | `H_Z = -μB gJ J·H`; the moment is `+gJ <J>` | `cefion` |
 | Neutron spectra | Excitations, not functions of energy (CONV-0012): n² entries (i, f), energies `E_f − E_i` > 0 for neutron energy loss. `scattering_function`: weights `p_i <i\|J_α\|f><f\|J_β\|i>`, no neutron factor. Cross sections: `(γr₀)² (k_f/k_i) [½ g_J F(Q)]² e^{−Q²u2/3} Σ P_αβ W^{αβ}` in barn sr⁻¹ per ion, `P = δ − Q̂Q̂` (crystal) or `(2/3) δ` (powder), `k_f/k_i` at fixed `Ei`, NaN above `Ei` (CONV-0007, tested) | `observables` |
-| Susceptibility | The tensor `χ_αβ` in μB/T per ion, shape `S + (3, 3)` for temperatures of shape `S`, from Van Vleck's formula or a finite difference (CONV-0013, tested) | `observables.susceptibility` |
-| Degenerate levels | Grouped by CONV-0008, `\|E_m − E_n\| ≤ rtol · max(max\|E\|, E_floor)` between consecutive energies, in `susceptibility`, `gtensor`, `get_degeneracies` and `summary` (tested). `eigenvectors` inside a level are whatever `eigh` returns; `summary` prints the canonical basis of CONV-0011 (tested), except where no J component splits the level (the cubic Γ3 doublet, strict xfail) | `cefion.degenerate_levels`, `CEFion.summary` |
-| Tolerance | Relative, from `config` at call time: `rtol` and `E_floor` for levels (CONV-0008), `rtol · J` for the J_z degeneracy inside a level (CONV-0011). Not yet in `config`: `Eimag_precision` (decimals) in `diagonalize`, the coefficient threshold of `summary`, the field step and tolerance of the observables (A11) | `config`, `cefion`, `observables` |
+| Thermodynamics | U and F in meV per ion from the zero of CONV-0014, S and the heat capacity in k_B per ion (CONV-0003); Boltzmann factors of `E_n − E_min`, so nothing overflows at low T; Z may leave the float range (tested) | `observables.thermodynamics` |
+| Susceptibility | The tensor `χ_αβ` in μB/T per ion, shape `S + (3, 3)` for temperatures of shape `S`, from Van Vleck's formula or a finite difference, at zero field whatever field the ion was solved in (CONV-0013, tested) | `observables.susceptibility` |
+| Degenerate levels | Grouped by CONV-0015, `\|E_m − E_n\| ≤ rtol · max(max E − min E, E_floor)` between consecutive energies, in `susceptibility`, `gtensor`, `get_degeneracies` and `summary` (tested). `eigenvectors` inside a level are whatever `eigh` returns; `summary` prints the canonical basis of CONV-0011 (tested), except where no J component splits the level (the cubic Γ3 doublet, strict xfail) | `cefion.degenerate_levels`, `CEFion.summary` |
+| Tolerance | Relative, from `config` at call time: `rtol` and `E_floor` for levels (CONV-0015), `rtol · J` for the J_z degeneracy inside a level (CONV-0011). Not yet in `config`: `Eimag_precision` (decimals) in `diagonalize`, the coefficient threshold of `summary`, the field step and tolerance of the observables (A11) | `config`, `cefion`, `observables` |
 
 ## Dependencies
 
@@ -94,7 +95,7 @@ tests/
                         Zeeman, ascending energies, orthonormality, H = U E
                         U^dagger, eigenvectors paired with energies, the
                         zero of energy (CONV-0014), the summary print,
-                        repeated diagonalisation; the levels (CONV-0008:
+                        repeated diagonalisation; the levels (CONV-0015:
                         Kramers doublets, free ion, perturbation, config
                         at call time), get_degeneracies; the printed basis
                         (CONV-0011: rotation inside a level, <J_z>, phases,
@@ -108,16 +109,16 @@ tests/
                         (gamma r0)^2
   test_ion.py           J and gJ from Hund's rules, form factor, str()
   test_observables.py   susceptibility tensor against the exact formula and
-                        CONV-0013, continuity through the CONV-0008
+                        CONV-0013, continuity through the CONV-0015
                         tolerance, the levels of χ and the ground doublet
-                        of the g-tensor by CONV-0008, thermodynamic
+                        of the g-tensor by CONV-0015, thermodynamic
                         identities, the scattering function (CONV-0012:
                         sum rule, detailed balance, rotation inside levels,
                         Hermitian weights), the cross sections (CONV-0007:
                         absolute sum rule, NaN above Ei, powder as the
                         average of the crystal, projector, Debye-Waller,
                         loop shape), g values, the mean-field iteration;
-                        strict xfail for P3, P17
+                        input validation; strict xfail for P17
   test_performance.py   timing stubs, marker `perf`, deselected by default
 ```
 

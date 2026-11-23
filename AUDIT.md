@@ -11,11 +11,11 @@ are never reused.
 
 Places are named by module and function. Every P item still in the code has
 an `# AUDIT Pn:` comment where it happens and a Warnings section in the
-docstring of the public object it affects. P3 and P17
-also have strict `xfail` tests with expected values that don't come from
+docstring of the public object it affects. P17
+also has strict `xfail` tests with expected values that don't come from
 the code (`test/known-problems`); a fix turns its tests green and removes
-the markers. P4 gets its test with the g-tensor convention (C7); P13, P14 and
-P16 are data and conventions.
+the markers. P4 gets its test with the g-tensor convention (C7); P13 and
+P14 are data.
 
 Severity: **bug** = wrong result, verified by running it; **bug (read)** =
 wrong from reading, not run; **rule** = breaks a rule (CLAUDE.md, an ADR or a CONV);
@@ -27,11 +27,9 @@ from `747c871` and does not depend on what changed since.
 
 | ID | Severity | Where | Finding | Evidence | Proposal |
 |---|---|---|---|---|---|
-| P3 | bug | `observables.thermodynamics` | Energies in meV are mixed with temperatures in K: `F = −T ln Z` is in K, while `E` stays in meV, so `S = (E − F)/T` and `Cv` come out in mixed units | Entropy (k_B) at 10 / 20 / 40 K: exact 1.293 / 1.374 / 1.494, code 1.054 / 1.203 / 1.325. Cv (k_B): exact 0.170 / 0.108 / 0.239, code 0.00126 / 0.00080 / 0.00177 (low by a factor of 11.6², about 135) | Convert the energies to `k_B T` once and state the units of the returns (CONV-0003); test against `−∂F/∂T` and the high-T limit `ln(2J+1)` |
 | P4 | bug, rule | `observables.gtensor` | Even with a correct formula, g itself depends on the arbitrary basis inside the ground doublet: a change of basis turns g into g R with R a rotation, and only `G = g gᵀ` (the principal values and axes) is basis independent. The function returns g in whatever basis `eigh` picks. That goes against the draft on degenerate levels (CONV-0008) | Ce, `B20=1`, no field: diag(2.571, 2.571, 0.857) with `schur`, diag(2.571, −2.571, 0.857) with `eigh` | Return G, or the principal values and axes; together with P17 and C7 (CONV-0008) |
 | P13 | data | `Ion` table, Ce | The `<j0>`/`<j2>` coefficients for Ce are those of Ce²⁺, the only Ce entry in the ILL table (`atoms-form-factors.txt`); the generator that built the table (`composeTables`, in the history at `747c871`) mapped `ce` to `Ce2`. The other ions use the 3+ values | `atoms-form-factors.txt`: only `{F Ce2 ...}` lines | Record it as a known approximation next to the value, with its source (CONV-0007) |
 | P14 | data, rule | `Ion` table | The values (J, gJ, α, β, γ, form factors) have no source next to them (CLAUDE.md 3.2.2); the generator named "Czech guys" and "J.P. Brown" | read | Cite Stevens (1952) / Hutchings (1964) for α, β, γ and the ILL / ITC Vol. C tables (with DOI) for the form factors |
-| P16 | physics question | `cefmatrices`, `CEFpars` | Odd-rank operators (l = 1, 3, 5) are implemented and accepted as CEF parameters. Inside one J multiplet, parity removes odd l from the CEF Hamiltonian | `CEFpars(dict(B52=0.1, B3m1=0.2))` is accepted. Rerun on `610c884` | Keep them as building blocks, accepted with a warning (decided 2026-11-24), in `fix/pre-v2` |
 | P17 | bug | `observables.gtensor` | The z column uses `\|<0\|J_α\|0>\|`. The `abs()` makes even `G = g gᵀ` depend on the basis inside the doublet, so the principal g values are wrong in a general basis. (From the maintainer's notes: "I feel implementation of `gtensor` is wrong") | Ce, 5 random bases of the ground doublet: the spread of g gᵀ is 2.93 (`B20=1`) and 2.15 (low symmetry) with the code's formula, 4e-15 with `g_αβ = gJ Tr(P J_α σ_β)`. For `B20=1` the principal values of the latter are 0.857, 2.571, 2.571 (correct). Run on `610c884` | `g_αβ = gJ Tr(P J_α σ_β)` over the doublet, reported as G or principal values (P4); the convention with C7; non-Kramers doublets need their own treatment |
 | P21 | convention | `CEFion` (Zeeman term), `CEFion.magnetic_moment`, `magnetization`, `magnetization_exchange`, `susceptibility(method='magnetization')` | The code uses the moment-parallel convention, `−gJ μB J·B` and the moment `+gJ μB <J>`; the draft CONV-0006 takes the electron's sign, `+gJ μB J·B` and `−gJ μB <J>` | read (ARCHITECTURE.md, Physics conventions) | Flip both signs in one change, with CONV-0006's tests; energies, M along B, χ and the cross sections stay, ⟨J⟩ and the eigenvectors in a field become their time-reversed partners. Probably in `refactor/api-v2` |
 
@@ -51,7 +49,7 @@ None open.
 | A7 | suggestion | `CEFpars` stores the point group but doesn't use it; `allowed_Bpars` is a lookup table without the relations between parameters (cubic B44 = 5 B40) | Decide what point-group support should be (CONV-0004, `ROADMAP.md`), then build it on the one table, with tests |
 | A8 | suggestion | The ion data sit in a dictionary literal in `Ion.__init__`, rebuilt on every `Ion()`; `data_containers.py` holds only the point groups | Put the data tables (ions, point groups, allowed parameters) in one data module with their sources; move `atoms-form-factors.txt` out of the package (e.g. `tools/`) |
 | A9 | suggestion | Files that ship without a use: `thermodynamics-magnetism.png`, `qespace_cef/README.md`, `atoms-form-factors.txt` (kept for now, by your decision) | Move the reference to the README or the docs; keep the rest out of the wheel when the data question is settled |
-| A10 | rule | Validation: `assert` in `gtensor` (removed by `python -O`), a bare `Exception` for a non-Hermitian H in `CEFion`, `NameError` for an unknown point group, `KeyError` for an unknown ion; the Hermiticity check in the constructor is an absolute `allclose` (CLAUDE.md 5.5, 5.6) | `ValueError` at the public boundary, relative tolerances from one config place |
+| A10 | rule | Validation: a bare `Exception` for a non-Hermitian H in `CEFion`, `NameError` for an unknown point group, `KeyError` for an unknown ion; the Hermiticity check in the constructor is an absolute `allclose` (CLAUDE.md 5.5, 5.6) | `ValueError` at the public boundary, relative tolerances from one config place |
 | A11 | rule | `qespace_cef.config` holds only the level tolerance of CONV-0008 (`rtol`, `E_floor`; `rtol · J` also for the J_z degeneracy of CONV-0011). Still outside it: `Eimag_precision=10` in `diagonalize`, the coefficient threshold `10⁻precision` of `CEFion.summary`, `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | Move them into `config` as relative tolerances, read at call time |
 | A14 | suggestion | Stevens operators can be had two ways, `StevensBase(J).O4m3()` and `StevensBase(J)['4m3']`, and `implementedOps` finds them through `cls.__dict__`: two access paths for one thing, with string keys to parse. (From the maintainer's notes: "Should we settle on just one of them?") | Settle on one with A2 and A6, e.g. `stevens(J, l, m)` or `ops[l, m]` with integers; the methods go when A6 generates the operators. Breaking (v2) |
 | A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects, 15× slower than one batched diagonalisation (ADR-0007, measured on `afa1dd5`) | ADR-0005 and ADR-0007, in `refactor/api-v2`; the feature in `ROADMAP.md` |
@@ -80,8 +78,8 @@ names its ID (CLAUDE.md 6.6).
 
 | CONV | Status | Open | Findings waiting |
 |---|---|---|---|
-| CONV-0001 parameters and operators | accepted | Q33 | P16 |
-| CONV-0003 units | accepted | – (outputs per ion, in units built from the inputs with μB, k_B and barn) | P3 |
+| CONV-0001 parameters and operators | accepted | Q33 | – |
+| CONV-0003 units | accepted | – (outputs per ion, in units built from the inputs with μB, k_B and barn) | – |
 | CONV-0004 frames | accepted | – (one local frame; the crystal frame later) | A7 |
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | accepted | – (the electron's sign, μ = −gJ μB J, ℋ_Z = −μ·B) | P21 |
@@ -89,7 +87,7 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0008 degenerate levels | accepted; to be superseded by the draft CONV-0015 (the spread of the energies as the scale) | – | P4, review M5 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0013 susceptibility (supersedes CONV-0009) | accepted | – | P21 (the finite-difference test with the moment of CONV-0006) |
-| CONV-0014 energies and excitations (supersedes CONV-0010, CONV-0012) | accepted | – | P3 (the zero of U and F), A16 |
+| CONV-0014 energies and excitations (supersedes CONV-0010, CONV-0012) | accepted | – | A16 |
 | CONV-0002 vectors and matrices | accepted | – (vectors as columns, `U_mn = <m\|n>`) | – |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
 
@@ -99,13 +97,11 @@ Each is one branch (CLAUDE.md 1.3); the one being worked on is in
 `PLAN.md`. Each P fix is its own commit with a physics explanation, turns
 its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
-1. **`fix/pre-v2`** (`PLAN.md`): P3, P16 and the review's findings of
-   section 10 that change results.
-2. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
+1. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P4, P13, P14, P17.
-3. **`refactor/api-v2`**, version 2.0, on ADR-0005, ADR-0006 and ADR-0007: A2–A4, A10,
+2. **`refactor/api-v2`**, version 2.0, on ADR-0005, ADR-0006 and ADR-0007: A2–A4, A10,
    A11, A14, A15, A16, Q2, P21. Planned first (CLAUDE.md 2.3).
-4. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
+3. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
 
@@ -143,23 +139,14 @@ A review at `a1fac60` (2026-11-23), its code findings reproduced on
 
 | ID | Finding | Where |
 |---|---|---|
-| H1 | χ uses the field of the given ion | `fix/pre-v2` (CONV-0013: not a function of B) |
-| H2 | entropy depends on `B00` (P3) | `fix/pre-v2` |
-| H3 | thermodynamics NaN/inf at low T | `fix/pre-v2` |
-| H4 | g-tensor of a level that isn't a doublet | `fix/pre-v2`; P4, P17 with C7 |
-| H5 | `summary` pairs states without time-reversal symmetry | `fix/pre-v2`; odd rank allowed with a warning (P16) |
 | H6 | point-group table wrong for C2, Ci missing | left: the crystallography symmetry API replaces it |
 | H7, H8 | v2 names and meanings | settled by ADR-0005, ADR-0006, ADR-0007, CONV-0014 |
 | M1 | v1 stores eigenvectors as rows | `NAMING.md`; v2 tests against v1 transpose |
 | M2 | what `notation` covers | `refactor/api-v2` |
-| M3 | temperature arrays in `scattering_function` | `fix/pre-v2` (scalar only); v2 broadcasts |
+| M3 | temperature arrays in `scattering_function` | `refactor/api-v2` broadcasts; v1 takes a scalar only |
 | M4 | inputs mutable after solving | `refactor/api-v2` (ADR-0005) |
-| M5 | `B00` merges levels | `fix/pre-v2`, after CONV-0015 |
-| M6, L1 | inputs reinterpreted silently | `fix/pre-v2` |
 | M7 | the fitting sketch doesn't run | left: a sketch, replaced in v2 |
-| M8 | P3 oracles lack k_B | `fix/pre-v2` |
 | M9 | Ce²⁺ form factor, Stevens-factor sources | P13, P14 |
 | M10 | exports, return structures | `refactor/api-v2` |
-| L2 | `summary(precision=0)` drops kets | `fix/pre-v2` |
 | L3 | references to superseded decisions | corrected in the descriptions |
 | L4 | results need the commit | `refactor/api-v2` (release) |
