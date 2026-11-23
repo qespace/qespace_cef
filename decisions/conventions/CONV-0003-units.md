@@ -11,9 +11,15 @@ supersedes:
 As implemented: energies and CEF parameters in meV (parameters can also be
 given in K and cm⁻¹ and are converted); temperature in K; magnetic field
 `B = μ0 H` in T; |Q| in Å⁻¹; moments in μB per ion; the susceptibility
-tensor in μB/T per ion (CONV-0009, accepted).
+tensor in μB/T per ion (CONV-0013).
 
-The zero of the energies is not a unit; it is CONV-0010.
+Every observable is computed for one ion, so every output is per ion, in
+units built from those above together with μB, k_B and barn: the internal
+and free energies in meV, the entropy and the heat capacity (the magnetic
+contribution at constant field) in k_B, moments and magnetisation in μB,
+the susceptibility in μB/T, cross sections in barn sr⁻¹.
+
+The zero of the energies is not a unit; it is CONV-0014.
 
 ## Rationale
 
