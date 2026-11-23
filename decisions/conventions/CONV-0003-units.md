@@ -8,8 +8,6 @@ supersedes:
 
 ## Statement
 
-`OPEN:` the units of the API.
-
 As implemented: energies and CEF parameters in meV (parameters can also be
 given in K and cm⁻¹ and are converted); temperature in K; magnetic field
 `B = μ0 H` in T; |Q| in Å⁻¹; moments in μB per ion; the susceptibility
