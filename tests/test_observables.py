@@ -684,8 +684,26 @@ def test_conv_0008_gtensor_ground_doublet(field, doublet):
         g = qc.gtensor(cef)
         assert g.shape == (3, 3) and np.all(np.isfinite(g)) and np.abs(g).max() > 0
     else:
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             qc.gtensor(cef)
+
+
+@pytest.mark.parametrize(
+    ("name", "pars"),
+    [("Ce", {}), ("Nd", dict(B40=0.01, B44=0.05, B60=1e-4, B64=-21e-4))],
+)  # meV: free Ce3+ (one sixfold level), cubic Nd3+ (a quartet among its levels)
+def test_gtensor_needs_exactly_one_ground_doublet(name, pars):
+    """A ground level that is not exactly twofold raises ValueError (H4, A10).
+
+    The free ion has one level of 2J + 1 states; a ground quartet has four.
+    states 0 and 1 then span only part of the level, and g would describe a
+    wrong subspace.
+    """
+    cef = qc.CEFion(qc.Ion(name), qc.CEFpars(pars))
+    ground = _degenerate_levels(cef.energies)[0]
+    assert ground.stop - ground.start == {"Ce": 6, "Nd": 4}[name]  # the case the test is about
+    with pytest.raises(ValueError):
+        qc.gtensor(cef)
 
 
 @pytest.mark.xfail(strict=True, reason="AUDIT P17: abs() makes g g^T depend on the doublet basis")

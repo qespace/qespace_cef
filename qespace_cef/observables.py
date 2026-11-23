@@ -489,9 +489,10 @@ def gtensor(cefion: CEFion) -> np.ndarray:
 
     Raises
     ------
-    AssertionError
-        If the two lowest energies are not one level of CONV-0008
-        (:func:`qespace_cef.cefion._degenerate_levels`).
+    ValueError
+        If the ground level of CONV-0008
+        (:func:`qespace_cef.cefion._degenerate_levels`) does not have
+        exactly two states.
 
     Warnings
     --------
@@ -510,9 +511,11 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     """
 
     ground = _degenerate_levels(cefion.energies)[0]  # CONV-0008
-    assert ground.stop - ground.start >= 2, (
-        "Ground state is not a doublet, g-tensor is not defined."
-    )
+    if ground.stop - ground.start != 2:
+        raise ValueError(
+            f"The ground level has {ground.stop - ground.start} states, not 2: "
+            "the g-tensor is defined for a ground doublet only."
+        )
     Jeff = cefion.J  # J operator projected to the ground state doublet
 
     # PyCrystalField. AUDIT P4: depends on the basis picked inside the doublet.
