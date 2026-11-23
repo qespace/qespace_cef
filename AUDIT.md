@@ -2,7 +2,7 @@
 
 Open findings from reviews of the code: the audit of 2026-11-19 (commit
 `747c871`, version 1.3.0) and the reviews since, as of `main` at `423827b`
-(2026-11-20). This file tracks; it is not a rule (ADR-0001). It cites the
+(2026-11-20). This file tracks; it is not a rule (ADR-0004). It cites the
 rules (`CLAUDE.md`, the ADRs and CONVs in [`decisions/`](decisions/)) by ID.
 The step being worked on is in [`PLAN.md`](PLAN.md), feature ideas are in
 [`ROADMAP.md`](ROADMAP.md), what was fixed is in
@@ -54,7 +54,7 @@ None open.
 | A10 | rule | Validation: `assert` in `gtensor` (removed by `python -O`), a bare `Exception` for a non-Hermitian H in `CEFion`, `NameError` for an unknown point group, `KeyError` for an unknown ion; the Hermiticity check in the constructor is an absolute `allclose` (CLAUDE.md 5.5, 5.6) | `ValueError` at the public boundary, relative tolerances from one config place |
 | A11 | rule | `qespace_cef.config` holds only the level tolerance of CONV-0008 (`rtol`, `E_floor`; `rtol · J` also for the J_z degeneracy of CONV-0011). Still outside it: `Eimag_precision=10` in `diagonalize`, the coefficient threshold `10⁻precision` of `CEFion.summary`, `eps = 1e-5` T, `precision=1e-5` (CLAUDE.md 5.6) | Move them into `config` as relative tolerances, read at call time |
 | A14 | suggestion | Stevens operators can be had two ways, `StevensBase(J).O4m3()` and `StevensBase(J)['4m3']`, and `implementedOps` finds them through `cls.__dict__`: two access paths for one thing, with string keys to parse. (From the maintainer's notes: "Should we settle on just one of them?") | Settle on one with A2 and A6, e.g. `stevens(J, l, m)` or `ops[l, m]` with integers; the methods go when A6 generates the operators. Breaking (v2) |
-| A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects, 15× slower than one batched diagonalisation (ADR-0003, measured on `afa1dd5`) | ADR-0002 and ADR-0003, in `refactor/api-v2`; the feature in `ROADMAP.md` |
+| A15 | suggestion | Every call solves one point: a scan over parameters or fields is a Python loop over `CEFion` objects, 15× slower than one batched diagonalisation (ADR-0007, measured on `afa1dd5`) | ADR-0005 and ADR-0007, in `refactor/api-v2`; the feature in `ROADMAP.md` |
 
 ## 4. Code quality
 
@@ -86,11 +86,11 @@ names its ID (CLAUDE.md 6.6).
 | CONV-0005 basis | accepted | – (the J matrices are the root: order `\|J>, ..., \|−J>`, Condon–Shortley phases; everything else follows) | A5 |
 | CONV-0006 Zeeman term | accepted | – (the electron's sign, μ = −gJ μB J, ℋ_Z = −μ·B) | P21 |
 | CONV-0007 cross sections | accepted | – | P13 |
-| CONV-0012 spectral weights | accepted | – | – |
 | CONV-0008 degenerate levels | accepted | – (the tolerance `rtol · max(max\|E\|, E_floor)`, defaults 1e-10 and 1 meV, from the config) | P4 |
 | CONV-0011 canonical basis | accepted | – (J_z inside the level, J_x then J_y, Kramers partners by time reversal; integer-J levels unpaired until the irreps replace it) | the eigenvectors `summary` prints |
 | CONV-0013 susceptibility (supersedes CONV-0009) | accepted | – | P21 (the finite-difference test with the moment of CONV-0006) |
-| CONV-0010 zero of energy | accepted | – | P3 (the zero of U and F) |
+| CONV-0014 energies and excitations (supersedes CONV-0010, CONV-0012) | accepted | – | P3 (the zero of U and F), A16 |
+| CONV-0002 vectors and matrices | accepted | – (vectors as columns, `U_mn = <m\|n>`) | – |
 | C7 g-tensor | no draft | its definition from the ground doublet, what is returned, non-Kramers doublets | P4, P17 |
 
 ## 7. Work packages for the open findings
@@ -101,8 +101,8 @@ its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
 1. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P13, P14, P16, P17. Probably two branches.
-2. **`refactor/api-v2`**, version 2.0, on ADR-0003, ADR-0005 and ADR-0006: A2–A4, A10,
-   A11, A14, A15, Q2, P21. Planned first (CLAUDE.md 2.3).
+2. **`refactor/api-v2`**, version 2.0, on ADR-0005, ADR-0006 and ADR-0007: A2–A4, A10,
+   A11, A14, A15, A16, Q2, P21. Planned first (CLAUDE.md 2.3).
 3. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
@@ -115,7 +115,7 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   units of the thermodynamic quantities (Q44).
 - **Q12 (P16, CONV-0001).** Should `CEFpars` accept odd-rank parameters
   (l = 1, 3, 5)? CONV-0001 tabulates only even l.
-- **Q32 (ADR-0001).** IDs: this package numbers its own `ADR-xxxx` and
+- **Q32 (ADR-0004).** IDs: this package numbers its own `ADR-xxxx` and
   `CONV-xxxx`, and a suite ADR copied here keeps its suite ID (CLAUDE.md 3.4),
   so two different ADR-0001 can meet. Prefix ours (e.g. `CEF-ADR-0001`), or
   keep suite copies in their own folder?
@@ -133,17 +133,14 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   CONV is never edited, so the clean form is a new CONV that supersedes it
   without the `OPEN:` line.
 - **Q44 (P3).** The units of the thermodynamic quantities, which no CONV
-  states: U and F in meV per ion from the zero of CONV-0010, S and C_v in
+  states: U and F in meV per ion from the zero of CONV-0014, S and C_v in
   k_B per ion? With that, P3 can be fixed.
 
 ## 9. Needs later attention
 
-- **A16 (CONV-0012).** The excitations are returned flat, n² entries without
-  level information, as CONV-0012 says; that came from a misunderstanding
-  (maintainer, 2026-11-22). Intended: `energies` are the levels of the
-  Hamiltonian, (n,); the transition energies `E_f − E_i` keep the pairs,
-  (n, n), and so do the weights, (n, n, 3, 3) and (n, n). As an `Ion` is
-  immutable (ADR-0005), the pair (i, f) traces back to the levels;
-  the shape costs nothing, as a reshape is a view. Needs a CONV superseding
-  CONV-0012, then `scattering_function`, the cross sections and the
-  `test_conv_0012_*` tests follow.
+- **A16 (CONV-0014, ADR-0007).** Decided 2026-11-23: the excitation
+  energies `E_f − E_i` and the weights keep their pairs (i, f), as matrices
+  `S + (2J+1, 2J+1)` and `S + (3, 3, 2J+1, 2J+1)`; the excitations from the
+  ground state are the row `[..., 0, :]`. The code still returns flat
+  `(2J+1)²` entries (`scattering_function`, the cross sections, the
+  `test_conv_0012_*` tests); it follows in `refactor/api-v2`.
