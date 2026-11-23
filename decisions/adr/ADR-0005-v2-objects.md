@@ -55,9 +55,7 @@ Option 2. The package is `qespace_cft`, crystal-field theory, used as
   observables don't rotate operators themselves. A short name, because
   everything starts from it, also in packages that couple ions.
 
-Public names are listed in `__all__` of the package and of every module and
-imported explicitly; nothing uses `import *`. Names inside these objects
-follow `NAMING.md` until the naming rule is an ADR.
+Names inside these objects, and the module names, follow ADR-0006.
 
 `OPEN:` when an `Ion` is solved and whether it is immutable (Q29).
 `OPEN:` observables as functions or methods (Q31).

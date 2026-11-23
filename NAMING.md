@@ -164,7 +164,7 @@ GitHub by you once the names are final (Q73).
 - ADR-0005 (draft) supersedes ADR-0002: the package `qespace_cft`,
   `IonData`, `CrystalFieldParameters`, `Ion`. What each notation means and its conversion factors stay in
   CONV-0001 (ADR-0004).
-- The naming rule (Q26) as ADR-0006, from the rules above.
+- ADR-0006 (draft): the naming rules and the names of the v2 API (Q26).
 
 ## Open
 
