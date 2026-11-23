@@ -4,7 +4,12 @@ title: Rules, descriptions and tracking: how the maintainer works with agents
 status: superseded
 date: 2026-11-20
 supersedes:
+superseded_by: ADR-0004
 ---
+
+> Superseded by ADR-0004 on 2026-11-22: ADRs and CONVs side by side above
+> `CLAUDE.md`, each in its own domain; accepted decisions are edited only
+> editorially.
 
 ## Context
 
