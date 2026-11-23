@@ -7,7 +7,8 @@ problems with the current code are in [`AUDIT.md`](AUDIT.md).
 
 ## Version 2: the broadcasting API
 
-Decided in ADR-0002 (the objects) and ADR-0003 (broadcasting); still to build.
+Decided in ADR-0005 (the objects), ADR-0006 (the names) and ADR-0007
+(broadcasting and array layout); still to build.
 
 - `import qespace_cef as cef`; `cef.Ion`, `cef.Blm`, `cef.Hamiltonian`.
 - `Blm` holds the parameters by name, with values of any loop shape
@@ -29,7 +30,7 @@ Decided in ADR-0002 (the objects) and ADR-0003 (broadcasting); still to build.
 
 ## Fitting
 
-Sketched in `examples/fit_cef_mock.py` (not tracked yet, written on the
+Sketched in `examples/fit_cef_mock.py` (a sketch, written on the
 rejected bare-array objects).
 
 - One `model(blm)` for every data set (peak energies and intensities, χ(T),
@@ -52,7 +53,7 @@ rejected bare-array objects).
 - `k_f/k_i` at the grid energy instead of at each ε_k: exact for a broadened
   line, where the factor varies across it. Moves `Ei` to
   `convolve_spectrum`, with NaN on grid points above E_i; needs a draft CONV
-  superseding CONV-0007 and CONV-0012 (the weights without `k_f/k_i`).
+  superseding CONV-0007 and CONV-0014 (the weights without `k_f/k_i`).
 - Fixed-E_f kinematics (triple-axis, indirect geometry),
   `k_f/k_i = √(E_f/(E_f + ħω))`: exactly one of `Ei=` or `Ef=`; needs a CONV
   superseding CONV-0007.

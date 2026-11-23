@@ -73,10 +73,10 @@ are left out.
 |---|---|---|---|---|
 | Hamiltonian matrix | `CEFion.hamiltonian` | meV, (2J+1, 2J+1) | `hamiltonian` | |
 | solve | `CEFion.diagonalize(Eimag_precision)` → `E`, `U` | `E` a diagonal (2J+1, 2J+1) matrix | **Decided:** no diagonal matrix; with Q29 nothing to call | |
-| energies E_n | `CEFion.energies` | meV, (2J+1,) | `energies` | CONV-0010 |
+| energies E_n | `CEFion.energies` | meV, (2J+1,) | `energies` | CONV-0014 |
 | E_n − E_0 | `CEFion.excitation_energies` | meV, (2J+1,) | goes to the print | A16 |
-| E_f − E_i | first return of the spectra | meV, ((2J+1)²,) | **Decided:** `excitation_energies`, (2J+1, 2J+1), as in CONV-0012 | A16 |
-| eigenvectors | `CEFion.eigenvectors` | (2J+1, 2J+1), columns | `eigenvectors` | |
+| E_f − E_i | first return of the spectra | meV, ((2J+1)²,) | **Decided:** `excitation_energies`, (2J+1, 2J+1), CONV-0014, ADR-0007 | A16 |
+| eigenvectors | `CEFion.eigenvectors` | (2J+1, 2J+1), kets as rows (`U.T`) | `eigenvectors`, kets as columns (CONV-0002, ADR-0007) | the layout flips; the square shape hides it (review M1) |
 | moment per state | `CEFion.magnetic_moment` | μB, (2J+1, 3) | `magnetic_moment` | not crystallographic: no suffix (Q60) |
 | levels | `degenerate_levels(energies)` → slices; `CEFion.get_degeneracies()` → [[E, g]] | | **Decided:** private helper `_degenerate_levels` on energies; `get_degeneracies` on `Ion` | renamed by you on the working tree |
 | level print | `CEFion.summary(evecs, precision)` | str | `summary(show_eigenvectors, precision)` | rule 6 |

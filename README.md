@@ -35,7 +35,7 @@ ion = qc.Ion("Ce")  # Ce3+, J = 5/2
 cfp = qc.CEFpars(dict(B20=0.5, B40=0.01, B44=0.1), units="meV")
 cef = qc.CEFion(ion, cfp, Hfield=[0, 0, 0])  # field in T; diagonalised on creation
 
-cef.energies  # eigenvalues of H in meV, not shifted (CONV-0010)
+cef.energies  # eigenvalues of H in meV, not shifted (CONV-0014)
 cef.excitation_energies  # the same, measured from the ground state
 cef.get_degeneracies()  # [[energy, degeneracy], ...]: three Kramers doublets here
 
@@ -57,7 +57,7 @@ energies, w = qc.cross_section_powder(cef, 10.0, [0.5, 1.0, 2.0], Ei=50.0)
 | `scattering_function` | The magnetic scattering function as excitations: energies and scattering weights `p_i <i\|J_α\|f><f\|J_β\|i>`, no neutron factors (CONV-0007, CONV-0012) |
 | `cross_section_crystal`, `cross_section_powder` | Neutron cross section per ion as excitations: energies and weights in barn sr⁻¹, at a temperature, Q (a vector, or \|Q\| for a powder) and incident energy `Ei` (CONV-0007) |
 | `magnetization`, `magnetization_exchange` | Magnetic moment in a field, optionally with a mean-field exchange term |
-| `susceptibility` | Magnetic susceptibility tensor `χ_αβ` in μB/T per ion versus temperature (Van Vleck, CONV-0009) |
+| `susceptibility` | Magnetic susceptibility tensor `χ_αβ` in μB/T per ion versus temperature (Van Vleck, CONV-0013) |
 | `gtensor` | g-tensor of the ground state |
 | `thermodynamics` | Partition function, internal energy, free energy, entropy, heat capacity |
 

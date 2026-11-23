@@ -64,7 +64,7 @@ in `decisions/conventions/`; no row here sets one.
 | Parameters | `B_lm` in the Stevens convention, `H = Σ B_lm O_lm`; named `B20`, `B4m3`, ... | `cefpars`, `cefion` |
 | Zeeman term | `H_Z = -μB gJ J·H`; the moment is `+gJ <J>` | `cefion` |
 | Neutron spectra | Excitations, not functions of energy (CONV-0012): n² entries (i, f), energies `E_f − E_i` > 0 for neutron energy loss. `scattering_function`: weights `p_i <i\|J_α\|f><f\|J_β\|i>`, no neutron factor. Cross sections: `(γr₀)² (k_f/k_i) [½ g_J F(Q)]² e^{−Q²u2/3} Σ P_αβ W^{αβ}` in barn sr⁻¹ per ion, `P = δ − Q̂Q̂` (crystal) or `(2/3) δ` (powder), `k_f/k_i` at fixed `Ei`, NaN above `Ei` (CONV-0007, tested) | `observables` |
-| Susceptibility | The tensor `χ_αβ` in μB/T per ion, shape `S + (3, 3)` for temperatures of shape `S`, from Van Vleck's formula or a finite difference (CONV-0009, tested) | `observables.susceptibility` |
+| Susceptibility | The tensor `χ_αβ` in μB/T per ion, shape `S + (3, 3)` for temperatures of shape `S`, from Van Vleck's formula or a finite difference (CONV-0013, tested) | `observables.susceptibility` |
 | Degenerate levels | Grouped by CONV-0008, `\|E_m − E_n\| ≤ rtol · max(max\|E\|, E_floor)` between consecutive energies, in `susceptibility`, `gtensor`, `get_degeneracies` and `summary` (tested). `eigenvectors` inside a level are whatever `eigh` returns; `summary` prints the canonical basis of CONV-0011 (tested), except where no J component splits the level (the cubic Γ3 doublet, strict xfail) | `cefion.degenerate_levels`, `CEFion.summary` |
 | Tolerance | Relative, from `config` at call time: `rtol` and `E_floor` for levels (CONV-0008), `rtol · J` for the J_z degeneracy inside a level (CONV-0011). Not yet in `config`: `Eimag_precision` (decimals) in `diagonalize`, the coefficient threshold of `summary`, the field step and tolerance of the observables (A11) | `config`, `cefion`, `observables` |
 
@@ -93,7 +93,7 @@ tests/
   test_cefion.py        analytic limits: free ion, B20 alone, cubic, Kramers,
                         Zeeman, ascending energies, orthonormality, H = U E
                         U^dagger, eigenvectors paired with energies, the
-                        zero of energy (CONV-0010), the summary print,
+                        zero of energy (CONV-0014), the summary print,
                         repeated diagonalisation; the levels (CONV-0008:
                         Kramers doublets, free ion, perturbation, config
                         at call time), get_degeneracies; the printed basis
@@ -108,7 +108,7 @@ tests/
                         (gamma r0)^2
   test_ion.py           J and gJ from Hund's rules, form factor, str()
   test_observables.py   susceptibility tensor against the exact formula and
-                        CONV-0009, continuity through the CONV-0008
+                        CONV-0013, continuity through the CONV-0008
                         tolerance, the levels of χ and the ground doublet
                         of the g-tensor by CONV-0008, thermodynamic
                         identities, the scattering function (CONV-0012:
@@ -141,7 +141,7 @@ code as `# AUDIT Pn:` and in Warnings sections of the docstrings; the
 findings themselves are in [`AUDIT.md`](AUDIT.md).
 
 `docs/` documents the implementation; the decisions are kept apart in
-`decisions/` (ADR-0001): design choices in `decisions/adr/` (`ADR-xxxx`),
+`decisions/` (ADR-0004): design choices in `decisions/adr/` (`ADR-xxxx`),
 physics conventions in `decisions/conventions/` (`CONV-xxxx`), one file per
 decision, each from the `_template.md` in its folder. They are not part of
 the Sphinx build. `AUDIT.md`, `PLAN.md` and `ROADMAP.md` track the work.
