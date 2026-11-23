@@ -41,7 +41,8 @@ cef.get_degeneracies()  # [[energy, degeneracy], ...]: three Kramers doublets he
 
 qc.gtensor(cef)  # g-tensor of the ground doublet
 qc.magnetization(cef, 2.0, [0, 0, 1])  # T = 2 K, H = 1 T along z
-Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))  # T in K; U, F in meV, S, Cv in k_B
+# T in K; U and F in meV, S and Cv in k_B, per ion
+Z, U, F, S, Cv = qc.thermodynamics(cef, np.linspace(1, 300, 300))
 energies, w = qc.cross_section_powder(cef, 10.0, [0.5, 1.0, 2.0], Ei=50.0)
 # 10 K, |Q| in 1/A, Ei in meV: energies (36,) in meV, weights (3, 36) in barn/sr per ion
 ```
