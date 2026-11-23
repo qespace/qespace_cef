@@ -529,16 +529,28 @@ def thermodynamics(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     r"""Single-ion thermodynamics from the partition function.
 
-    With :math:`E_n` the eigenenergies (meV) and :math:`\beta = 1/k_B T`,
-    the code computes
+    With :math:`E_n` the energies (meV, CONV-0014), :math:`E_0` the lowest,
+    and :math:`k_B T` in meV, the code sums Boltzmann factors of the
+    energies above the ground state, which never overflow,
 
     .. math::
 
-        Z = \sum_n e^{-\beta E_n}, \quad
-        E = \langle E \rangle = \frac{1}{Z} \sum_n E_n e^{-\beta E_n}, \quad
-        F = -T \ln Z, \quad
-        S = \frac{E - F}{T}, \quad
-        C_V = \frac{\langle E^2 \rangle - \langle E \rangle^2}{T^2}.
+        z = \sum_n e^{-(E_n - E_0)/k_B T}, \quad
+        p_n = e^{-(E_n - E_0)/k_B T} / z,
+
+    and returns, per ion,
+
+    .. math::
+
+        Z = e^{-E_0/k_B T} z, \quad
+        U = \sum_n p_n E_n, \quad
+        F = E_0 - k_B T \ln z, \quad
+        S = \frac{U - F}{k_B T}, \quad
+        C = \frac{\sum_n p_n (E_n - U)^2}{(k_B T)^2},
+
+    the heat capacity being the magnetic contribution at constant field.
+    U and F are measured from the zero of CONV-0014 and move with ``B00``;
+    S and C do not depend on it.
 
     Parameters
     ----------
@@ -550,38 +562,33 @@ def thermodynamics(
     Returns
     -------
     Z : ndarray, shape (n,)
-        Partition function, dimensionless.
-    E : ndarray, shape (n,)
+        Partition function, dimensionless. ``inf`` (or 0) where it leaves
+        the float range at low T; the other returns stay finite.
+    U : ndarray, shape (n,)
         Internal energy in meV per ion.
     F : ndarray, shape (n,)
-        Free energy :math:`-T \ln Z`, in K per ion.
+        Free energy :math:`-k_B T \ln Z` in meV per ion.
     S : ndarray, shape (n,)
-        :math:`(E - F)/T`: meV/K and dimensionless terms mixed.
-    Cv : ndarray, shape (n,)
-        Heat capacity in meV²/K² per ion.
-
-    Warnings
-    --------
-    P3 (AUDIT.md), not fixed yet: energies in meV are mixed with
-    temperatures in K, so ``S`` and ``Cv`` are not in units of
-    :math:`k_B`. In the audit's example, at 10 K: S = 1.054 instead of
-    1.293 :math:`k_B`, and Cv low by a factor of about 135 (11.6²).
+        Entropy in :math:`k_B` per ion.
+    C : ndarray, shape (n,)
+        Heat capacity in :math:`k_B` per ion.
     """
-    Z = np.zeros(len(T))
-    E = np.zeros(len(T))
-    E2 = np.zeros(len(T))
+    T = np.asarray(T, dtype=float)
+    E = np.asarray(cefion.energies)
+    E0 = E.min()
+    dE = E - E0  # >= 0, meV
+    kT = C.K2meV * T  # meV
+    w = np.exp(-dE / kT[..., np.newaxis])  # <= 1: no overflow, the ground state gives 1
+    z = w.sum(axis=-1)
+    p = w / z[..., np.newaxis]
+    mean = np.sum(p * dE, axis=-1)  # U - E0
+    variance = np.sum(p * (dE - mean[..., np.newaxis]) ** 2, axis=-1)  # about the thermal mean
 
-    for En in cefion.energies:
-        Z += np.exp(-En * C.meV2K / T)
-        E += En * np.exp(-En * C.meV2K / T)
-        E2 += En * En * np.exp(-En * C.meV2K / T)
+    with np.errstate(over="ignore", under="ignore"):
+        Z = z * np.exp(-E0 / kT)  # may leave the float range; U, F, S, C don't use it
+    U = E0 + mean
+    F = E0 - kT * np.log(z)
+    S = mean / kT + np.log(z)
+    Cv = variance / kT**2
 
-    E /= Z
-    E2 /= Z
-
-    # AUDIT P3: F in K, E in meV; S and Cv mix the two.
-    F = -T * np.log(Z)
-    S = (E - F) / T
-    Cv = (E2 - E**2) / T**2
-
-    return Z, E, F, S, Cv
+    return Z, U, F, S, Cv

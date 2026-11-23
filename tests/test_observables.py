@@ -287,8 +287,8 @@ def test_conv_0009_tetragonal_tensor():
 
 
 # --- thermodynamics -------------------------------------------------------
-# Identities that hold in any consistent set of units, so they do not choose
-# the units of the returns (C1, C11).
+# U and F in meV per ion, S and C in k_B per ion (CONV-0003). The identities
+# S = -(dF/dT) / k_B and C = (dU/dT) / k_B carry k_B (meV/K) for those units.
 
 
 def _thermo(temperatures):
@@ -311,28 +311,71 @@ def test_partition_function_and_energy():
     assert np.allclose(U, (w * E).sum(1) / w.sum(1), rtol=1e-5)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P3: meV and K mixed in S")
 @pytest.mark.parametrize("temperature", T)
 def test_entropy_is_minus_dF_dT(temperature):
-    """S = -dF/dT."""
+    """S = -(dF/dT) / k_B, S in k_B and F in meV per ion."""
     S = _thermo([temperature])[3][0]
-    assert S == pytest.approx(-_derivative(2, temperature), rel=1e-4)
+    assert S == pytest.approx(-_derivative(2, temperature) / KB, rel=1e-4)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P3: meV and K mixed in Cv")
 @pytest.mark.parametrize("temperature", T)
 def test_heat_capacity_is_dE_dT(temperature):
-    """Cv = dE/dT."""
+    """Cv = (dU/dT) / k_B, Cv in k_B and U in meV per ion."""
     Cv = _thermo([temperature])[4][0]
-    assert Cv == pytest.approx(_derivative(1, temperature), rel=1e-4)
+    assert Cv == pytest.approx(_derivative(1, temperature) / KB, rel=1e-4)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT P3: meV and K mixed in S and Cv")
 @pytest.mark.parametrize("temperature", T)
 def test_heat_capacity_is_T_dS_dT(temperature):
     """Cv = T dS/dT."""
     Cv = _thermo([temperature])[4][0]
     assert Cv == pytest.approx(temperature * _derivative(3, temperature), rel=1e-4)
+
+
+def _boltzmann_entropy_and_heat_capacity(energies, temperature):
+    """S = -sum p ln p and C = <(E - <E>)^2> / (k_B T)^2, in k_B, from the populations."""
+    x = (energies - energies.min()) / (KB * temperature)
+    p = np.exp(-x) / np.exp(-x).sum()
+    S = -np.sum(p[p > 0] * np.log(p[p > 0]))
+    C = np.sum(p * (x - np.sum(p * x)) ** 2)
+    return S, C
+
+
+@pytest.mark.parametrize("B00", [0.0, 1.0])  # meV
+def test_entropy_and_heat_capacity_independent_of_B00(B00):
+    """S and C in k_B per ion do not depend on the zero of energy (CONV-0014, H2).
+
+    Ce3+, B20=0.5, B40=0.01, B44=0.1 meV at 10 K: S = 1.2927, C = 0.1702 k_B
+    (AUDIT_GPT H2) from the Boltzmann sums.
+    """
+    temperature = 10.0  # K
+    cef = _ce(dict(TETRAGONAL, B00=B00))
+    _, U, F, S, C = qc.thermodynamics(cef, np.array([temperature]))
+    S_ref, C_ref = _boltzmann_entropy_and_heat_capacity(cef.energies, temperature)
+    assert S[0] == pytest.approx(S_ref, rel=1e-12)
+    assert C[0] == pytest.approx(C_ref, rel=1e-12)
+    assert S[0] == pytest.approx(1.292718, abs=1e-6) and C[0] == pytest.approx(0.170246, abs=1e-6)
+    _, U0, F0, _, _ = qc.thermodynamics(_ce(), np.array([temperature]))
+    assert U[0] - U0[0] == pytest.approx(B00, abs=1e-12) and F[0] - F0[0] == pytest.approx(
+        B00, abs=1e-12
+    )
+
+
+def test_thermodynamics_finite_at_low_temperature():
+    """Ce3+ with B20=1 meV at 0.1 K: U -> -8 meV, F -> -8 meV - k_B T ln 2, S -> ln 2, C -> 0 (H3).
+
+    The ground doublet lies at -8 meV and the next level 6 meV above it, so
+    the excited levels carry exp(-6 meV / k_B T) ~ 1e-302 of the weight.
+    """
+    temperature = 0.1  # K
+    cef = _ce(dict(B20=1.0))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _, U, F, S, C = qc.thermodynamics(cef, np.array([temperature]))
+    assert U[0] == pytest.approx(-8.0, abs=1e-12)
+    assert F[0] == pytest.approx(-8.0 - KB * temperature * np.log(2), abs=1e-12)
+    assert S[0] == pytest.approx(np.log(2), rel=1e-12)
+    assert C[0] == pytest.approx(0.0, abs=1e-12)
 
 
 # --- CONV-0012: the scattering function as excitations --------------------
