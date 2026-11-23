@@ -380,17 +380,20 @@ class CEFion:
         :func:`_degenerate_levels` (CONV-0008). Under each level its states
         are printed in the canonical basis of CONV-0011, written in the
         free-ion kets, leaving out coefficients smaller than
-        ``10**-precision``:
+        ``10**-precision`` (one at the cutoff is kept):
 
         1. J_z is diagonalised inside the level, states ordered by <J_z>
            ascending; where J_z is degenerate there (within
            ``config.rtol * J``), J_x and then J_y are diagonalised inside
            that subspace.
-        2. Half-integer J in zero field: each state with <J_z> < 0 gets the
-           phase that makes its largest component real and positive, and its
-           partner is its time reverse, Θ|m> = (-1)^(J-m) |-m> followed by
-           complex conjugation.
+        2. Half-integer J, zero field and no parameter of odd rank (a
+           Hamiltonian even under time reversal): each state with <J_z> < 0
+           gets the phase that makes its largest component real and
+           positive, and its partner is its time reverse,
+           Θ|m> = (-1)^(J-m) |-m> followed by complex conjugation.
         3. Otherwise each state gets that phase on its own.
+
+        Every printed state lies inside its level.
 
         ``eigenvectors`` are not changed.
 
@@ -419,7 +422,15 @@ class CEFion:
         if not len(self.energies):
             return "Undiagonalized Hamiltonian"
 
-        kramers = self.Jval % 1 == 0.5 and not np.any(self.Hfield)
+        # Time reversal pairs the states only of a time-even Hamiltonian: no
+        # field and no odd-rank parameter (O_lm with odd l is odd under it).
+        odd_rank = any(
+            int(name[1]) % 2 == 1 and value != 0 for name, value in self.cfp.Bpars.items()
+        )
+        kramers = self.Jval % 1 == 0.5 and not np.any(self.Hfield) and not odd_rank
+        # Coefficients at the cutoff are kept, within config.rtol, so that a
+        # pure ket survives precision = 0.
+        cutoff = 10.0**-precision * (1 - config.rtol)
 
         lines = [
             f"Energy levels{' and eigenvectors' if evecs else ''}, energies above the "
@@ -435,7 +446,7 @@ class CEFion:
                     components = [
                         f"({c:.{precision}f}){ket}"
                         for c, ket in zip(ev, self.freeionkets)
-                        if np.abs(c) > 10.0**-precision
+                        if np.abs(c) >= cutoff
                     ]
                     block.append(f"ev_{level}: " + " + ".join(components))
             lines.append("\n".join(block))

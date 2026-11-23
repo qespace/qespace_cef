@@ -6,6 +6,7 @@ removed.
 """
 
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -427,3 +428,37 @@ def test_conv_0011_kramers_partners_by_time_reversal(name, pars, field):
         for i in range(d // 2):
             assert np.real(states[i].conj() @ _jz(J) @ states[i]) < 0
             assert np.allclose(_time_reversal(states[i], J), states[d - 1 - i], rtol=0, atol=1e-9)
+
+
+# --- summary: time reversal and the coefficient cutoff (H5, L2) -----------
+
+
+@pytest.mark.parametrize(
+    ("name", "pars", "field"),
+    [
+        ("Ce", dict(B20=1.0, B10=-6.0), (0, 0, 0)),  # odd rank: not time-even
+        ("Ce", dict(B20=0.5, B40=0.01, B44=0.1), (0, 0, 0)),
+        ("Er", LOW_SYMMETRY, (0.1, 0.2, 0.3)),
+    ],
+)
+def test_summary_states_lie_in_their_level(name, pars, field):
+    """Every printed state lies inside the eigenspace of its level (H5).
+
+    Ce3+ with B20=1, B10=-6 meV: the ground level is |+1/2>, |+3/2> at
+    -11 meV. B10 J_z is odd under time reversal, so pairing a state with its
+    time reverse put |-1/2> (at -5 meV) into the ground level.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # odd-rank parameters warn
+        cef = _cefion(name, pars, field)
+    for level, states in zip(_degenerate_levels(cef.energies), _printed_basis(cef)):
+        V = cef.eigenvectors[level]  # rows span the level
+        residual = states - (states @ V.conj().T) @ V
+        assert np.abs(residual).max() < 1e-9
+
+
+def test_summary_precision_zero_keeps_pure_kets():
+    """``precision=0`` keeps coefficients at the cutoff 10^0 = 1: pure kets are printed (L2)."""
+    text = _cefion("Ce", dict(B20=1.0)).summary(precision=0)
+    lines = [line for line in text.splitlines() if line.startswith("ev_")]
+    assert len(lines) == 6 and all("|" in line for line in lines)
