@@ -9,15 +9,17 @@ from .ion import Ion
 
 
 def _degenerate_levels(energies: ArrayLike) -> list[slice]:
-    r"""The levels of CONV-0008, as slices of the ascending energies.
+    r"""The levels of CONV-0015, as slices of the ascending energies.
 
     Two consecutive energies belong to the same level when
 
-    .. math:: E_{i+1} - E_i \le r_\mathrm{tol} \, \max(\max_k |E_k|, E_\mathrm{floor}),
+    .. math:: E_{i+1} - E_i \le r_\mathrm{tol} \, \max(\max_k E_k - \min_k E_k, E_\mathrm{floor}),
 
     with ``rtol`` and ``E_floor`` read from :mod:`qespace_cef.config` at
     call time (defaults 10⁻¹⁰ and 1 meV). A level ends wherever two
-    consecutive energies differ by more than that.
+    consecutive energies differ by more than that. The scale is the spread
+    of the energies, so a shift of all of them (``B00``) does not change
+    the grouping.
 
     Parameters
     ----------
@@ -55,7 +57,8 @@ def _degenerate_levels(energies: ArrayLike) -> list[slice]:
     gaps = np.diff(E)
     if np.any(gaps < 0):
         raise ValueError("energies must be ascending.")
-    tolerance = config.rtol * max(float(np.abs(E).max()), config.E_floor)
+    # The spread, not max|E|: a shift of all energies (B00) leaves it unchanged.
+    tolerance = config.rtol * max(float(E[-1] - E[0]), config.E_floor)
     bounds = [0, *(np.flatnonzero(gaps > tolerance) + 1).tolist(), E.size]
     return [slice(start, stop) for start, stop in zip(bounds[:-1], bounds[1:])]
 
@@ -353,7 +356,7 @@ class CEFion:
         return np.real(mu + mu.conj()) / 2
 
     def get_degeneracies(self) -> list[list]:
-        """Energy levels and their degeneracies, grouped by CONV-0008.
+        """Energy levels and their degeneracies, grouped by CONV-0015.
 
         The ``energies`` are grouped into levels by
         :func:`_degenerate_levels`, with the tolerance from
@@ -377,7 +380,7 @@ class CEFion:
         The levels are the ``excitation_energies``, measured from the ground
         state, whose energy ``energies[0]`` is given in the first line
         (CONV-0010). The states are grouped into levels by
-        :func:`_degenerate_levels` (CONV-0008). Under each level its states
+        :func:`_degenerate_levels` (CONV-0015). Under each level its states
         are printed in the canonical basis of CONV-0011, written in the
         free-ion kets, leaving out coefficients smaller than
         ``10**-precision`` (one at the cutoff is kept):

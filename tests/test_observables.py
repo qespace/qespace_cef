@@ -121,8 +121,28 @@ def test_susceptibility_prints_nothing(capsys):
 
 
 def _level_tolerance(energies):
-    """The tolerance of CONV-0008 with its defaults rtol = 1e-10, E_floor = 1 meV, in meV."""
-    return 1e-10 * max(np.abs(energies).max(), 1.0)
+    """The tolerance of CONV-0015 with its defaults rtol = 1e-10, E_floor = 1 meV, in meV."""
+    return 1e-10 * max(np.max(energies) - np.min(energies), 1.0)
+
+
+def test_conv_0015_susceptibility_independent_of_B00():
+    """chi does not change when B00 shifts all energies (CONV-0014, CONV-0015, M5).
+
+    Ce3+ with B20 = 5e-11 meV at 1e-9 K, a case sensitive to the grouping:
+    with a tolerance from max|E|, B00 = 10 meV merged the three doublets, and
+    chi_xx moved from 1.616e9 to 2.083e9 muB/T (29 %).
+
+    What remains is rounding: shifted by 10 meV, the eigenvalues carry an
+    error of about eps * 10 meV on splits of 3e-10 meV, and the van Vleck
+    weight goes as 1 / split, so chi agrees to eps * max|E| / min split.
+    """
+    temperature = 1e-9  # K
+    cefs = [_ce(dict(B20=5e-11, B00=B00)) for B00 in (0.0, 10.0)]
+    chi = [qc.susceptibility(cef, temperature) for cef in cefs]
+    E = cefs[1].energies
+    split = np.diff(E)[np.diff(E) > 1e-13].min()  # meV, between the doublets
+    bound = np.finfo(float).eps * np.abs(E).max() / split  # about 7e-6
+    assert np.abs(chi[1] - chi[0]).max() <= bound * np.abs(chi[0]).max()
 
 
 TETRAGONAL_PR = dict(B20=0.3, B40=0.01, B44=0.05)  # Pr3+, meV, test values: two doublets
@@ -135,7 +155,7 @@ TETRAGONAL_PR = dict(B20=0.3, B40=0.01, B44=0.05)  # Pr3+, meV, test values: two
     ("B22", "below"), [(1e-12, True), (1e-11, True), (1e-9, False), (1e-8, False)]
 )  # meV
 def test_susceptibility_continuous_through_degeneracy(B22, below):
-    """chi is continuous as a splitting shrinks through the tolerance (CONV-0008, P20).
+    """chi is continuous as a splitting shrinks through the tolerance (CONV-0015, P20).
 
     A tiny B22 splits the two doublets of the tetragonal Pr3+ ion, in zero
     field (chi is a zero-field quantity, CONV-0013). Below the tolerance each
@@ -174,8 +194,8 @@ def test_conv_0013_susceptibility_is_zero_field(method):
     np.testing.assert_allclose(chi, expected, rtol=0, atol=rel * expected.max())
 
 
-def test_conv_0008_susceptibility_levels_from_config(monkeypatch):
-    """The Curie and van Vleck pairs follow the levels of CONV-0008, read at call time.
+def test_conv_0015_susceptibility_levels_from_config(monkeypatch):
+    """The Curie and van Vleck pairs follow the levels of CONV-0015, read at call time.
 
     With rtol = 0.5 the tolerance, 0.5 max|E| = 3.2 meV, merges the two lower
     doublets of the tetragonal Ce3+ ion (0.78 meV apart) into one level, so
@@ -184,7 +204,7 @@ def test_conv_0008_susceptibility_levels_from_config(monkeypatch):
     """
     temperature = 5.0  # K
     cef = _ce()
-    tolerance = 0.5 * np.abs(cef.energies).max()  # meV
+    tolerance = 0.5 * (cef.energies.max() - cef.energies.min())  # meV
     assert np.diff(cef.energies)[1] < tolerance < np.diff(cef.energies)[3]
     monkeypatch.setattr(qc.config, "rtol", 0.5)
     default = _chi_exact(cef, temperature, [1, 0, 0]) * MUB
@@ -670,8 +690,8 @@ def test_gtensor_principal_values_axial():
 
 
 @pytest.mark.parametrize(("field", "doublet"), [(1e-10, True), (1e-6, False)])  # T
-def test_conv_0008_gtensor_ground_doublet(field, doublet):
-    """The ground doublet is a level of CONV-0008: a split below the tolerance still counts.
+def test_conv_0015_gtensor_ground_doublet(field, doublet):
+    """The ground doublet is a level of CONV-0015: a split below the tolerance still counts.
 
     A field along x splits the ground doublet of the tetragonal Ce3+ ion by
     6e-12 meV at 1e-10 T (below the tolerance, 6.4e-10 meV) and by 6e-8 meV at

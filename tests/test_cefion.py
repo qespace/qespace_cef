@@ -131,7 +131,7 @@ def test_summary_options():
 
 
 def test_summary_groups_levels_for_printing():
-    """States in one level of CONV-0008 print as one level; a larger splitting does not.
+    """States in one level of CONV-0015 print as one level; a larger splitting does not.
 
     Cubic Pr3+: eigh returns the 28.584 meV doublet as two values that differ
     by rounding noise; the print groups them. Ce3+ in 1e-6 T splits each
@@ -260,7 +260,7 @@ def test_degeneracies_report_mean_energy(name, pars):
         assert energy == pytest.approx(group.mean(), rel=1e-12, abs=1e-12 * np.abs(e).max())
 
 
-# --- CONV-0008: degenerate levels -----------------------------------------
+# --- CONV-0015: degenerate levels -----------------------------------------
 # Expected values from the physics (Kramers' theorem, the free ion), not from
 # the code under test.
 
@@ -282,7 +282,7 @@ def _degeneracies(energies):
     return [s.stop - s.start for s in _degenerate_levels(energies)]
 
 
-def test_conv_0008_kramers_doublets_are_one_level():
+def test_conv_0015_kramers_doublets_are_one_level():
     """In 200 low-symmetry Hamiltonians of Kramers ions every level is one exact doublet."""
     rng = np.random.default_rng(8)
     for k in range(200):
@@ -291,7 +291,7 @@ def test_conv_0008_kramers_doublets_are_one_level():
 
 
 @pytest.mark.parametrize("name", ALL_IONS)
-def test_conv_0008_free_ion_is_one_level(name):
+def test_conv_0015_free_ion_is_one_level(name):
     """H = 0: all 2J+1 states form one level (the tolerance is rtol E_floor)."""
     cef = _cefion(name, {})
     assert _degeneracies(cef.energies) == [int(2 * cef.ion.J + 1)]
@@ -301,7 +301,7 @@ def test_conv_0008_free_ion_is_one_level(name):
     ("name", "pars"),
     [("Ce", LOW_SYMMETRY), ("Er", LOW_SYMMETRY), ("Pr", CUBIC_PR), ("Ho", CUBIC_HO)],
 )
-def test_conv_0008_grouping_stable_under_perturbation(name, pars):
+def test_conv_0015_grouping_stable_under_perturbation(name, pars):
     """A random Hermitian perturbation of size eps max|E| leaves the levels unchanged."""
     H = _cefion(name, pars).hamiltonian
     levels = _degenerate_levels(np.linalg.eigvalsh(H))
@@ -314,7 +314,7 @@ def test_conv_0008_grouping_stable_under_perturbation(name, pars):
         assert _degenerate_levels(np.linalg.eigvalsh(H + dH)) == levels
 
 
-def test_conv_0008_tolerance_read_from_config_at_call_time(monkeypatch):
+def test_conv_0015_tolerance_read_from_config_at_call_time(monkeypatch):
     """rtol and E_floor come from qespace_cef.config when the function is called."""
     E = np.array([-1e-3, -1e-3 + 5e-11, 1e-3])  # meV; split 5e-11 meV
     assert _degeneracies(E) == [2, 1]  # tolerance 1e-10 * max(1e-3, 1) meV
@@ -462,3 +462,15 @@ def test_summary_precision_zero_keeps_pure_kets():
     text = _cefion("Ce", dict(B20=1.0)).summary(precision=0)
     lines = [line for line in text.splitlines() if line.startswith("ev_")]
     assert len(lines) == 6 and all("|" in line for line in lines)
+
+
+@pytest.mark.parametrize("B00", [0.0, 10.0])  # meV
+def test_conv_0015_grouping_independent_of_B00(B00):
+    """A shift of all energies by B00 leaves the levels unchanged (M5).
+
+    Ce3+ with B20 = 5e-11 meV: three doublets split by 3e-10 and 4.5e-10 meV,
+    above the tolerance rtol * max(spread, E_floor) = 1e-10 meV. With a
+    tolerance from max|E| = 10 meV, B00 = 10 merged them into one level.
+    """
+    cef = _cefion("Ce", dict(B20=5e-11, B00=B00))
+    assert _degeneracies(cef.energies) == [2, 2, 2]

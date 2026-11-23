@@ -57,7 +57,7 @@ def scattering_function(cefion: CEFion, temperature: float) -> tuple[np.ndarray,
 
     The entries form an unordered set (CONV-0012): they carry no level
     information, may share an energy and may have zero weight, and only
-    sums over the entries at one energy (CONV-0008) are meaningful. (Here
+    sums over the entries at one energy (CONV-0015) are meaningful. (Here
     entry ``k`` is the pair ``(i, f) = divmod(k, n)``.)
 
     Parameters
@@ -374,12 +374,12 @@ def susceptibility(
 
     with :math:`p_n` the Boltzmann populations, both sums over all states,
     energies in meV, :math:`\mu_B` in meV/T, and :math:`E_m = E_n` when the
-    two states belong to one level of CONV-0008
+    two states belong to one level of CONV-0015
     (:func:`qespace_cef.cefion._degenerate_levels`). The van Vleck
     weight is evaluated as
     :math:`p_n (1 - e^{-(E_m - E_n)/k_B T}) / (E_m - E_n)` on the pairs
     :math:`E_m > E_n`, with ``expm1``, and mirrored, :math:`W_{mn} = W_{nm}`,
-    so it stays accurate as two levels approach each other (CONV-0008).
+    so it stays accurate as two levels approach each other (CONV-0015).
 
     ``'magnetization'`` takes the finite difference
     :math:`\chi_{\alpha\beta} = M_\alpha(\epsilon \hat{e}_\beta) / \epsilon`
@@ -432,7 +432,7 @@ def susceptibility(
             cefion = CEFion(ion=cefion.ion, cfp=cefion.cfp)
         J = np.asarray(cefion.J)  # (3, n, n), in the eigenbasis
         # jumps[n, m] = E_m - E_n; degenerate pairs are the pairs of states in
-        # one level of CONV-0008 (CONV-0009 defers to it).
+        # one level of CONV-0015 (CONV-0013 defers to it).
         jumps = cefion.energies[np.newaxis, :] - cefion.energies[:, np.newaxis]
         level = np.empty(len(cefion.energies), dtype=np.int64)
         for k, states in enumerate(_degenerate_levels(cefion.energies)):
@@ -448,7 +448,7 @@ def susceptibility(
             # (p_n - p_m) / (E_m - E_n) for every other pair, in both orders.
             # The van Vleck weight is p_n (1 - exp(-(E_m - E_n) / k_B T)) /
             # (E_m - E_n), with expm1 on the pairs E_m > E_n only: it does
-            # not cancel for a pair near the degeneracy rule (CONV-0008),
+            # not cancel for a pair near the degeneracy rule (CONV-0015),
             # and its argument is never positive, so it cannot overflow.
             # W is symmetric, so the pairs E_m < E_n take W[m, n] = W[n, m].
             p = boltzman_population(cefion.energies, temperature)
@@ -490,7 +490,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     Raises
     ------
     ValueError
-        If the ground level of CONV-0008
+        If the ground level of CONV-0015
         (:func:`qespace_cef.cefion._degenerate_levels`) does not have
         exactly two states.
 
@@ -510,7 +510,7 @@ def gtensor(cefion: CEFion) -> np.ndarray:
     How g should be defined is open (AUDIT C7).
     """
 
-    ground = _degenerate_levels(cefion.energies)[0]  # CONV-0008
+    ground = _degenerate_levels(cefion.energies)[0]  # CONV-0015
     if ground.stop - ground.start != 2:
         raise ValueError(
             f"The ground level has {ground.stop - ground.start} states, not 2: "
