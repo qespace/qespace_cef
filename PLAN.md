@@ -42,14 +42,14 @@ package code changes.
   relies on (a).
 - **Q31 (ADR-0002).** Observables as functions, `cef.magnetization(H, T)`
   (recommended), or as methods, `H.magnetization(T)`?
-- **Q50.** Where the audit lives: (a) the rule as a draft ADR-0005 and the
+- **Q50.** Where the audit lives: (a) the rule as a draft ADR-0006 and the
   old → new table as a tracking file next to `AUDIT.md` (recommended); (b)
   everything in AUDIT section 4, as Q2.
 - **Q51.** v2 next to v1, in new modules, v1 removed when v2 is complete
   (recommended: `main` stays usable, batched results compare against v1);
   or v1 rewritten in place?
 
-**Files.** `PLAN.md`, `AUDIT.md`, and by Q50 a draft ADR-0005 and the
+**Files.** `PLAN.md`, `AUDIT.md`, and by Q50 a draft ADR-0006 and the
 table file.
 
 ## In parallel: decisions only you can take
