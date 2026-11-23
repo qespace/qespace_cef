@@ -101,9 +101,8 @@ its `xfail` green and carries `!` and `BREAKING CHANGE` when results change.
 
 1. **`fix/conventions`**: the fixes that wait for a CONV (section 6.2) or
    need sources: P3, P4, P13, P14, P16, P17. Probably two branches.
-2. **`refactor/api-v2`**, version 2.0, on ADR-0002 and ADR-0003: A2–A4, A10,
-   A11, A14, A15, Q2 (with Q26). Planned first (CLAUDE.md 2.3),
-   after Q29 and Q31.
+2. **`refactor/api-v2`**, version 2.0, on ADR-0003, ADR-0005 and ADR-0006: A2–A4, A10,
+   A11, A14, A15, Q2, P21. Planned first (CLAUDE.md 2.3).
 3. Later: A6 and A7 (in `ROADMAP.md`), A8, A9.
 
 ## 8. Questions for the maintainer
@@ -116,17 +115,6 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   units of the thermodynamic quantities (Q44).
 - **Q12 (P16, CONV-0001).** Should `CEFpars` accept odd-rank parameters
   (l = 1, 3, 5)? CONV-0001 tabulates only even l.
-- **Q26 (Q2).** The naming rule for everything but the classes (ADR-0002):
-  snake_case for words and physics symbols as in the formulas (which ones?),
-  and is it a rule for this package or for the whole suite (the workspace's
-  `DEV.md` and glossary)?
-- **Q29 (ADR-0002).** When is a `Hamiltonian` solved? (a) It is immutable and
-  solves itself on first access to `energies` (cached); a new `Blm` means a
-  new `Hamiltonian`, so a fit loop never sees a stale solution (A2). (b) An
-  explicit `H.solve()` that fills the object in place. I recommend (a).
-- **Q31 (ADR-0002).** Observables as functions, `cef.magnetization(H, T)` as
-  in v1, or as methods, `H.magnetization(T)`? I recommend functions: new
-  observables then don't change the class.
 - **Q32 (ADR-0001).** IDs: this package numbers its own `ADR-xxxx` and
   `CONV-xxxx`, and a suite ADR copied here keeps its suite ID (CLAUDE.md 3.4),
   so two different ADR-0001 can meet. Prefix ours (e.g. `CEF-ADR-0001`), or
@@ -154,8 +142,8 @@ Answered questions are removed; their answers are in the ADRs, the CONVs and
   level information, as CONV-0012 says; that came from a misunderstanding
   (maintainer, 2026-11-22). Intended: `energies` are the levels of the
   Hamiltonian, (n,); the transition energies `E_f − E_i` keep the pairs,
-  (n, n), and so do the weights, (n, n, 3, 3) and (n, n). As a solved
-  Hamiltonian is immutable (Q29), the pair (i, f) traces back to the levels;
+  (n, n), and so do the weights, (n, n, 3, 3) and (n, n). As an `Ion` is
+  immutable (ADR-0005), the pair (i, f) traces back to the levels;
   the shape costs nothing, as a reshape is a view. Needs a CONV superseding
   CONV-0012, then `scattering_function`, the cross sections and the
   `test_conv_0012_*` tests follow.

@@ -1,7 +1,7 @@
 ---
 id: ADR-0006
 title: Names of the public API
-status: draft
+status: accepted
 date: 2026-11-23
 supersedes:
 superseded_by:

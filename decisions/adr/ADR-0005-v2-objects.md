@@ -1,7 +1,7 @@
 ---
 id: ADR-0005
 title: The v2 package qespace_cft and its objects IonData, CrystalFieldParameters and Ion
-status: draft
+status: accepted
 date: 2026-11-23
 supersedes: ADR-0002
 superseded_by:
@@ -57,8 +57,18 @@ Option 2. The package is `qespace_cft`, crystal-field theory, used as
 
 Names inside these objects, and the module names, follow ADR-0006.
 
-`OPEN:` when an `Ion` is solved and whether it is immutable (Q29).
-`OPEN:` observables as functions or methods (Q31).
+An `Ion` is immutable (Q29, Q75): its inputs are checked when it is built,
+and the Hamiltonian, the eigensystem and `Jxyz` are computed on first
+access, cached, and returned read-only. There is no solve flag and no
+`solve()`; another input means another `Ion`.
+
+Observables are functions that take the `Ion` (Q31), not methods of it, so
+a new observable doesn't change the class.
+
+v2 is built in a new package directory `qespace_cft/` next to the
+unchanged `qespace_cef/` (Q51, Q76), so the two `Ion` classes and `ion`
+modules never meet, v1 stays usable, and tests compare v2 with v1.
+`qespace_cef/` is removed at 2.0.
 
 ## Consequences
 
@@ -68,5 +78,7 @@ names the ion in its crystal field, not the free ion of v1. The repository
 is renamed when the names are final. A notation is added by its
 conversion, not by a new class. A `CrystalFieldParameters` is built
 without choosing an ion; the ion comes with `Ion`. `Jxyz` costs memory,
-`S + (3, 2J+1, 2J+1)`: 139 MB per 10⁴ points at J = 8. Rotated from the
-kept free-ion J, it cannot be rotated twice.
+`S + (3, 2J+1, 2J+1)`: 139 MB per 10⁴ points at J = 8; lazy, it is built
+only for observables that need it. Rotated from the kept free-ion J, it
+cannot be rotated twice. During the transition the build packages both
+directories.

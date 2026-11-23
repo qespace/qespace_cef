@@ -1,10 +1,15 @@
 ---
 id: ADR-0002
 title: The v2 objects Ion, Blm and Hamiltonian
-status: accepted
+status: superseded
 date: 2026-11-20
 supersedes:
+superseded_by: ADR-0005
 ---
+
+> Superseded by ADR-0005 on 2026-11-23: the package becomes `qespace_cft`
+> with `IonData`, `CrystalFieldParameters` and `Ion`; `Ion` is immutable and
+> lazy, observables are functions.
 
 ## Context
 

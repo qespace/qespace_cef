@@ -2,7 +2,7 @@
 
 The names of v1 and the names they get in v2: step 1 and 2 of the naming
 audit in [`PLAN.md`](PLAN.md). This file tracks; it is not a rule
-(ADR-0004). The rule it leads to is a draft ADR-0006 (Q26), and it is the
+(ADR-0004). The rule it led to is ADR-0006 (Q26), and it is the
 first version of the suite glossary, which does not exist yet (Q56).
 
 Taken from `main` at `a1fac60` by introspection (`dir`,
@@ -161,10 +161,10 @@ GitHub by you once the names are final (Q73).
 
 ## Decisions these need
 
-- ADR-0005 (draft) supersedes ADR-0002: the package `qespace_cft`,
+- ADR-0005 (accepted) supersedes ADR-0002: the package `qespace_cft`,
   `IonData`, `CrystalFieldParameters`, `Ion`. What each notation means and its conversion factors stay in
   CONV-0001 (ADR-0004).
-- ADR-0006 (draft): the naming rules and the names of the v2 API (Q26).
+- ADR-0006 (accepted): the naming rules and the names of the v2 API (Q26).
 
 ## Open
 
